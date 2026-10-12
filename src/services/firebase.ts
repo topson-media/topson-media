@@ -13,11 +13,15 @@ import {
   orderBy,
   limit,
   getDocFromServer,
-  where
+  where,
+  addDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { VideoItem, FeedbackItem, ChatMessage, User, EmailMessage, VideoComment } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
+import { getYouTubeThumbnail } from '../utils/youtubeHelper';
+import { formatUploadedTimeAgo } from '../utils/timeAgo';
 
 // Initialize Firebase App
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -37,81 +41,232 @@ export async function testFirestoreConnection(): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// 1. VIDEOS (Real-time Database CRUD & Engagement)
+// 1. VIDEOS & VIDEO TUTORIALS (Real-time Database CRUD & Engagement)
 // ---------------------------------------------------------------------------
-export function subscribeToVideos(callback: (videos: VideoItem[]) => void) {
+
+export const DEFAULT_TUTORIALS = [
+  {
+    title: 'Top Secret Android & iPhone Settings You Must Turn Off Now',
+    category: 'phone',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    thumbnail: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80',
+    duration: '12:45',
+    description: 'Crucial smartphone privacy, battery saving and security tweaks for both Android and iOS users.',
+    views: '3.4K views',
+    viewsCount: 3420,
+    likes: 184,
+  },
+  {
+    title: 'How to Make Any Slow Windows PC 10x Faster (No Software Needed)',
+    category: 'pc',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    thumbnail: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=1200&q=80',
+    duration: '15:20',
+    description: 'Step-by-step PC optimization tips, startup management, memory tweaks and registry cleaning.',
+    views: '4.8K views',
+    viewsCount: 4890,
+    likes: 247,
+  },
+  {
+    title: 'Master AI & Modern Digital Tools in 2025: Complete Beginner Guide',
+    category: 'digital',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    thumbnail: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    duration: '18:10',
+    description: 'Supercharge your productivity, workflow, and digital skills using modern AI applications.',
+    views: '2.9K views',
+    viewsCount: 2910,
+    likes: 195,
+  },
+  {
+    title: 'Phone Battery Health & Charging Habits: Stop Ruining Your Battery',
+    category: 'phone',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    thumbnail: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=1200&q=80',
+    duration: '09:35',
+    description: 'The science of lithium-ion smartphone batteries and how to keep battery maximum capacity at 100%.',
+    views: '2.1K views',
+    viewsCount: 2120,
+    likes: 130,
+  },
+];
+
+let hasSeededTutorials = false;
+export async function seedInitialTutorialsIfEmpty(): Promise<void> {
+  if (hasSeededTutorials) return;
+  hasSeededTutorials = true;
   try {
-    const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'));
+    const coll = collection(db, 'video_tutorials');
+    const existingSnap = await getDocs(query(coll, limit(1)));
+    if (!existingSnap.empty) return;
+
+    for (const item of DEFAULT_TUTORIALS) {
+      await addDoc(coll, {
+        title: item.title,
+        category: item.category,
+        video_url: item.video_url,
+        created_at: serverTimestamp(),
+        thumbnail: item.thumbnail,
+        duration: item.duration,
+        description: item.description,
+        views: item.views,
+        viewsCount: item.viewsCount,
+        likes: item.likes,
+        likedBy: [],
+        comments: [],
+      });
+    }
+  } catch (err) {
+    console.warn('Could not seed initial video tutorials:', err);
+  }
+}
+
+export function subscribeToVideoTutorials(callback: (videos: VideoItem[]) => void) {
+  try {
+    const q = query(collection(db, 'video_tutorials'), orderBy('created_at', 'desc'));
     return onSnapshot(
       q,
       (snapshot) => {
-        const videos: VideoItem[] = [];
+        if (snapshot.empty) {
+          seedInitialTutorialsIfEmpty();
+          return;
+        }
+
+        const list: VideoItem[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          videos.push({
+          const rawCat = data.category || 'phone';
+          const categoryName =
+            rawCat === 'phone' ? 'Phone Mastery' :
+            rawCat === 'pc' ? 'PC Performance' :
+            rawCat === 'digital' ? 'Digital Skills' :
+            rawCat;
+
+          const rawUrl = data.video_url || data.videoUrl || '';
+          const autoYtThumb = rawUrl ? getYouTubeThumbnail(rawUrl) : null;
+          const thumbnail = data.thumbnail || autoYtThumb || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
+
+          let uploadTs = Date.now();
+          if (data.created_at) {
+            if (typeof data.created_at.toMillis === 'function') {
+              uploadTs = data.created_at.toMillis();
+            } else if (typeof data.created_at.toDate === 'function') {
+              uploadTs = data.created_at.toDate().getTime();
+            } else if (typeof data.created_at === 'number') {
+              uploadTs = data.created_at;
+            }
+          }
+          const dateStr = formatUploadedTimeAgo(uploadTs);
+
+          list.push({
             id: docSnap.id,
             title: data.title || '',
-            category: data.category || 'Phone Mastery',
+            category: categoryName,
             duration: data.duration || '10:00',
-            views: data.views || '0 views',
+            views: data.views || (typeof data.viewsCount === 'number' ? `${data.viewsCount} views` : '1.5K views'),
             viewsCount: typeof data.viewsCount === 'number' ? data.viewsCount : 0,
-            date: data.date || 'Just now',
-            thumbnail: data.thumbnail || '',
-            youtubeId: data.youtubeId,
-            videoUrl: data.videoUrl || '',
+            viewedBy: Array.isArray(data.viewedBy) ? data.viewedBy : [],
+            date: dateStr,
+            createdAt: uploadTs,
+            uploadTimestamp: uploadTs,
+            thumbnail,
+            videoUrl: rawUrl,
             sourceType: data.sourceType || 'link',
-            description: data.description || '',
-            tags: Array.isArray(data.tags) ? data.tags : [],
+            description: data.description || `Tutorial on ${data.title || ''}`,
+            tags: Array.isArray(data.tags) ? data.tags : [categoryName],
             likes: typeof data.likes === 'number' ? data.likes : 0,
             likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
             comments: Array.isArray(data.comments) ? data.comments : [],
           });
         });
-        callback(videos);
+        callback(list);
       },
       (error) => {
-        console.warn('Firestore videos subscription fallback:', error);
+        console.warn('Firestore video_tutorials subscription fallback:', error);
       }
     );
   } catch (e) {
-    console.error('Error setting up videos listener:', e);
+    console.error('Error setting up video_tutorials listener:', e);
     return () => {};
   }
 }
 
+export function subscribeToVideos(callback: (videos: VideoItem[]) => void) {
+  return subscribeToVideoTutorials(callback);
+}
+
 export async function addVideoToDb(video: VideoItem): Promise<void> {
-  const docRef = doc(db, 'videos', video.id);
-  await setDoc(docRef, {
-    ...video,
+  const categoryCode =
+    video.category.toLowerCase().includes('phone') ? 'phone' :
+    video.category.toLowerCase().includes('pc') ? 'pc' :
+    'digital';
+
+  await addDoc(collection(db, 'video_tutorials'), {
+    title: video.title,
+    category: categoryCode,
+    video_url: video.videoUrl || '',
+    created_at: serverTimestamp(),
+    thumbnail: video.thumbnail,
+    duration: video.duration || '10:00',
+    description: video.description || `Tutorial on ${video.title}`,
+    views: video.views || '0 views',
     viewsCount: video.viewsCount || 0,
     likes: video.likes || 0,
     likedBy: video.likedBy || [],
     comments: video.comments || [],
-    createdAt: Date.now(),
   });
 }
 
 export async function updateVideoInDb(video: VideoItem): Promise<void> {
-  const docRef = doc(db, 'videos', video.id);
-  await updateDoc(docRef, {
-    title: video.title,
-    category: video.category,
-    duration: video.duration,
-    views: video.views,
-    viewsCount: video.viewsCount ?? 0,
-    thumbnail: video.thumbnail,
-    videoUrl: video.videoUrl,
-    sourceType: video.sourceType,
-    description: video.description,
-    tags: video.tags,
-    updatedAt: Date.now(),
-  });
+  try {
+    const docRef = doc(db, 'video_tutorials', video.id);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      await updateDoc(docRef, {
+        title: video.title,
+        duration: video.duration,
+        views: video.views,
+        viewsCount: video.viewsCount ?? 0,
+        thumbnail: video.thumbnail,
+        video_url: video.videoUrl,
+        videoUrl: video.videoUrl,
+        description: video.description,
+        tags: video.tags,
+      });
+      return;
+    }
+  } catch (e) {
+    // try fallback
+  }
+
+  try {
+    const legacyRef = doc(db, 'videos', video.id);
+    await updateDoc(legacyRef, {
+      title: video.title,
+      category: video.category,
+      duration: video.duration,
+      views: video.views,
+      viewsCount: video.viewsCount ?? 0,
+      thumbnail: video.thumbnail,
+      videoUrl: video.videoUrl,
+      sourceType: video.sourceType,
+      description: video.description,
+      tags: video.tags,
+      updatedAt: Date.now(),
+    });
+  } catch (e) {
+    console.warn('Error in updateVideoInDb:', e);
+  }
 }
 
 export async function incrementVideoViewsInDb(videoId: string, userId?: string): Promise<{ viewsCount: number; viewed: boolean }> {
   try {
-    const docRef = doc(db, 'videos', videoId);
-    const snap = await getDoc(docRef);
+    let docRef = doc(db, 'video_tutorials', videoId);
+    let snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      docRef = doc(db, 'videos', videoId);
+      snap = await getDoc(docRef);
+    }
     if (snap.exists()) {
       const data = snap.data();
       const current = typeof data.viewsCount === 'number' ? data.viewsCount : 0;
@@ -140,8 +295,12 @@ export async function incrementVideoViewsInDb(videoId: string, userId?: string):
 
 export async function toggleLikeVideoInDb(videoId: string, userId: string): Promise<{ liked: boolean; count: number }> {
   try {
-    const docRef = doc(db, 'videos', videoId);
-    const snap = await getDoc(docRef);
+    let docRef = doc(db, 'video_tutorials', videoId);
+    let snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      docRef = doc(db, 'videos', videoId);
+      snap = await getDoc(docRef);
+    }
     if (snap.exists()) {
       const data = snap.data();
       const currentLikes = typeof data.likes === 'number' ? data.likes : 0;
@@ -166,8 +325,12 @@ export async function toggleLikeVideoInDb(videoId: string, userId: string): Prom
 
 export async function addVideoCommentInDb(videoId: string, comment: VideoComment): Promise<VideoComment[]> {
   try {
-    const docRef = doc(db, 'videos', videoId);
-    const snap = await getDoc(docRef);
+    let docRef = doc(db, 'video_tutorials', videoId);
+    let snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      docRef = doc(db, 'videos', videoId);
+      snap = await getDoc(docRef);
+    }
     if (snap.exists()) {
       const data = snap.data();
       const comments: VideoComment[] = Array.isArray(data.comments) ? data.comments : [];
@@ -184,18 +347,100 @@ export async function addVideoCommentInDb(videoId: string, comment: VideoComment
 }
 
 export async function deleteVideoFromDb(videoId: string): Promise<void> {
-  await deleteDoc(doc(db, 'videos', videoId));
+  try {
+    await deleteDoc(doc(db, 'video_tutorials', videoId));
+  } catch (err) {
+    // fallback
+  }
+  try {
+    await deleteDoc(doc(db, 'videos', videoId));
+  } catch (err) {
+    // fallback
+  }
 }
 
 // ---------------------------------------------------------------------------
-// 2. COMMUNITY FEEDBACKS (Real-time Database CRUD)
+// 2. COMMUNITY FEEDBACKS & TESTIMONIALS (Firestore Collection: community_feedback)
 // ---------------------------------------------------------------------------
+
+export const DEFAULT_COMMUNITY_FEEDBACKS = [
+  {
+    authorName: 'Jean Paul M.',
+    authorHandle: '@jeanpaul_rw',
+    authorRole: 'Software Developer',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    rating: 5,
+    date: '2 days ago',
+    content: 'Topson Media PC optimization tutorials helped me speed up my compiling workflow tremendously. Straight to the point with zero filler!',
+    verified: true,
+    likes: 12,
+  },
+  {
+    authorName: 'Aline Uwase',
+    authorHandle: '@aline_u',
+    authorRole: 'Digital Marketer',
+    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
+    rating: 5,
+    date: '3 days ago',
+    content: 'The smartphone security guide saved me from unwanted data usage. Easily the best tech educator in Rwanda!',
+    verified: true,
+    likes: 19,
+  },
+  {
+    authorName: 'David Kamanzi',
+    authorHandle: '@kamanzi_tech',
+    authorRole: 'CS Student',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    rating: 5,
+    date: '5 days ago',
+    content: 'The Live Chat feature is incredible. Topson actually answered my hardware question directly in real time. 10/10 recommendation!',
+    verified: true,
+    likes: 24,
+  },
+];
+
+let hasSeededFeedbacks = false;
+export async function seedInitialFeedbacksIfEmpty(): Promise<void> {
+  if (hasSeededFeedbacks) return;
+  hasSeededFeedbacks = true;
+  try {
+    const coll = collection(db, 'community_feedback');
+    const existingSnap = await getDocs(query(coll, limit(1)));
+    if (!existingSnap.empty) return;
+
+    for (const item of DEFAULT_COMMUNITY_FEEDBACKS) {
+      await addDoc(coll, {
+        authorName: item.authorName,
+        authorHandle: item.authorHandle,
+        authorRole: item.authorRole,
+        avatarUrl: item.avatarUrl,
+        rating: item.rating,
+        date: item.date,
+        content: item.content,
+        verified: item.verified,
+        likes: item.likes,
+        likedBy: [],
+        hidden: false,
+        replies: [],
+        createdAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    console.warn('Could not seed initial community_feedback:', err);
+  }
+}
+
 export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => void) {
   try {
-    const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'community_feedback'), orderBy('createdAt', 'desc'));
     return onSnapshot(
       q,
       (snapshot) => {
+        if (snapshot.empty) {
+          seedInitialFeedbacksIfEmpty();
+          return;
+        }
+
         const feedbacks: FeedbackItem[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
@@ -212,35 +457,41 @@ export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => vo
             likes: typeof data.likes === 'number' ? data.likes : 0,
             likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
             hidden: !!data.hidden,
+            hasFanBadge: !!data.hasFanBadge,
             replies: Array.isArray(data.replies) ? data.replies : [],
           });
         });
         callback(feedbacks);
       },
       (error) => {
-        console.warn('Firestore feedbacks subscription fallback:', error);
+        console.warn('Firestore community_feedback subscription fallback:', error);
       }
     );
   } catch (e) {
-    console.error('Error setting up feedbacks listener:', e);
+    console.error('Error setting up community_feedback listener:', e);
     return () => {};
   }
 }
 
 export async function addFeedbackToDb(feedback: FeedbackItem): Promise<void> {
-  const docRef = doc(db, 'feedbacks', feedback.id);
+  const docRef = doc(db, 'community_feedback', feedback.id);
   await setDoc(docRef, {
     ...feedback,
     likes: feedback.likes || 0,
     likedBy: feedback.likedBy || [],
     hidden: false,
-    createdAt: Date.now(),
+    createdAt: serverTimestamp(),
   });
 }
 
 export async function toggleLikeFeedbackInDb(feedbackId: string, userIdOrCount: string | number): Promise<void> {
   try {
-    const docRef = doc(db, 'feedbacks', feedbackId);
+    let docRef = doc(db, 'community_feedback', feedbackId);
+    let snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      docRef = doc(db, 'feedbacks', feedbackId);
+      snap = await getDoc(docRef);
+    }
     if (typeof userIdOrCount === 'number') {
       await updateDoc(docRef, {
         likes: userIdOrCount,
@@ -248,7 +499,6 @@ export async function toggleLikeFeedbackInDb(feedbackId: string, userIdOrCount: 
       return;
     }
     const userId = userIdOrCount;
-    const snap = await getDoc(docRef);
     if (snap.exists()) {
       const data = snap.data();
       const currentLikes = typeof data.likes === 'number' ? data.likes : 0;
@@ -267,29 +517,47 @@ export async function toggleLikeFeedbackInDb(feedbackId: string, userIdOrCount: 
 }
 
 export async function hideFeedbackInDb(feedbackId: string, hidden: boolean): Promise<void> {
-  const docRef = doc(db, 'feedbacks', feedbackId);
-  await updateDoc(docRef, {
-    hidden,
-  });
+  try {
+    const docRef = doc(db, 'community_feedback', feedbackId);
+    await updateDoc(docRef, { hidden });
+  } catch {
+    try {
+      const legacyRef = doc(db, 'feedbacks', feedbackId);
+      await updateDoc(legacyRef, { hidden });
+    } catch (e) {
+      console.warn('Error in hideFeedbackInDb:', e);
+    }
+  }
 }
 
 export async function deleteFeedbackFromDb(feedbackId: string): Promise<void> {
-  await deleteDoc(doc(db, 'feedbacks', feedbackId));
+  try {
+    await deleteDoc(doc(db, 'community_feedback', feedbackId));
+  } catch {
+    // ignore
+  }
+  try {
+    await deleteDoc(doc(db, 'feedbacks', feedbackId));
+  } catch {
+    // ignore
+  }
 }
 
 // ---------------------------------------------------------------------------
-// 3. LIVE CHAT MESSAGES (Real-time Database Listener & Private Stream)
+// 3. SECURE LIVE CHAT MESSAGES STREAM (Firestore Collection: chat_messages)
 // ---------------------------------------------------------------------------
 export function subscribeToMessages(callback: (messages: ChatMessage[]) => void, currentUser?: User | null) {
   try {
+    const uid = currentUser?.uid || currentUser?.id;
     let q;
+
     if (currentUser?.role === 'admin') {
       // The Admin account is authorized to access and load all open chat threads from every user
-      q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'));
-    } else if (currentUser) {
-      // Regular authenticated users must ONLY be able to see their own private conversation history
-      // Filter strictly where user_id == current_logged_in_user_id
-      q = query(collection(db, 'messages'), where('user_id', '==', currentUser.id));
+      q = query(collection(db, 'chat_messages'), orderBy('createdAt', 'asc'));
+    } else if (currentUser && uid) {
+      // Regular authenticated users must ONLY be able to fetch and see their own private messages that they exchanged with Topson Media.
+      // Apply strict query filter: where("user_id", "==", currentUser.uid)
+      q = query(collection(db, 'chat_messages'), where('user_id', '==', uid));
     } else {
       // Unauthenticated visitor: do not load private chat messages
       callback([]);
@@ -302,6 +570,17 @@ export function subscribeToMessages(callback: (messages: ChatMessage[]) => void,
         const messages: ChatMessage[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
+          let createdTs = Date.now();
+          if (data.createdAt) {
+            if (typeof data.createdAt.toMillis === 'function') {
+              createdTs = data.createdAt.toMillis();
+            } else if (typeof data.createdAt.toDate === 'function') {
+              createdTs = data.createdAt.toDate().getTime();
+            } else if (typeof data.createdAt === 'number') {
+              createdTs = data.createdAt;
+            }
+          }
+
           messages.push({
             id: docSnap.id,
             sender: data.sender || 'user',
@@ -314,7 +593,9 @@ export function subscribeToMessages(callback: (messages: ChatMessage[]) => void,
             timestamp: data.timestamp || '',
             avatarUrl: data.avatarUrl,
             isRead: !!data.isRead,
-            createdAt: data.createdAt,
+            createdAt: createdTs,
+            deletedForEveryone: data.deletedForEveryone,
+            deletedForUser: data.deletedForUser,
           } as ChatMessage);
         });
 
@@ -323,30 +604,30 @@ export function subscribeToMessages(callback: (messages: ChatMessage[]) => void,
         callback(messages);
       },
       (error) => {
-        console.warn('Firestore messages subscription fallback:', error);
+        console.warn('Firestore chat_messages subscription error:', error);
       }
     );
   } catch (e) {
-    console.error('Error setting up messages listener:', e);
+    console.error('Error setting up chat_messages listener:', e);
     return () => {};
   }
 }
 
 export async function sendMessageToDb(message: ChatMessage): Promise<void> {
-  const docRef = doc(db, 'messages', message.id);
+  const docRef = doc(db, 'chat_messages', message.id);
   const userIdVal = message.user_id || message.userId || message.targetUserId || '';
   await setDoc(docRef, {
     ...message,
     user_id: userIdVal,
     userId: userIdVal,
-    createdAt: (message as any).createdAt || Date.now(),
+    createdAt: serverTimestamp(),
   });
 }
 
 export async function markMessagesReadInDb(messageIds: string[]): Promise<void> {
   for (const id of messageIds) {
     try {
-      const docRef = doc(db, 'messages', id);
+      const docRef = doc(db, 'chat_messages', id);
       await updateDoc(docRef, { isRead: true });
     } catch {
       // ignore
@@ -355,7 +636,16 @@ export async function markMessagesReadInDb(messageIds: string[]): Promise<void> 
 }
 
 export async function deleteMessageFromDb(messageId: string): Promise<void> {
-  await deleteDoc(doc(db, 'messages', messageId));
+  try {
+    await deleteDoc(doc(db, 'chat_messages', messageId));
+  } catch {
+    // ignore
+  }
+  try {
+    await deleteDoc(doc(db, 'messages', messageId));
+  } catch {
+    // ignore
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -763,6 +1053,7 @@ export async function loginUserFromDb(identifier: string, password?: string): Pr
         role: 'admin',
         joinedDate: 'Channel Creator & Admin',
         avatarUrl: TOPSON_PROFILE_IMAGE,
+        uid: 'admin-topson',
       };
       // Sync admin record to Firestore users collection
       try {
@@ -806,6 +1097,7 @@ export async function loginUserFromDb(identifier: string, password?: string): Pr
 
       const matchedUser: User = {
         id: matchedId,
+        uid: matchedId,
         username: matchedDoc.username,
         email: matchedDoc.email,
         role: matchedDoc.role || 'member',
@@ -832,7 +1124,7 @@ export async function loginUserFromDb(identifier: string, password?: string): Pr
         if (found.password && found.password !== enteredPassword) {
           return { success: false, error: 'wrong_password' };
         }
-        return { success: true, user: found };
+        return { success: true, user: { ...found, uid: found.uid || found.id } };
       }
     }
   } catch {

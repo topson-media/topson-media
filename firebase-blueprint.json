@@ -36,6 +36,18 @@
       },
       "required": ["title", "category", "videoUrl"]
     },
+    "VideoTutorial": {
+      "title": "VideoTutorial",
+      "description": "Video tutorial document stored in video_tutorials collection",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "enum": ["phone", "pc", "digital"] },
+        "video_url": { "type": "string" },
+        "created_at": { "type": "object" }
+      },
+      "required": ["title", "category", "video_url"]
+    },
     "Feedback": {
       "title": "Feedback",
       "description": "Community review and rating submitted by users",
@@ -102,13 +114,25 @@
       "schema": "Video",
       "description": "Public tutorial cards managed by Topson Media admin"
     },
+    "/video_tutorials/{tutorialId}": {
+      "schema": "VideoTutorial",
+      "description": "Dynamic permanent video tutorials uploaded by admin"
+    },
     "/feedbacks/{feedbackId}": {
       "schema": "Feedback",
       "description": "Public viewer reviews and community ratings"
     },
+    "/community_feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Authentic testimonial reviews displayed in community slider panel"
+    },
     "/messages/{messageId}": {
       "schema": "Message",
       "description": "Live studio chat messages and one-on-one admin threads"
+    },
+    "/chat_messages/{messageId}": {
+      "schema": "Message",
+      "description": "Secure private live chat conversation stream"
     },
     "/support_donations/{donationId}": {
       "schema": "SupportDonation",

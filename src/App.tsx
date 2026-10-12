@@ -67,7 +67,12 @@ export default function App() {
     const saved = localStorage.getItem('topson_user');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const u = JSON.parse(saved);
+        if (u) {
+          const uid = u.uid || u.id;
+          return { ...u, id: uid, uid };
+        }
+        return null;
       } catch {
         return null;
       }
@@ -82,32 +87,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Interactive Videos state (Loaded dynamically via Firestore real-time listener)
-  const [videoList, setVideoList] = useState<VideoItem[]>(() => {
-    const saved = localStorage.getItem('topson_videos');
-    if (saved) {
-      try {
-        const parsed: VideoItem[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        return INITIAL_VIDEOS;
-      }
-    }
-    return INITIAL_VIDEOS;
-  });
+  const [videoList, setVideoList] = useState<VideoItem[]>([]);
 
   // Interactive Community Feedbacks (Loaded dynamically via Firestore real-time listener)
-  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>(() => {
-    const saved = localStorage.getItem('topson_feedbacks');
-    if (saved) {
-      try {
-        const parsed: FeedbackItem[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        return INITIAL_FEEDBACKS;
-      }
-    }
-    return INITIAL_FEEDBACKS;
-  });
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
 
   // Inbound Email Messages to topsonkenedy@gmail.com
   const [emailMessages, setEmailMessages] = useState<EmailMessage[]>(() => {
@@ -149,29 +132,16 @@ export default function App() {
   }, [currentUser?.id]);
 
   // Interactive Live Chat Messages (Loaded dynamically via Firestore real-time listener)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem('topson_chat_messages');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        return INITIAL_CHAT_MESSAGES;
-      }
-    }
-    return INITIAL_CHAT_MESSAGES;
-  });
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Real-time Firestore Subscriptions for Videos, Feedbacks, Messages, and Contact Submissions
   useEffect(() => {
     const unsubVideos = subscribeToVideos((vids) => {
       setVideoList(vids);
-      localStorage.setItem('topson_videos', JSON.stringify(vids));
     });
 
     const unsubFeedbacks = subscribeToFeedbacks((fbs) => {
       setFeedbacks(fbs);
-      localStorage.setItem('topson_feedbacks', JSON.stringify(fbs));
     });
 
     const unsubMessages = subscribeToMessages((msgs) => {
@@ -350,8 +320,10 @@ export default function App() {
 
   // Persist user auth to localStorage
   const handleAuthSuccess = (user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem('topson_user', JSON.stringify(user));
+    const uid = user.uid || user.id;
+    const normalizedUser = { ...user, id: uid, uid };
+    setCurrentUser(normalizedUser);
+    localStorage.setItem('topson_user', JSON.stringify(normalizedUser));
   };
 
   const handleLogout = () => {
@@ -370,10 +342,6 @@ export default function App() {
 
   // Add new feedback (persists to Firestore database & local state)
   const handleAddFeedback = async (newFb: FeedbackItem) => {
-    const updated = [newFb, ...feedbacks];
-    setFeedbacks(updated);
-    localStorage.setItem('topson_feedbacks', JSON.stringify(updated));
-
     try {
       await addFeedbackToDb(newFb);
     } catch (err) {
@@ -394,10 +362,6 @@ export default function App() {
 
   // Delete feedback (Admin control, deletes from Firestore)
   const handleDeleteFeedback = async (feedbackId: string) => {
-    const updated = feedbacks.filter((fb) => fb.id !== feedbackId);
-    setFeedbacks(updated);
-    localStorage.setItem('topson_feedbacks', JSON.stringify(updated));
-
     try {
       await deleteFeedbackFromDb(feedbackId);
     } catch (err) {
@@ -418,10 +382,6 @@ export default function App() {
 
   // Hide or unhide feedback (Admin moderation, updates Firestore)
   const handleHideFeedback = async (feedbackId: string, hidden: boolean) => {
-    const updated = feedbacks.map((fb) => (fb.id === feedbackId ? { ...fb, hidden } : fb));
-    setFeedbacks(updated);
-    localStorage.setItem('topson_feedbacks', JSON.stringify(updated));
-
     try {
       await hideFeedbackInDb(feedbackId, hidden);
     } catch (err) {
@@ -522,7 +482,6 @@ export default function App() {
         }
         return fb;
       });
-      localStorage.setItem('topson_feedbacks', JSON.stringify(updated));
       return updated;
     });
 
@@ -545,17 +504,12 @@ export default function App() {
         }
         return fb;
       });
-      localStorage.setItem('topson_feedbacks', JSON.stringify(updated));
       return updated;
     });
   };
 
   // Handle upload video (Admin only, persists to Firestore)
   const handleUploadVideo = async (newVid: VideoItem) => {
-    const updated = [newVid, ...videoList];
-    setVideoList(updated);
-    localStorage.setItem('topson_videos', JSON.stringify(updated));
-
     try {
       await addVideoToDb(newVid);
     } catch (err) {
@@ -576,10 +530,6 @@ export default function App() {
 
   // Handle delete video (Admin only, deletes from Firestore)
   const handleDeleteVideo = async (videoId: string) => {
-    const updated = videoList.filter((v) => v.id !== videoId);
-    setVideoList(updated);
-    localStorage.setItem('topson_videos', JSON.stringify(updated));
-
     try {
       await deleteVideoFromDb(videoId);
     } catch (err) {
@@ -600,10 +550,6 @@ export default function App() {
 
   // Handle update/edit video details (Admin only, updates Firestore)
   const handleUpdateVideo = async (updatedVid: VideoItem) => {
-    const updated = videoList.map((v) => (v.id === updatedVid.id ? updatedVid : v));
-    setVideoList(updated);
-    localStorage.setItem('topson_videos', JSON.stringify(updated));
-
     try {
       await updateVideoInDb(updatedVid);
     } catch (err) {
@@ -753,10 +699,6 @@ export default function App() {
 
   // Handle user sending chat message (hits Firestore real-time collection)
   const handleSendMessage = async (msg: ChatMessage) => {
-    const updated = [...chatMessages, msg];
-    setChatMessages(updated);
-    localStorage.setItem('topson_chat_messages', JSON.stringify(updated));
-
     try {
       await sendMessageToDb(msg);
     } catch (err) {
@@ -766,12 +708,6 @@ export default function App() {
 
   // Handle delete or un-send message (deletes from Firestore)
   const handleDeleteChatMessage = async (msgId: string, _mode: 'everyone' | 'me') => {
-    setChatMessages((prev) => {
-      const updated = prev.filter((m) => m.id !== msgId);
-      localStorage.setItem('topson_chat_messages', JSON.stringify(updated));
-      return updated;
-    });
-
     try {
       await deleteMessageFromDb(msgId);
     } catch (err) {
@@ -781,12 +717,6 @@ export default function App() {
 
   // Handle marking messages as read in Firestore
   const handleMarkMessagesRead = async (ids: string[]) => {
-    setChatMessages((prev) => {
-      const updated = prev.map((m) => (ids.includes(m.id) ? { ...m, isRead: true } : m));
-      localStorage.setItem('topson_chat_messages', JSON.stringify(updated));
-      return updated;
-    });
-
     try {
       await markMessagesReadInDb(ids);
     } catch (err) {

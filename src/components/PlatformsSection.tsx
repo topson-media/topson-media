@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
+import { useLanguage } from '../context/LanguageContext';
 
 export const PlatformsSection: React.FC = () => {
+  const { t } = useLanguage();
   const [activePlatform, setActivePlatform] = useState<string>('YouTube');
 
   const platforms = [
@@ -114,18 +116,18 @@ export const PlatformsSection: React.FC = () => {
         
         {/* Kicker */}
         <div className="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-neutral-800 mb-4 sm:mb-6">
-          CONNECT ON SOCIAL
+          {t.socialSection.kicker}
         </div>
 
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-10 gap-3">
           <div>
             <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight leading-[1.05]">
-              Dive in my social medias
+              {t.socialSection.header}
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-neutral-600 max-w-xs md:text-right font-medium">
-            Follow along on your preferred channel.
+            {t.socialSection.subtext}
           </p>
         </div>
 

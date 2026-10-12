@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Phone, Check, Copy } from 'lucide-react';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Footer: React.FC = () => {
+  const { t } = useLanguage();
   const [copiedType, setCopiedType] = useState<string | null>(null);
 
   const socialLinks = [

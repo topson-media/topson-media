@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, ArrowRight, Smartphone, ArrowDown, Heart } from 'lucide-react';
 import { TOPSON_HERO_BADGE, TOPSON_PROFILE_IMAGE } from '../data/mockData';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeroProps {
   onWatchTutorials: () => void;
@@ -13,23 +14,12 @@ export const Hero: React.FC<HeroProps> = ({
   onLiveChat,
   onExploreScroll,
 }) => {
-  // Word arrays for word-by-word animation
-  const kickerWords = ['THE', 'EVERYDAY', 'TECH', 'ADVANTAGE'];
-  const headingLine1Words = ['Tech', 'that'];
-  const headingLine2Words = ['moves', 'you.'];
-  const subtextWords = [
-    'Empowering',
-    'you',
-    'with',
-    'Phone',
-    '&',
-    'PC',
-    'tutorials,',
-    'tips,',
-    'and',
-    'digital',
-    'skills.',
-  ];
+  const { t, language } = useLanguage();
+
+  const kickerWords = t.hero.kicker;
+  const headingLine1Words = t.hero.titleLine1.split(' ');
+  const headingLine2Words = t.hero.titleLine2.split(' ');
+  const subtextWords = t.hero.subtext.split(' ');
 
   return (
     <section id="hero" className="relative overflow-hidden pt-8 pb-12 sm:pt-10 sm:pb-16 lg:py-20 bg-white scroll-mt-20">
@@ -45,7 +35,7 @@ export const Hero: React.FC<HeroProps> = ({
               <div className="flex flex-wrap gap-x-1.5">
                 {kickerWords.map((word, idx) => (
                   <span
-                    key={idx}
+                    key={`${language}-${idx}`}
                     className="animate-word"
                     style={{ animationDelay: `${idx * 90}ms` }}
                   >
@@ -57,8 +47,8 @@ export const Hero: React.FC<HeroProps> = ({
 
             {/* Mobile-Summarized Headline (< md) */}
             <h1 className="md:hidden text-3xl font-black text-neutral-900 tracking-tight leading-[1.08]">
-              <span className="block">Tech that</span>
-              <span className="block text-orange-500">moves you.</span>
+              <span className="block">{t.hero.titleLine1}</span>
+              <span className="block text-orange-500">{t.hero.titleLine2}</span>
             </h1>
 
             {/* Desktop Full Animated Headline (>= md) */}
@@ -66,7 +56,7 @@ export const Hero: React.FC<HeroProps> = ({
               <span className="block">
                 {headingLine1Words.map((word, idx) => (
                   <span
-                    key={idx}
+                    key={`${language}-h1-${idx}`}
                     className="animate-word mr-2.5 sm:mr-3.5"
                     style={{ animationDelay: `${400 + idx * 100}ms` }}
                   >
@@ -77,7 +67,7 @@ export const Hero: React.FC<HeroProps> = ({
               <span className="block text-orange-500">
                 {headingLine2Words.map((word, idx) => (
                   <span
-                    key={idx}
+                    key={`${language}-h2-${idx}`}
                     className="animate-word mr-2.5 sm:mr-3.5"
                     style={{ animationDelay: `${620 + idx * 110}ms` }}
                   >
@@ -89,22 +79,24 @@ export const Hero: React.FC<HeroProps> = ({
 
             {/* Mobile-Summarized Subtext (< md) */}
             <p className="md:hidden text-xs text-neutral-700 leading-relaxed font-medium">
-              Quick phone &amp; PC walkthroughs, tips, and digital skills made simple.
+              {t.hero.subtext}
             </p>
 
             {/* Desktop Full Animated Subtext (>= md) */}
             <p className="hidden md:flex text-base lg:text-lg text-neutral-800 max-w-lg leading-relaxed flex-wrap gap-x-1.5 gap-y-1">
               {subtextWords.map((word, idx) => {
-                const isHighlight = ['Phone', '&', 'PC', 'tutorials,'].includes(word);
+                const isHighlight = ['Phone', 'PC', 'tutorials,', 'tutorials', 'Ikoranabuhanga'].some((hw) =>
+                  word.includes(hw)
+                );
                 return (
                   <span
-                    key={idx}
+                    key={`${language}-sub-${idx}`}
                     className={`animate-word ${
                       isHighlight
                         ? 'font-bold text-neutral-950'
                         : 'text-neutral-700'
                     }`}
-                    style={{ animationDelay: `${880 + idx * 60}ms` }}
+                    style={{ animationDelay: `${880 + idx * 45}ms` }}
                   >
                     {word}
                   </span>
@@ -120,7 +112,7 @@ export const Hero: React.FC<HeroProps> = ({
                 className="h-12 px-6 py-3 text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 active:scale-95 rounded-xl shadow-lg shadow-orange-500/25 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer inline-flex items-center justify-center gap-2.5 flex-1 sm:flex-initial"
               >
                 <Play className="w-4 h-4 fill-white" />
-                <span>Watch tutorials</span>
+                <span>{t.hero.watchTutorials}</span>
               </button>
 
               <button
@@ -128,7 +120,7 @@ export const Hero: React.FC<HeroProps> = ({
                 onClick={onLiveChat}
                 className="h-12 px-6 py-3 text-sm font-bold text-neutral-900 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 active:scale-95 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer inline-flex items-center justify-center gap-2 flex-1 sm:flex-initial"
               >
-                <span>Live Chat</span>
+                <span>{t.hero.liveChat}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -151,10 +143,10 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-neutral-900">
-                    Making tech feel easy
+                    {t.hero.makingTechEasy}
                   </div>
                   <div className="text-[11px] text-neutral-600 font-medium">
-                    For curious minds everywhere
+                    {t.hero.curiousMinds}
                   </div>
                 </div>
               </div>

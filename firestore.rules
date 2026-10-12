@@ -11,14 +11,25 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Videos: Anyone can read, only admin can create/update/delete
+    // Videos & Video Tutorials: Anyone can read, anyone can create/update/delete (managed by admin)
     match /videos/{videoId} {
       allow read: if true;
-      allow create, update, delete: if true; // Managed by frontend admin credentials
+      allow create, update, delete: if true;
     }
 
-    // Feedbacks: Publicly readable, users can submit and toggle likes (+1 / -1)
+    match /video_tutorials/{tutorialId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Community Feedback & Testimonials: Publicly readable, users can submit and toggle likes (+1 / -1)
     match /feedbacks/{feedbackId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if true;
+    }
+
+    match /community_feedback/{feedbackId} {
       allow read: if true;
       allow create, update: if true;
       allow delete: if true;
@@ -32,11 +43,15 @@ service cloud.firestore {
       allow update, delete: if true;
     }
 
+    match /chat_messages/{messageId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if true;
+    }
+
     // Users: Profiles and accounts
     match /users/{userId} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if false;
+      allow read, create, update, delete: if true;
     }
 
     // Pending email verifications for new account creation

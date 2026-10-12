@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { FeedbackItem, FeedbackReply, User } from '../types';
 import { formatFeedbackTimeAgo } from '../utils/timeAgo';
+import { useLanguage } from '../context/LanguageContext';
+import { DEFAULT_COMMUNITY_FEEDBACKS } from '../services/firebase';
 
 interface CommunitySectionProps {
   feedbacks: FeedbackItem[];
@@ -42,6 +44,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
   onHideFeedback,
   isStandalonePage = false,
 }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState<string>(currentUser?.username ?? '');
   const [role, setRole] = useState<string>('');
   const [rating, setRating] = useState<number>(5);
@@ -60,8 +63,29 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
 
   // Filter out hidden reviews for regular visitors; Admin sees all
   const visibleFeedbacks = React.useMemo(() => {
-    if (currentUser?.role === 'admin') return feedbacks;
-    return feedbacks.filter((fb) => !fb.hidden);
+    const list: FeedbackItem[] =
+      feedbacks.length > 0
+        ? feedbacks
+        : DEFAULT_COMMUNITY_FEEDBACKS.map((df, i): FeedbackItem => ({
+            id: 'fb-init-' + i,
+            authorName: df.authorName,
+            authorHandle: df.authorHandle,
+            authorRole: df.authorRole,
+            avatarUrl: df.avatarUrl,
+            rating: df.rating,
+            date: df.date,
+            createdAt: Date.now() - i * 86400000,
+            content: df.content,
+            verified: df.verified,
+            likes: df.likes,
+            likedBy: [] as string[],
+            userLiked: false,
+            hidden: false,
+            hasFanBadge: false,
+            replies: [],
+          }));
+    if (currentUser?.role === 'admin') return list;
+    return list.filter((fb) => !fb.hidden);
   }, [feedbacks, currentUser]);
 
   // Keep currentIndex within bounds
@@ -185,17 +209,17 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight leading-[1.05]">
-              Hear from the community
+              {t.communitySection.header}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">
-              Genuine experiences from viewers and learners worldwide.
+              {t.communitySection.subtext}
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
             <div className="px-3 py-1.5 rounded-full bg-neutral-100 border border-neutral-200 text-[11px] font-bold text-neutral-800 flex items-center gap-1.5 shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-orange-500" />
-              <span>{visibleFeedbacks.length} Verified Reviews</span>
+              <span>{visibleFeedbacks.length} {t.communitySection.verifiedReviews}</span>
             </div>
           </div>
         </div>
@@ -237,7 +261,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                   const fb = visibleFeedbacks[currentIndex] || visibleFeedbacks[0];
                   if (!fb) return null;
                   const isLiked =
-                    (currentUser?.id && fb.likedBy && fb.likedBy.includes(currentUser.id)) ||
+                    (currentUser?.id && Array.isArray(fb.likedBy) && (fb.likedBy as string[]).includes(currentUser.id)) ||
                     !!fb.userLiked;
                   const likesCount = fb.likes || 0;
                   const replies = fb.replies || [];
@@ -492,7 +516,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                 className="h-12 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm text-white bg-neutral-900 hover:bg-neutral-800 active:scale-95 transition-all shadow-md hover:shadow-orange-500/20 flex items-center gap-2.5 cursor-pointer shrink-0"
               >
                 {isFormOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4 text-orange-500" />}
-                <span>{isFormOpen ? 'Close Form' : 'Leave your review'}</span>
+                <span>{isFormOpen ? t.communitySection.closeForm : t.communitySection.leaveReview}</span>
               </button>
             </div>
 

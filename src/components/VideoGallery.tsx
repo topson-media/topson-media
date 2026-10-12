@@ -31,6 +31,9 @@ import {
 } from '../utils/youtubeHelper';
 import { extractVideoDurationFromFile } from '../utils/videoDuration';
 import { formatUploadedTimeAgo, formatTimeAgo } from '../utils/timeAgo';
+import { useLanguage } from '../context/LanguageContext';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, DEFAULT_TUTORIALS, seedInitialTutorialsIfEmpty } from '../services/firebase';
 
 interface VideoGalleryProps {
   videos: VideoItem[];
@@ -59,6 +62,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   onIncrementViews,
   isStandalonePage = false,
 }) => {
+  const { t } = useLanguage();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [watchPartyVideo, setWatchPartyVideo] = useState<VideoItem | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -101,17 +105,88 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   const [newCategory, setNewCategory] = useState<string>('Phone Mastery');
   const [newDuration, setNewDuration] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [localVideoList, setLocalVideoList] = useState<VideoItem[]>(videos);
+  const [tutorials, setTutorials] = useState<VideoItem[]>([]);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  // Keep local list in sync with parent props
+  // 2. PUBLIC VIDEO GALLERY (Read from Firestore Database):
+  // Real-time Firestore database snapshot listener streaming video_tutorials collection
   useEffect(() => {
-    setLocalVideoList(videos);
-    if (activeVideo) {
-      const fresh = videos.find((v) => v.id === activeVideo.id);
+    const q = query(collection(db, 'video_tutorials'), orderBy('created_at', 'desc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const list: VideoItem[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const rawCat = data.category || 'phone';
+            const categoryLabel =
+              rawCat === 'phone' ? 'Phone Mastery' :
+              rawCat === 'pc' ? 'PC Performance' :
+              rawCat === 'digital' ? 'Digital Skills' :
+              rawCat;
+
+            const videoUrl = data.video_url || data.videoUrl || '';
+            const ytThumb = videoUrl ? getYouTubeThumbnail(videoUrl) : null;
+            const thumbnail =
+              data.thumbnail ||
+              ytThumb ||
+              'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
+
+            let uploadTs = Date.now();
+            if (data.created_at) {
+              if (typeof data.created_at.toMillis === 'function') {
+                uploadTs = data.created_at.toMillis();
+              } else if (typeof data.created_at.toDate === 'function') {
+                uploadTs = data.created_at.toDate().getTime();
+              } else if (typeof data.created_at === 'number') {
+                uploadTs = data.created_at;
+              }
+            }
+            const dateStr = formatUploadedTimeAgo(uploadTs);
+
+            list.push({
+              id: docSnap.id,
+              title: data.title || '',
+              category: categoryLabel,
+              duration: data.duration || '10:00',
+              views: data.views || (typeof data.viewsCount === 'number' ? `${data.viewsCount} views` : '1.5K views'),
+              viewsCount: typeof data.viewsCount === 'number' ? data.viewsCount : 0,
+              viewedBy: Array.isArray(data.viewedBy) ? data.viewedBy : [],
+              date: dateStr,
+              createdAt: uploadTs,
+              uploadTimestamp: uploadTs,
+              thumbnail,
+              videoUrl,
+              sourceType: data.sourceType || 'link',
+              description: data.description || `Tutorial on ${data.title || ''}`,
+              tags: Array.isArray(data.tags) ? data.tags : [categoryLabel],
+              likes: typeof data.likes === 'number' ? data.likes : 0,
+              likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
+              comments: Array.isArray(data.comments) ? data.comments : [],
+            });
+          });
+          setTutorials(list);
+        } else {
+          // If Firestore is empty, seed initial permanent tutorials so no "No tutorials found" error ever appears
+          seedInitialTutorialsIfEmpty();
+        }
+      },
+      (error) => {
+        console.warn('Firestore video_tutorials listener error:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Keep active video in sync when data updates
+  useEffect(() => {
+    if (activeVideo && tutorials.length > 0) {
+      const fresh = tutorials.find((v) => v.id === activeVideo.id);
       if (fresh) setActiveVideo(fresh);
     }
-  }, [videos]);
+  }, [tutorials]);
 
   // Auto-detect YouTube views and thumbnail when admin pastes link
   useEffect(() => {
@@ -145,21 +220,49 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   }, [uploadType, videoLink]);
 
   const filteredVideos = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return localVideoList;
+    // Primary source: real-time Firestore video_tutorials
+    // Fallback: props or default tutorials so "No tutorials found" is never shown on direct load
+    const effectiveList =
+      tutorials.length > 0
+        ? tutorials
+        : videos.length > 0
+        ? videos
+        : DEFAULT_TUTORIALS.map((d, i) => ({
+            id: 'init-' + i,
+            title: d.title,
+            category: d.category === 'phone' ? 'Phone Mastery' : d.category === 'pc' ? 'PC Performance' : 'Digital Skills',
+            duration: d.duration,
+            views: d.views,
+            viewsCount: d.viewsCount,
+            viewedBy: [],
+            date: 'Recently added',
+            createdAt: Date.now() - i * 3600000,
+            uploadTimestamp: Date.now() - i * 3600000,
+            thumbnail: d.thumbnail,
+            videoUrl: d.video_url,
+            sourceType: 'link' as const,
+            description: d.description,
+            tags: [d.category],
+            likes: d.likes,
+            likedBy: [],
+            comments: [],
+          }));
 
-    return localVideoList.filter((video) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return effectiveList;
+
+    return effectiveList.filter((video) => {
       return (
         video.title.toLowerCase().includes(q) ||
         video.description.toLowerCase().includes(q) ||
         video.tags.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [localVideoList, searchQuery]);
+  }, [tutorials, videos, searchQuery]);
 
-  // Display top 6 featured tutorials as requested
+  // Display all uploaded tutorials streamed from Firestore
   const displayedVideos = useMemo(() => {
-    return filteredVideos.slice(0, 6);
+    return filteredVideos;
   }, [filteredVideos]);
 
   // Video file change from device -> auto-detect duration & name
@@ -213,34 +316,33 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
         ? detectedYouTubeViews || '1.5K views'
         : '0 views';
 
-    const added: VideoItem = {
-      id: 'vid-' + Date.now(),
-      title: newTitle.trim(),
-      category: newCategory,
-      duration: newDuration.trim() || '10:00',
-      views: finalViews,
-      viewsCount: uploadType === 'device' ? 0 : 1500,
-      viewedBy: [],
-      date: 'Just now',
-      createdAt: Date.now(),
-      uploadTimestamp: Date.now(),
-      thumbnail: finalThumbnail,
-      videoUrl:
-        uploadType === 'link'
-          ? videoLink.trim()
-          : deviceFilePreviewUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      sourceType: uploadType,
-      description: newDescription.trim() || 'Tech walkthrough on ' + newTitle.trim(),
-      tags: ['Tutorial', uploadType === 'device' ? 'Uploaded Video' : 'YouTube Link'],
-      likes: 0,
-      likedBy: [],
-      comments: [],
-    };
+    const categoryCode =
+      newCategory.toLowerCase().includes('phone') ? 'phone' :
+      newCategory.toLowerCase().includes('pc') ? 'pc' :
+      'digital';
 
-    if (onUploadVideo) {
-      onUploadVideo(added);
-    } else {
-      setLocalVideoList([added, ...localVideoList]);
+    const urlToSave =
+      uploadType === 'link'
+        ? videoLink.trim()
+        : deviceFilePreviewUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+
+    try {
+      addDoc(collection(db, 'video_tutorials'), {
+        title: newTitle.trim(),
+        category: categoryCode,
+        video_url: urlToSave,
+        created_at: serverTimestamp(),
+        thumbnail: finalThumbnail,
+        duration: newDuration.trim() || '10:00',
+        description: newDescription.trim() || 'Tech walkthrough on ' + newTitle.trim(),
+        views: finalViews,
+        viewsCount: uploadType === 'device' ? 0 : 1500,
+        likes: 0,
+        likedBy: [],
+        comments: [],
+      });
+    } catch (err) {
+      console.warn('Failed to add doc in VideoGallery:', err);
     }
 
     setNewTitle('');
@@ -300,7 +402,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
     if (onUpdateVideo) {
       onUpdateVideo(updated);
     } else {
-      setLocalVideoList((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+      setTutorials((prev: VideoItem[]) => prev.map((v) => (v.id === updated.id ? updated : v)));
     }
 
     setEditSaveSuccess(true);
@@ -316,7 +418,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
       if (onDeleteVideo) {
         onDeleteVideo(video.id);
       } else {
-        setLocalVideoList((prev) => prev.filter((v) => v.id !== video.id));
+        setTutorials((prev: VideoItem[]) => prev.filter((v) => v.id !== video.id));
       }
     }
   };
@@ -365,12 +467,12 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
     } else {
       // Local optimistic toggle
       const userId = currentUser?.id || 'guest';
-      setLocalVideoList((prev) =>
+      setTutorials((prev: VideoItem[]) =>
         prev.map((v) => {
           if (v.id !== video.id) return v;
-          const likedBy = v.likedBy || [];
+          const likedBy = Array.isArray(v.likedBy) ? v.likedBy : [];
           const hasLiked = likedBy.includes(userId);
-          const nextLikedBy = hasLiked ? likedBy.filter((u) => u !== userId) : [...likedBy, userId];
+          const nextLikedBy = hasLiked ? likedBy.filter((u: string) => u !== userId) : [...likedBy, userId];
           const nextLikes = Math.max(0, (v.likes || 0) + (hasLiked ? -1 : 1));
           return { ...v, likes: nextLikes, likedBy: nextLikedBy };
         })
@@ -404,7 +506,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
     } else {
       const updatedComments = [newComment, ...(activeVideo.comments || [])];
       setActiveVideo({ ...activeVideo, comments: updatedComments });
-      setLocalVideoList((prev) =>
+      setTutorials((prev: VideoItem[]) =>
         prev.map((v) => (v.id === activeVideo.id ? { ...v, comments: updatedComments } : v))
       );
     }
@@ -430,10 +532,10 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight leading-[1.05]">
-              Watch the latest tutorials
+              {t.videosSection.header}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">
-              Practical guides and walkthroughs. Click any card to play, like, or comment.
+              {t.videosSection.subtext}
             </p>
           </div>
 
@@ -475,7 +577,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
               const isLink = isVideoLink(video);
               const isPlaying = activePlayingId === video.id;
               const userId = currentUser?.id || 'guest';
-              const isLiked = video.likedBy?.includes(userId) ?? false;
+              const isLiked = Array.isArray(video.likedBy) ? (video.likedBy as string[]).includes(userId) : false;
               const likesCount = video.likes || 0;
               const commentsCount = video.comments?.length || 0;
 

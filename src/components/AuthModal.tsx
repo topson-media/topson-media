@@ -162,8 +162,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         (lowerUsername === 'topsonkenedy' && password === 'nzayikoreraetsiyene') ||
         (lowerEmail === 'jabsco59@gmail.com' && password === '123456789q');
 
+      const newUserId = isExplicitAdmin ? 'admin-topson' : 'user-' + Date.now();
       const newUser: User = {
-        id: isExplicitAdmin ? 'admin-topson' : 'user-' + Date.now(),
+        id: newUserId,
+        uid: newUserId,
         username: isExplicitAdmin ? 'Topson Media' : username.trim(),
         email: lowerEmail,
         role: isExplicitAdmin ? 'admin' : 'member',

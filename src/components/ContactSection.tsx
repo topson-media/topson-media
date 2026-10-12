@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Send, CheckCircle2, Sparkles, Mail } from 'lucide-react';
 import { EmailMessage } from '../types';
 import { addContactSubmissionToDb } from '../services/firebase';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ContactSectionProps {
   onJumpToChat?: () => void;
@@ -9,6 +10,7 @@ interface ContactSectionProps {
 }
 
 export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, onSendMessageToAdmin }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('Question & Tutorial Request');
@@ -73,19 +75,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
       <div className="max-w-3xl mx-auto w-full">
         {/* Clean Kicker */}
         <div className="text-[10px] sm:text-[11px] font-bold tracking-widest uppercase text-neutral-500 mb-0.5 sm:mb-1 text-center">
-          DIRECT INBOX
+          {t.contactSection.kicker}
         </div>
 
         {/* Section Title */}
         <div className="text-center mb-3 sm:mb-8">
           <h2 className="text-xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight flex items-center justify-center gap-2">
-            <span>Send an email message</span>
+            <span>{t.contactSection.header}</span>
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
               <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </h2>
           <p className="hidden sm:block text-xs sm:text-sm text-neutral-600 mt-1.5 max-w-lg mx-auto font-medium">
-            Fill in your question or tutorial request to receive a reply directly to your personal email inbox.
+            {t.contactSection.subtext}
           </p>
         </div>
 
@@ -99,9 +101,9 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="text-xs sm:text-sm font-black text-neutral-900 flex items-center gap-2">
-                  <span>Message sent successfully!</span>
+                  <span>{t.contactSection.messageSentSuccess}</span>
                   <span className="px-1.5 py-0.2 rounded-full bg-orange-500 text-white text-[8px] sm:text-[9px] font-extrabold uppercase">
-                    Delivered
+                    {t.contactSection.deliveredBadge}
                   </span>
                 </h4>
                 <p className="text-[10px] sm:text-[11px] text-neutral-700 mt-0.5 font-medium leading-tight truncate">
@@ -116,7 +118,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
               <div>
                 <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
-                  Your Full Name
+                  {t.contactSection.fullName}
                 </label>
                 <input
                   type="text"
@@ -130,7 +132,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
 
               <div>
                 <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
-                  Your Email Address
+                  {t.contactSection.emailAddress}
                 </label>
                 <input
                   type="email"
@@ -146,7 +148,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
             {/* Subject Category Select */}
             <div>
               <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
-                Subject Topic
+                {t.contactSection.subjectTopic}
               </label>
               <select
                 value={subject}
@@ -164,7 +166,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
             {/* Message Input */}
             <div>
               <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
-                Your Message or Question
+                {t.contactSection.messageQuestion}
               </label>
               <textarea
                 required
@@ -186,15 +188,23 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
                   <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>Send email message</span>
+                    <span>{t.contactSection.sendEmailBtn}</span>
                     <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500" />
                   </>
                 )}
               </button>
 
-              <span className="text-[10px] sm:text-[11px] text-neutral-500 font-medium text-center sm:text-left">
-                Directly sent to Topson Media inbox.
-              </span>
+              <div className="text-[10px] sm:text-[11px] text-neutral-500 font-medium text-center sm:text-left flex items-center justify-center sm:justify-start gap-1.5">
+                <span>Directly sent to:</span>
+                <a
+                  href="mailto:topsonkenedy@gmail.com"
+                  className="font-bold text-orange-600 hover:underline inline-flex items-center gap-1"
+                  title="Send email to Topson Media"
+                >
+                  <span className="sm:hidden">mail topson media</span>
+                  <span className="hidden sm:inline">topsonkenedy@gmail.com</span>
+                </a>
+              </div>
             </div>
           </form>
         </div>
