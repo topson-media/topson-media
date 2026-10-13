@@ -174,7 +174,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           avatarPreview ||
           (isExplicitAdmin
             ? TOPSON_PROFILE_IMAGE
-            : `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username.trim())}`),
+            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(username.trim())}`),
       };
 
       try {

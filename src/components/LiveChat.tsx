@@ -409,7 +409,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
 
                 {/* WhatsApp - Real Brand Green */}
                 <a
-                  href="https://play.google.com/store/apps/details?id=com.whatsapp"
+                  href="https://wa.me/250794903078"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-6 h-6 rounded-md bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/30 hover:border-transparent flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 shadow-emerald-500/20"

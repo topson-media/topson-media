@@ -922,7 +922,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div className="pt-3 border-t border-neutral-100 flex items-center justify-between text-[11px]">
                   <span className="text-neutral-500">Target Inbox</span>
-                  <span className="text-blue-600 font-bold truncate">topsonkenedy@gmail.com</span>
+                  <span className="text-blue-600 font-bold truncate">mail topson media</span>
                 </div>
               </div>
 
@@ -1202,7 +1202,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <span className="text-neutral-800 font-bold">WhatsApp:</span>
                         </span>
                         <a
-                          href="https://play.google.com/store/apps/details?id=com.whatsapp"
+                          href="https://wa.me/250794903078"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-neutral-900 hover:text-emerald-600 font-extrabold transition-colors"
@@ -1212,7 +1212,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                       <div className="flex justify-between text-neutral-600 font-medium">
                         <span>Receiving Email:</span>
-                        <span className="text-neutral-900 font-bold">topsonkenedy@gmail.com</span>
+                        <span className="text-neutral-900 font-bold">mail topson media</span>
                       </div>
                     </div>
                   </div>
@@ -1364,7 +1364,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
                   <div>
                     <h3 className="text-lg font-black text-neutral-900 flex items-center gap-2">
-                      <span>Messages Sent to topsonkenedy@gmail.com</span>
+                      <span>Messages Sent to mail topson media</span>
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
                         {emailMessages.length} received
                       </span>
@@ -1996,7 +1996,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <option value="Dev Workflows">Phone Mastery</option>
                     <option value="Desk & Gear">PC Performance</option>
                     <option value="Full Stack">Digital Skills & Tools</option>
-                    <option value="AI Tools">AI Tools</option>
+                    <option value="Digital Tools">Digital Tools</option>
                   </select>
                 </div>
                 <div>

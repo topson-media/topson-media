@@ -69,7 +69,7 @@ export interface VideoComment {
 export interface VideoItem {
   id: string;
   title: string;
-  category: 'Phone Mastery' | 'PC Performance' | 'Digital & Web' | 'Dev Workflows' | 'Desk & Gear' | 'Full Stack' | 'AI Tools' | string;
+  category: 'Phone Mastery' | 'PC Performance' | 'Digital & Web' | 'Dev Workflows' | 'Desk & Gear' | 'Full Stack' | 'Digital Tools' | string;
   duration: string;
   views: string;
   viewsCount?: number;

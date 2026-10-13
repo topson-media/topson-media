@@ -201,8 +201,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
                   className="font-bold text-orange-600 hover:underline inline-flex items-center gap-1"
                   title="Send email to Topson Media"
                 >
-                  <span className="sm:hidden">mail topson media</span>
-                  <span className="hidden sm:inline">topsonkenedy@gmail.com</span>
+                  <span>mail topson media</span>
                 </a>
               </div>
             </div>

@@ -68,12 +68,12 @@ export const DEFAULT_TUTORIALS = [
     likes: 247,
   },
   {
-    title: 'Master AI & Modern Digital Tools in 2025: Complete Beginner Guide',
+    title: 'Master Cloud & Modern Digital Tools in 2025: Complete Beginner Guide',
     category: 'digital',
     video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     thumbnail: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
     duration: '18:10',
-    description: 'Supercharge your productivity, workflow, and digital skills using modern AI applications.',
+    description: 'Supercharge your productivity, workflow, and digital skills using modern software and cloud applications.',
     views: '2.9K views',
     viewsCount: 2910,
     likes: 195,
@@ -951,7 +951,7 @@ export async function verifyConfirmationEmail(
     email: normalizedEmail,
     role: 'member',
     joinedDate: 'Joined today',
-    avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(record?.username || normalizedEmail)}`,
+    avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(record?.username || normalizedEmail)}`,
   };
 
   const passwordToSave = record?.password || '';
