@@ -44,7 +44,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
   onHideFeedback,
   isStandalonePage = false,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [name, setName] = useState<string>(currentUser?.username ?? '');
   const [role, setRole] = useState<string>('');
   const [rating, setRating] = useState<number>(5);
@@ -63,27 +63,8 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
 
   // Filter out hidden reviews for regular visitors; Admin sees all
   const visibleFeedbacks = React.useMemo(() => {
-    const list: FeedbackItem[] =
-      feedbacks.length > 0
-        ? feedbacks
-        : DEFAULT_COMMUNITY_FEEDBACKS.map((df, i): FeedbackItem => ({
-            id: 'fb-init-' + i,
-            authorName: df.authorName,
-            authorHandle: df.authorHandle,
-            authorRole: df.authorRole,
-            avatarUrl: df.avatarUrl,
-            rating: df.rating,
-            date: df.date,
-            createdAt: Date.now() - i * 86400000,
-            content: df.content,
-            verified: df.verified,
-            likes: df.likes,
-            likedBy: [] as string[],
-            userLiked: false,
-            hidden: false,
-            hasFanBadge: false,
-            replies: [],
-          }));
+    // 100% clean data pulled dynamically from real Firebase Firestore database collections only
+    const list: FeedbackItem[] = feedbacks;
     if (currentUser?.role === 'admin') return list;
     return list.filter((fb) => !fb.hidden);
   }, [feedbacks, currentUser]);
@@ -230,9 +211,8 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
             <div className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center text-neutral-400">
               <MessageSquare className="w-7 h-7" />
             </div>
-            <h3 className="text-xl font-black text-neutral-900">No reviews yet</h3>
-            <p className="text-xs sm:text-sm text-neutral-600 max-w-sm mx-auto">
-              Be the first learner or viewer to share feedback on our tutorials and walkthroughs!
+            <p className="text-xs sm:text-sm text-neutral-600 max-w-sm mx-auto font-medium">
+              {t.communitySection.noReviewsFound}
             </p>
           </div>
         ) : (
@@ -427,7 +407,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                           {/* Track time when feedback was uploaded */}
                           <span className="text-[11px] text-neutral-500 font-semibold flex items-center gap-1">
                             <span>🕒</span>
-                            <span>{formatFeedbackTimeAgo(fb.createdAt || fb.date)}</span>
+                            <span>{formatFeedbackTimeAgo(fb.createdAt || fb.date, language)}</span>
                           </span>
 
                           {/* Admin moderation */}

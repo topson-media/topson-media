@@ -51,14 +51,15 @@ export function getYouTubeThumbnail(url: string, quality: 'hq' | 'mq' | 'max' = 
 /**
  * Format numeric view count to human-readable format e.g. "12.4K views"
  */
-export function formatViewsCount(count: number): string {
+export function formatViewsCount(count: number, lang: 'en' | 'kn' = 'en'): string {
+  const label = lang === 'kn' ? 'Inshuro yarebwe' : 'views';
   if (count >= 1000000) {
-    return `${(count / 1000000).toFixed(1)}M views`;
+    return `${(count / 1000000).toFixed(1)}M ${label}`;
   }
   if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}K views`;
+    return `${(count / 1000).toFixed(1)}K ${label}`;
   }
-  return `${count} views`;
+  return `${count} ${label}`;
 }
 
 /**

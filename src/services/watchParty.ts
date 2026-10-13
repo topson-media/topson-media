@@ -191,7 +191,7 @@ export async function joinWatchPartyRoom(
       messages: [
         {
           id: 'welcome-' + Date.now(),
-          senderName: 'Topson Media Bot',
+          senderName: 'Topson Media',
           text: `🎉 Watch Party room started for "${video.title}". Playback is synchronized in real-time!`,
           timestamp: 'Just now',
         },

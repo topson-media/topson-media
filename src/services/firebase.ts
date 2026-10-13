@@ -15,7 +15,8 @@ import {
   getDocFromServer,
   where,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  increment
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { VideoItem, FeedbackItem, ChatMessage, User, EmailMessage, VideoComment } from '../types';
@@ -44,81 +45,10 @@ export async function testFirestoreConnection(): Promise<boolean> {
 // 1. VIDEOS & VIDEO TUTORIALS (Real-time Database CRUD & Engagement)
 // ---------------------------------------------------------------------------
 
-export const DEFAULT_TUTORIALS = [
-  {
-    title: 'Top Secret Android & iPhone Settings You Must Turn Off Now',
-    category: 'phone',
-    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80',
-    duration: '12:45',
-    description: 'Crucial smartphone privacy, battery saving and security tweaks for both Android and iOS users.',
-    views: '3.4K views',
-    viewsCount: 3420,
-    likes: 184,
-  },
-  {
-    title: 'How to Make Any Slow Windows PC 10x Faster (No Software Needed)',
-    category: 'pc',
-    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=1200&q=80',
-    duration: '15:20',
-    description: 'Step-by-step PC optimization tips, startup management, memory tweaks and registry cleaning.',
-    views: '4.8K views',
-    viewsCount: 4890,
-    likes: 247,
-  },
-  {
-    title: 'Master Cloud & Modern Digital Tools in 2025: Complete Beginner Guide',
-    category: 'digital',
-    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-    duration: '18:10',
-    description: 'Supercharge your productivity, workflow, and digital skills using modern software and cloud applications.',
-    views: '2.9K views',
-    viewsCount: 2910,
-    likes: 195,
-  },
-  {
-    title: 'Phone Battery Health & Charging Habits: Stop Ruining Your Battery',
-    category: 'phone',
-    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=1200&q=80',
-    duration: '09:35',
-    description: 'The science of lithium-ion smartphone batteries and how to keep battery maximum capacity at 100%.',
-    views: '2.1K views',
-    viewsCount: 2120,
-    likes: 130,
-  },
-];
+export const DEFAULT_TUTORIALS: any[] = [];
 
-let hasSeededTutorials = false;
 export async function seedInitialTutorialsIfEmpty(): Promise<void> {
-  if (hasSeededTutorials) return;
-  hasSeededTutorials = true;
-  try {
-    const coll = collection(db, 'video_tutorials');
-    const existingSnap = await getDocs(query(coll, limit(1)));
-    if (!existingSnap.empty) return;
-
-    for (const item of DEFAULT_TUTORIALS) {
-      await addDoc(coll, {
-        title: item.title,
-        category: item.category,
-        video_url: item.video_url,
-        created_at: serverTimestamp(),
-        thumbnail: item.thumbnail,
-        duration: item.duration,
-        description: item.description,
-        views: item.views,
-        viewsCount: item.viewsCount,
-        likes: item.likes,
-        likedBy: [],
-        comments: [],
-      });
-    }
-  } catch (err) {
-    console.warn('Could not seed initial video tutorials:', err);
-  }
+  // Absolute removal of AI mock data leaks: No synthetic/mock data seeding
 }
 
 export function subscribeToVideoTutorials(callback: (videos: VideoItem[]) => void) {
@@ -128,7 +58,7 @@ export function subscribeToVideoTutorials(callback: (videos: VideoItem[]) => voi
       q,
       (snapshot) => {
         if (snapshot.empty) {
-          seedInitialTutorialsIfEmpty();
+          callback([]);
           return;
         }
 
@@ -281,7 +211,7 @@ export async function incrementVideoViewsInDb(videoId: string, userId?: string):
       const nextViewedBy = userId ? [...viewedBy, userId] : viewedBy;
       const formatted = next >= 1000 ? `${(next / 1000).toFixed(1)}K views` : `${next} views`;
       await updateDoc(docRef, {
-        viewsCount: next,
+        viewsCount: increment(1),
         views: formatted,
         viewedBy: nextViewedBy,
       });
@@ -363,71 +293,10 @@ export async function deleteVideoFromDb(videoId: string): Promise<void> {
 // 2. COMMUNITY FEEDBACKS & TESTIMONIALS (Firestore Collection: community_feedback)
 // ---------------------------------------------------------------------------
 
-export const DEFAULT_COMMUNITY_FEEDBACKS = [
-  {
-    authorName: 'Jean Paul M.',
-    authorHandle: '@jeanpaul_rw',
-    authorRole: 'Software Developer',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    rating: 5,
-    date: '2 days ago',
-    content: 'Topson Media PC optimization tutorials helped me speed up my compiling workflow tremendously. Straight to the point with zero filler!',
-    verified: true,
-    likes: 12,
-  },
-  {
-    authorName: 'Aline Uwase',
-    authorHandle: '@aline_u',
-    authorRole: 'Digital Marketer',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
-    rating: 5,
-    date: '3 days ago',
-    content: 'The smartphone security guide saved me from unwanted data usage. Easily the best tech educator in Rwanda!',
-    verified: true,
-    likes: 19,
-  },
-  {
-    authorName: 'David Kamanzi',
-    authorHandle: '@kamanzi_tech',
-    authorRole: 'CS Student',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    rating: 5,
-    date: '5 days ago',
-    content: 'The Live Chat feature is incredible. Topson actually answered my hardware question directly in real time. 10/10 recommendation!',
-    verified: true,
-    likes: 24,
-  },
-];
+export const DEFAULT_COMMUNITY_FEEDBACKS: any[] = [];
 
-let hasSeededFeedbacks = false;
 export async function seedInitialFeedbacksIfEmpty(): Promise<void> {
-  if (hasSeededFeedbacks) return;
-  hasSeededFeedbacks = true;
-  try {
-    const coll = collection(db, 'community_feedback');
-    const existingSnap = await getDocs(query(coll, limit(1)));
-    if (!existingSnap.empty) return;
-
-    for (const item of DEFAULT_COMMUNITY_FEEDBACKS) {
-      await addDoc(coll, {
-        authorName: item.authorName,
-        authorHandle: item.authorHandle,
-        authorRole: item.authorRole,
-        avatarUrl: item.avatarUrl,
-        rating: item.rating,
-        date: item.date,
-        content: item.content,
-        verified: item.verified,
-        likes: item.likes,
-        likedBy: [],
-        hidden: false,
-        replies: [],
-        createdAt: serverTimestamp(),
-      });
-    }
-  } catch (err) {
-    console.warn('Could not seed initial community_feedback:', err);
-  }
+  // Absolute removal of AI mock data leaks: No synthetic/mock reviews seeding
 }
 
 export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => void) {
@@ -437,7 +306,7 @@ export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => vo
       q,
       (snapshot) => {
         if (snapshot.empty) {
-          seedInitialFeedbacksIfEmpty();
+          callback([]);
           return;
         }
 

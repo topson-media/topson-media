@@ -625,6 +625,18 @@ export default function App() {
       viewerId = guestDeviceId;
     }
 
+    // Sync and ensure videoId is stored in localStorage watchedVideos array
+    try {
+      const raw = localStorage.getItem('watchedVideos');
+      const watchedVideos: string[] = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(watchedVideos) || !watchedVideos.includes(videoId)) {
+        const nextWatched = Array.isArray(watchedVideos) ? [...watchedVideos, videoId] : [videoId];
+        localStorage.setItem('watchedVideos', JSON.stringify(nextWatched));
+      }
+    } catch {
+      // ignore
+    }
+
     // Check if target video already viewed by this account/device
     const existingVid = videoList.find((v) => v.id === videoId);
     if (existingVid && existingVid.viewedBy?.includes(viewerId)) {

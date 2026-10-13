@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle2, Sparkles, Mail } from 'lucide-react';
+import { Send, CheckCircle2, Mail, AlertTriangle } from 'lucide-react';
 import { EmailMessage } from '../types';
 import { addContactSubmissionToDb } from '../services/firebase';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,20 +9,81 @@ interface ContactSectionProps {
   onSendMessageToAdmin?: (message: EmailMessage) => void;
 }
 
-export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, onSendMessageToAdmin }) => {
+// Industry-standard RFC 5322 compliant regex requiring valid local part, @, domain name, and at least 2-letter TLD
+export const STRICT_EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+export function isValidEmailAddress(raw: string): boolean {
+  if (!raw) return false;
+  const trimmed = raw.trim();
+  if (!STRICT_EMAIL_REGEX.test(trimmed)) return false;
+
+  const parts = trimmed.split('@');
+  if (parts.length !== 2) return false;
+
+  const [localPart, domain] = parts;
+  if (!localPart || localPart.length > 64) return false;
+
+  const domainParts = domain.split('.');
+  if (domainParts.length < 2) return false;
+
+  const tld = domainParts[domainParts.length - 1];
+  if (tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) return false;
+
+  return true;
+}
+
+export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToAdmin }) => {
   const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [subject, setSubject] = useState('Question & Tutorial Request');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSubmittedName, setLastSubmittedName] = useState('');
 
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    if (emailTouched) {
+      if (!val.trim()) {
+        setEmailError('Uzuza imere (Email) ihamye kandi ibaho neza!');
+      } else if (!isValidEmailAddress(val)) {
+        setEmailError('Uzuza imere (Email) ihamye kandi ibaho neza!');
+      } else {
+        setEmailError(null);
+      }
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setEmailTouched(true);
+    if (!email.trim() || !isValidEmailAddress(email)) {
+      setEmailError('Uzuza imere (Email) ihamye kandi ibaho neza!');
+    } else {
+      setEmailError(null);
+    }
+  };
+
+  const isFormValid =
+    name.trim().length > 0 &&
+    email.trim().length > 0 &&
+    isValidEmailAddress(email) &&
+    message.trim().length > 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!name.trim() || !email.trim() || !message.trim() || isSubmitting) return;
+
+    setEmailTouched(true);
+    if (!isValidEmailAddress(email)) {
+      setEmailError('Uzuza imere (Email) ihamye kandi ibaho neza!');
+      return;
+    }
+
+    if (!name.trim() || !message.trim() || isSubmitting) return;
 
     // Retain current scroll position strictly to prevent any erratic page jumping
     const lockedScrollY = window.scrollY;
@@ -34,7 +95,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
       // 1. Route and save directly into Firebase Firestore collection 'contact_submissions'
       const newSubmission = await addContactSubmissionToDb({
         senderName: submittedName,
-        senderEmail: email.trim(),
+        senderEmail: email.trim().toLowerCase(),
         subject: subject.trim(),
         message: message.trim(),
       });
@@ -47,6 +108,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
       // 3. Clear inputs smoothly and show neon-orange success alert
       setName('');
       setEmail('');
+      setEmailTouched(false);
+      setEmailError(null);
       setMessage('');
       setSent(true);
 
@@ -113,7 +176,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-4" noValidate>
             {/* Name and Email 2-column input row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
               <div>
@@ -138,10 +201,24 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  onBlur={handleEmailBlur}
                   placeholder="alex@example.com"
-                  className="w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-2xs"
+                  className={`w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-all shadow-2xs ${
+                    emailError
+                      ? 'border-orange-500 ring-2 ring-orange-500/25'
+                      : 'border-neutral-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20'
+                  }`}
                 />
+                {/* Neon-Orange Validation Message */}
+                {emailError && (
+                  <div className="mt-1.5 p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-orange-500/10 border border-orange-500 text-orange-950 shadow-[0_0_15px_rgba(249,115,22,0.3)] flex items-center gap-2 animate-in fade-in duration-200">
+                    <AlertTriangle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                    <span className="text-[11px] sm:text-xs font-bold text-orange-950 leading-tight">
+                      {emailError}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -181,7 +258,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
             <div className="pt-1 sm:pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (emailTouched && !isFormValid)}
                 className="h-10 sm:h-12 px-5 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg sm:rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 {isSubmitting ? (
@@ -211,4 +288,3 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onJumpToChat, on
     </section>
   );
 };
-

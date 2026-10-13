@@ -62,7 +62,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   onIncrementViews,
   isStandalonePage = false,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [watchPartyVideo, setWatchPartyVideo] = useState<VideoItem | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -168,8 +168,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
           });
           setTutorials(list);
         } else {
-          // If Firestore is empty, seed initial permanent tutorials so no "No tutorials found" error ever appears
-          seedInitialTutorialsIfEmpty();
+          setTutorials([]);
         }
       },
       (error) => {
@@ -187,6 +186,38 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
       if (fresh) setActiveVideo(fresh);
     }
   }, [tutorials]);
+
+  // 2. IDEMPOTENT VIEW-TRACKING MECHANISM INSIDE VIDEO MODAL PLAYER (localStorage: 'watchedVideos'):
+  // When a video opens, store the video ID in a local array: watchedVideos.
+  // Only perform the Firestore increment(1) operation if the active video ID does not already exist
+  // within the user's local watchedVideos array list. This ensures 1 user = 1 unique view per video.
+  useEffect(() => {
+    if (!activeVideo || !activeVideo.id) return;
+
+    try {
+      const raw = localStorage.getItem('watchedVideos');
+      let watchedVideos: string[] = [];
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) watchedVideos = parsed;
+        } catch {
+          watchedVideos = [];
+        }
+      }
+
+      if (!watchedVideos.includes(activeVideo.id)) {
+        watchedVideos.push(activeVideo.id);
+        localStorage.setItem('watchedVideos', JSON.stringify(watchedVideos));
+
+        if (onIncrementViews) {
+          onIncrementViews(activeVideo.id);
+        }
+      }
+    } catch (err) {
+      console.warn('Idempotent view tracking error:', err);
+    }
+  }, [activeVideo?.id, onIncrementViews]);
 
   // Auto-detect YouTube views and thumbnail when admin pastes link
   useEffect(() => {
@@ -220,33 +251,8 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   }, [uploadType, videoLink]);
 
   const filteredVideos = useMemo(() => {
-    // Primary source: real-time Firestore video_tutorials
-    // Fallback: props or default tutorials so "No tutorials found" is never shown on direct load
-    const effectiveList =
-      tutorials.length > 0
-        ? tutorials
-        : videos.length > 0
-        ? videos
-        : DEFAULT_TUTORIALS.map((d, i) => ({
-            id: 'init-' + i,
-            title: d.title,
-            category: d.category === 'phone' ? 'Phone Mastery' : d.category === 'pc' ? 'PC Performance' : 'Digital Skills',
-            duration: d.duration,
-            views: d.views,
-            viewsCount: d.viewsCount,
-            viewedBy: [],
-            date: 'Recently added',
-            createdAt: Date.now() - i * 3600000,
-            uploadTimestamp: Date.now() - i * 3600000,
-            thumbnail: d.thumbnail,
-            videoUrl: d.video_url,
-            sourceType: 'link' as const,
-            description: d.description,
-            tags: [d.category],
-            likes: d.likes,
-            likedBy: [],
-            comments: [],
-          }));
+    // 100% clean data pulled dynamically from real Firebase Firestore database collections only
+    const effectiveList = tutorials.length > 0 ? tutorials : videos;
 
     const q = searchQuery.toLowerCase().trim();
     if (!q) return effectiveList;
@@ -444,12 +450,29 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
       return;
     }
 
-    // Increment real views count when a user plays or views the tutorial
-    if (onIncrementViews) {
-      onIncrementViews(video.id);
-    }
-
     if (isVideoLink(video) && video.videoUrl) {
+      try {
+        const raw = localStorage.getItem('watchedVideos');
+        let watchedVideos: string[] = [];
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) watchedVideos = parsed;
+          } catch {
+            watchedVideos = [];
+          }
+        }
+        if (!watchedVideos.includes(video.id)) {
+          watchedVideos.push(video.id);
+          localStorage.setItem('watchedVideos', JSON.stringify(watchedVideos));
+          if (onIncrementViews) {
+            onIncrementViews(video.id);
+          }
+        }
+      } catch (err) {
+        console.warn('Watched videos tracking error:', err);
+      }
+
       window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
       return;
     }
@@ -691,10 +714,14 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                         <div className="flex items-center gap-1.5 truncate">
                           <span className="text-orange-600 font-bold flex items-center gap-0.5">
                             <span>🕒</span>
-                            <span>{formatUploadedTimeAgo(video.createdAt || video.uploadTimestamp || video.date)}</span>
+                            <span>{formatUploadedTimeAgo(video.createdAt || video.uploadTimestamp || video.date, language)}</span>
                           </span>
                           <span>·</span>
-                          <span className="text-neutral-700 font-bold">{video.views}</span>
+                          <span className="text-neutral-700 font-bold">
+                            {typeof video.viewsCount === 'number'
+                              ? formatViewsCount(video.viewsCount, language)
+                              : video.views}
+                          </span>
                         </div>
                         <span
                           className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 font-bold text-[9px] border border-orange-200/50 shrink-0"
@@ -940,9 +967,13 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                       <span>·</span>
                       <span>{activeVideo.duration}</span>
                       <span>·</span>
-                      <span className="text-neutral-900 font-bold">{activeVideo.views}</span>
+                      <span className="text-neutral-900 font-bold">
+                        {typeof activeVideo.viewsCount === 'number'
+                          ? formatViewsCount(activeVideo.viewsCount, language)
+                          : activeVideo.views}
+                      </span>
                       <span>·</span>
-                      <span>{activeVideo.date}</span>
+                      <span>{formatUploadedTimeAgo(activeVideo.createdAt || activeVideo.uploadTimestamp || activeVideo.date, language)}</span>
                     </div>
                   </div>
 
@@ -985,7 +1016,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                 <div className="pt-4 border-t border-neutral-100 space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                      Comments ({activeVideo.comments?.length || 0})
+                      {t.common.comments} ({activeVideo.comments?.length || 0})
                     </h4>
                   </div>
 
@@ -1006,7 +1037,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                         required
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Write a comment..."
+                        placeholder={t.common.leaveComment}
                         className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-neutral-300 text-neutral-900 focus:outline-none focus:border-neutral-900"
                       />
                       <button
@@ -1024,7 +1055,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                   <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
                     {(!activeVideo.comments || activeVideo.comments.length === 0) ? (
                       <p className="text-xs text-neutral-400 italic py-2">
-                        No comments yet. Be the first to share your thoughts!
+                        {t.common.noComments}
                       </p>
                     ) : (
                       activeVideo.comments.map((c) => (
@@ -1041,7 +1072,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-neutral-400">{formatTimeAgo(c.createdAt || c.timestamp)}</span>
+                            <span className="text-[10px] text-neutral-400">{formatTimeAgo(c.createdAt || c.timestamp, language)}</span>
                           </div>
                           <p className="text-neutral-700 text-xs leading-relaxed">{c.text}</p>
                         </div>

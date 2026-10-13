@@ -1,6 +1,14 @@
 export type Language = 'en' | 'kn';
 
 export interface Translations {
+  common: {
+    views: string;
+    justNow: string;
+    comments: string;
+    noComments: string;
+    leaveComment: string;
+    likes: string;
+  };
   nav: {
     home: string;
     videos: string;
@@ -44,6 +52,9 @@ export interface Translations {
     playTutorial: string;
     watchParty: string;
     minRead: string;
+    noVideosFound: string;
+    viewsLabel: string;
+    commentsLabel: string;
   };
   communitySection: {
     kicker: string;
@@ -59,6 +70,7 @@ export interface Translations {
     reviewContent: string;
     publishReview: string;
     topFanBadge: string;
+    noReviewsFound: string;
   };
   liveChatSection: {
     kicker: string;
@@ -81,6 +93,7 @@ export interface Translations {
     messageSentSuccess: string;
     deliveredBadge: string;
     mailToMobile: string;
+    emailValidationError: string;
   };
   socialSection: {
     kicker: string;
@@ -101,6 +114,14 @@ export interface Translations {
 
 export const translations: Record<Language, Translations> = {
   en: {
+    common: {
+      views: 'Views',
+      justNow: 'Just now',
+      comments: 'Comments',
+      noComments: 'No comments yet. Be the first to share your thoughts!',
+      leaveComment: 'Leave a comment...',
+      likes: 'Likes',
+    },
     nav: {
       home: 'Home',
       videos: 'Videos',
@@ -112,8 +133,8 @@ export const translations: Record<Language, Translations> = {
       searchPlaceholder: 'search',
       matchingTutorials: 'Matching tutorials:',
       found: 'found',
-      signIn: 'Sign in',
-      signOut: 'Sign out',
+      signIn: 'Sign In',
+      signOut: 'Sign Out',
       topFan: 'Top Fan',
       admin: 'Admin',
     },
@@ -145,6 +166,9 @@ export const translations: Record<Language, Translations> = {
       playTutorial: 'Play Tutorial',
       watchParty: 'Watch Party',
       minRead: 'min read',
+      noVideosFound: 'No tutorials available yet. New videos will appear here dynamically.',
+      viewsLabel: 'Views',
+      commentsLabel: 'Comments',
     },
     communitySection: {
       kicker: 'TESTIMONIALS & REVIEWS',
@@ -160,12 +184,13 @@ export const translations: Record<Language, Translations> = {
       reviewContent: 'Your Review or Experience',
       publishReview: 'Publish Review',
       topFanBadge: 'Top Fan',
+      noReviewsFound: 'No reviews yet. Be the first to share your experience with Topson Media!',
     },
     liveChatSection: {
       kicker: 'TOPIC DISCUSSIONS & DIRECT ASSISTANCE',
       header: 'Chat me live',
       subtext: 'Direct two-way messaging for phone tips, PC tweaks, and digital skills.',
-      typeMessage: 'Type a message...',
+      typeMessage: 'Type your message...',
       send: 'Send',
       signInToChat: 'Sign in to chat live',
     },
@@ -182,6 +207,7 @@ export const translations: Record<Language, Translations> = {
       messageSentSuccess: 'Message sent successfully!',
       deliveredBadge: 'Delivered',
       mailToMobile: 'mail topson media',
+      emailValidationError: 'Uzuza imere (Email) ihamye kandi ibaho neza!',
     },
     socialSection: {
       kicker: 'CONNECT ON SOCIAL',
@@ -200,6 +226,14 @@ export const translations: Record<Language, Translations> = {
     },
   },
   kn: {
+    common: {
+      views: 'Inshuro yarebwe',
+      justNow: 'Ubu ngubu',
+      comments: 'Ibitekerezo',
+      noComments: 'Nta bitekerezo birajyaho. Ba uwa mbere gutanga igitekerezo!',
+      leaveComment: 'Tanga igitekerezo cyawe...',
+      likes: 'Abakunze',
+    },
     nav: {
       home: 'Ahabanza',
       videos: 'Video',
@@ -232,7 +266,7 @@ export const translations: Record<Language, Translations> = {
       title: 'Kubaka icyizere mu ikoranabuhanga, intambwe ku yindi.',
       description:
         'Dukuraho urujijo kuri telefone, mudasobwa, n\'ubuhanga bwo gukoresha porogaramu kugira ngo buri wese yisanzure mu byo akoresha buri munsi.',
-      exploreTutorials: 'Reba Tutorials Zose',
+      exploreTutorials: 'Reba tutorials zose',
     },
     videosSection: {
       kicker: 'TUTORIALS N\'AMASHUSHO MATO YATORANYIJWE',
@@ -244,13 +278,16 @@ export const translations: Record<Language, Translations> = {
       playTutorial: 'Reba Tutorial',
       watchParty: 'Rebera Hamwe',
       minRead: 'min gusoma',
+      noVideosFound: 'Nta tutorials zirashyirwaho. Video nshya zizagaragara hano vuba.',
+      viewsLabel: 'Inshuro yarebwe',
+      commentsLabel: 'Ibitekerezo',
     },
     communitySection: {
       kicker: 'UBUHAMYA N\'IBITEKEREZO',
       header: 'Ibyo abanyamuryango bavuga',
       subtext: 'Ubuhamya nyakuri n\'ibitekerezo by\'abanyamuryango n\'abakunzi b\'ikoranabuhanga ku isi yose.',
       verifiedReviews: 'Ibitekerezo by\'abanyamuryango byemejwe',
-      leaveReview: 'Leave your review',
+      leaveReview: 'Tanga igitekerezo cyawe',
       closeForm: 'Funga Ifishi',
       shareExperience: 'Sangiza igitekerezo cyawe na Topson Media',
       fullName: 'Amazina yawe yose',
@@ -259,12 +296,13 @@ export const translations: Record<Language, Translations> = {
       reviewContent: 'Igitekerezo cyawe cyangwa Ubuhamya',
       publishReview: 'Ohereza Igitekerezo',
       topFanBadge: 'Top Fan',
+      noReviewsFound: 'Nta bitekerezo birashyirwaho. Ba uwa mbere gusangiza ubuhamya bwawe na Topson Media!',
     },
     liveChatSection: {
       kicker: 'IBIGANIRO N\'UBWUFASHO BW\'IKORANABUHANGA',
       header: 'Ganira nanjye',
       subtext: 'Ubutumwa bwawe bwihuse ku nama za telefone, mudasobwa, n\'ubushobozi bwa tekiniki.',
-      typeMessage: 'Andika ubutumwa hano...',
+      typeMessage: 'Andika ubutumwa bwawe hano...',
       send: 'Ohereza',
       signInToChat: 'Injira kugira ngo uganire natwe',
     },
@@ -276,15 +314,16 @@ export const translations: Record<Language, Translations> = {
       emailAddress: 'Aderesi ya Email yawe',
       subjectTopic: 'Impamvu y\'ubutumwa',
       messageQuestion: 'Ubutumwa bwawe cyangwa Ikibazo',
-      sendEmailBtn: 'Ohereza ubutumwa bwa Email',
+      sendEmailBtn: 'Yohereza ubutumwa',
       directInboxNote: 'Byoherezwa mu gasanduku ka Topson Media.',
       messageSentSuccess: 'Ubutumwa bwoherejwe neza!',
       deliveredBadge: 'Bwagezeyo',
       mailToMobile: 'mail topson media',
+      emailValidationError: 'Uzuza imere (Email) ihamye kandi ibaho neza!',
     },
     socialSection: {
       kicker: 'DUSANGIZE KU MBUGA NKORANYAMBAGA',
-      header: 'Dive in my social medias',
+      header: 'Dukurikire ku mbuga zacu',
       subtext: 'Dukurikire ku mbuga zikunzwe cyane.',
       subscribe: 'Iyandikishe',
       follow: 'Dukurikire',
