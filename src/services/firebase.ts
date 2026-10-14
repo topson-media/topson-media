@@ -16,8 +16,18 @@ import {
   where,
   addDoc,
   serverTimestamp,
-  increment
+  increment,
 } from 'firebase/firestore';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+  signOut,
+  sendPasswordResetEmail,
+} from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { VideoItem, FeedbackItem, ChatMessage, User, EmailMessage, VideoComment } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
@@ -26,6 +36,10 @@ import { formatUploadedTimeAgo } from '../utils/timeAgo';
 
 // Initialize Firebase App
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+// Initialize Firebase Auth
+export const auth = getAuth(app);
+export const googleAuthProvider = new GoogleAuthProvider();
 
 // Initialize Cloud Firestore with dedicated databaseId
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);

@@ -62,7 +62,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setPassword('');
   }, [initialMode, isOpen]);
 
-  // Handle ESC key to dismiss modal cleanly
+  // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -144,6 +144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         err.code === 'auth/popup-closed-by-user' ||
         err.code === 'auth/cancelled-popup-request'
       ) {
+        // User voluntarily dismissed the Google popup window
         setError(
           language === 'kn'
             ? 'Kwinjira na Google byahagaritswe. Ongera ugerageze.'
@@ -299,13 +300,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             console.warn('Firestore record error:', dbErr);
           }
 
-          // 2. Immediately trigger official verification function: sendEmailVerification(auth.currentUser)
+          // 2. Immediately trigger the official verification function: sendEmailVerification(auth.currentUser)
           await sendEmailVerification(auth.currentUser);
 
-          // 3. Directly after triggering email, enforce immediate session clear using signOut(auth)
+          // 3. Directly after triggering the email, enforce an immediate session clear using signOut(auth)
           await signOut(auth);
 
-          // 4. Display clear neon-orange success alert
+          // 4. Display clear neon-orange success alert exactly as instructed
           setSuccessMessage(
             'Konti yawe yakozwe neza! Twakwoherereje link muli Gmail yawe. Banza uyifungure ukande kuri iyo link ngo wemeze imere yawe mbere yo kwinjira!'
           );
@@ -370,7 +371,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         // Strict boolean conditional block: if (!auth.currentUser.emailVerified)
         if (!auth.currentUser || !auth.currentUser.emailVerified) {
-          // Immediately call signOut(auth) to freeze and block access
+          // Immediately call signOut(auth) to freeze and block their access
           await signOut(auth);
 
           // Display strict error message layout exactly as instructed
