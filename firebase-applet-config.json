@@ -1,12 +1,9 @@
 {
-  "projectId": "nomadic-palisade-t14dk",
-  "appId": "1:89900997204:web:fbb37e481141096435abc1",
-  "apiKey": "AIzaSyDPOIr-Mz8bS-5m54x4OgzdjSloY94pLo0",
-  "authDomain": "nomadic-palisade-t14dk.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-topsonmediatechc-3000816d-9ccd-4e17-9122-51fbed893c56",
-  "storageBucket": "nomadic-palisade-t14dk.firebasestorage.app",
-  "messagingSenderId": "89900997204",
-  "measurementId": "",
-  "oAuthClientId": "89900997204-abtfprkc04abp2e64ao0ihmvms0ci56u.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "topson-media",
+  "appId": "1:913929800746:web:e86642e844de1c771e0753",
+  "apiKey": "AIzaSyAh6MUfrBdCQj4DPJpmrh-8uquZ_RQblk0",
+  "authDomain": "topson-media.firebaseapp.com",
+  "storageBucket": "topson-media.firebasestorage.app",
+  "messagingSenderId": "913929800746",
+  "measurementId": "G-78320MJ5C2"
 }

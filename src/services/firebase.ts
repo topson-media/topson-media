@@ -1,4 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
+import { getAnalytics } from 'firebase/analytics';
 import {
   getFirestore,
   collection,
@@ -28,21 +29,42 @@ import {
   signOut,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
 import { VideoItem, FeedbackItem, ChatMessage, User, EmailMessage, VideoComment } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { getYouTubeThumbnail } from '../utils/youtubeHelper';
 import { formatUploadedTimeAgo } from '../utils/timeAgo';
 
-// Initialize Firebase App
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+export const firebaseConfig = {
+  apiKey: "AIzaSyAh6MUfrBdCQj4DPJpmrh-8uquZ_RQblk0",
+  authDomain: "topson-media.firebaseapp.com",
+  projectId: "topson-media",
+  storageBucket: "topson-media.firebasestorage.app",
+  messagingSenderId: "913929800746",
+  appId: "1:913929800746:web:e86642e844de1c771e0753",
+  measurementId: "G-78320MJ5C2"
+};
+
+// Initialize Firebase
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Initialize Firebase Auth
+// Initialize Analytics (optional for client-side web metrics)
+export let analytics: any = null;
+if (typeof window !== 'undefined') {
+  try {
+    analytics = getAnalytics(app);
+  } catch (err) {
+    // Analytics is optional in unsupported environments
+  }
+}
+
+// Initialize Firebase Auth explicitly using this configuration
 export const auth = getAuth(app);
 export const googleAuthProvider = new GoogleAuthProvider();
 
-// Initialize Cloud Firestore with dedicated databaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Initialize Cloud Firestore
+export const db = getFirestore(app);
 
 // Test Firestore Connection
 export async function testFirestoreConnection(): Promise<boolean> {

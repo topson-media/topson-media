@@ -13,8 +13,7 @@ import {
   onSnapshot,
   getDoc,
 } from 'firebase/firestore';
-import { app, db } from './firebase';
-import firebaseConfig from '../../firebase-applet-config.json';
+import { app, db, firebaseConfig } from './firebase';
 import { VideoItem, User, WatchPartyAttendee, WatchPartyRoom, WatchPartyMessage } from '../types';
 
 // Distinctive attendee accent colors for avatars and synchronized progress bars

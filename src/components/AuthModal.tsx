@@ -262,20 +262,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         // 1. Create user account via createUserWithEmailAndPassword(auth, email, password)
-        await createUserWithEmailAndPassword(
+        const userCredential = await createUserWithEmailAndPassword(
           auth,
           email.trim().toLowerCase(),
           password
         );
 
-        if (auth.currentUser) {
+        const newUser = userCredential.user;
+        if (newUser) {
           try {
-            await updateProfile(auth.currentUser, {
+            await updateProfile(newUser, {
               displayName: username.trim(),
             });
           } catch {}
 
-          const uid = auth.currentUser.uid;
+          const uid = newUser.uid;
           const newUserData: User = {
             id: uid,
             uid: uid,
@@ -301,7 +302,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           }
 
           // 2. Immediately trigger the official verification function: sendEmailVerification(auth.currentUser)
-          await sendEmailVerification(auth.currentUser);
+          await sendEmailVerification(newUser);
 
           // 3. Directly after triggering the email, enforce an immediate session clear using signOut(auth)
           await signOut(auth);
@@ -363,14 +364,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         // Standard Email/Password Sign-In via signInWithEmailAndPassword(auth, email, password)
-        await signInWithEmailAndPassword(
+        const signinResult = await signInWithEmailAndPassword(
           auth,
           inputIdentifier,
           password
         );
 
+        const currentSignedInUser = signinResult.user || auth.currentUser;
+
         // Strict boolean conditional block: if (!auth.currentUser.emailVerified)
-        if (!auth.currentUser || !auth.currentUser.emailVerified) {
+        if (!currentSignedInUser || !currentSignedInUser.emailVerified) {
+          // Re-send verification link to the typed email so user receives verification link
+          if (currentSignedInUser && !currentSignedInUser.emailVerified) {
+            try {
+              await sendEmailVerification(currentSignedInUser);
+            } catch (vErr) {
+              console.warn('Resend verification link notice:', vErr);
+            }
+          }
+
           // Immediately call signOut(auth) to freeze and block their access
           await signOut(auth);
 
@@ -383,7 +395,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         // Verified user! Retrieve or sync profile
-        const firebaseUser = auth.currentUser;
+        const firebaseUser = currentSignedInUser;
         const uid = firebaseUser.uid;
         const verifiedEmail = (firebaseUser.email || inputIdentifier).toLowerCase();
 
@@ -451,7 +463,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       }
 
-      if (err.code === 'auth/email-already-in-use') {
+      if (err.code === 'auth/operation-not-allowed') {
+        setError(
+          language === 'kn'
+            ? 'Uburyo bwa Email/Password ntiburemererwa muri Firebase. Banza ubyemeze muri Authentication > Sign-in providers.'
+            : 'Email/Password sign-in is not enabled in Firebase Authentication console. Please make sure Email/Password is toggled ON under Authentication > Sign-in method.'
+        );
+      } else if (err.code === 'auth/email-already-in-use') {
         setError(
           language === 'kn'
             ? 'Iyi email isanzwe ikoreshwa. Banza winjire (Sign In).'
