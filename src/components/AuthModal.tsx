@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   KeyRound,
   ArrowLeft,
+  Copy,
+  ExternalLink,
+  Globe,
 } from 'lucide-react';
 import {
   signInWithPopup,
@@ -53,14 +56,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [isResetSubmitting, setIsResetSubmitting] = useState(false);
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+  const [domainCopied, setDomainCopied] = useState(false);
 
   useEffect(() => {
     setIsSignUp(initialMode === 'signup');
     setIsResetMode(false);
     setError(null);
     setSuccessMessage(null);
+    setUnauthorizedDomain(null);
+    setDomainCopied(false);
     setPassword('');
   }, [initialMode, isOpen]);
+
+  const handleCopyDomain = async (domainToCopy: string) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(domainToCopy);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = domainToCopy;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setDomainCopied(true);
+      setTimeout(() => setDomainCopied(false), 2500);
+    } catch (copyErr) {
+      console.error('Failed to copy domain to clipboard:', copyErr);
+    }
+  };
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -155,6 +184,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           language === 'kn'
             ? 'Browser yawe yabujije popup ya Google. Banza uyemerere popup.'
             : 'Popup blocked by browser. Please allow popups for this site.'
+        );
+      } else if (err.code === 'auth/unauthorized-domain') {
+        const currentHostname =
+          typeof window !== 'undefined' && window.location.hostname
+            ? window.location.hostname
+            : 'run.app';
+        setUnauthorizedDomain(currentHostname);
+        setError(
+          language === 'kn'
+            ? `Domain "${currentHostname}" ntiri muri Authorized Domains muri Firebase Console ya "topson-media".`
+            : `Domain "${currentHostname}" is not authorized for OAuth in Firebase Console ("topson-media").`
         );
       } else {
         setError(
@@ -602,6 +642,113 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <p className="text-xs sm:text-sm font-bold text-neutral-950 leading-relaxed">
                   {error}
                 </p>
+
+                {/* Unauthorized Domain Interactive Solution Helper */}
+                {unauthorizedDomain && (
+                  <div className="mt-3 pt-3 border-t border-orange-500/30 space-y-2.5 text-neutral-900">
+                    <p className="text-[11px] font-bold text-orange-950 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-orange-600" />
+                      <span>
+                        {language === 'kn'
+                          ? 'Aderesi igomba kongerwa muri Firebase Console:'
+                          : 'Domain to add to Firebase Console Authorized Domains:'}
+                      </span>
+                    </p>
+
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/95 border border-orange-300 shadow-2xs">
+                      <code className="text-[11px] sm:text-xs font-mono font-bold text-neutral-900 truncate select-all">
+                        {unauthorizedDomain}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyDomain(unauthorizedDomain)}
+                        className="shrink-0 px-2.5 py-1 text-[11px] font-bold rounded-md bg-orange-500 hover:bg-orange-600 active:scale-95 text-white transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Copy domain to clipboard"
+                      >
+                        {domainCopied ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{language === 'kn' ? 'Yandukuwe!' : 'Copied!'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{language === 'kn' ? 'Koporora' : 'Copy'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="text-[10px] sm:text-[11px] text-neutral-800 space-y-1 bg-orange-50/70 p-2.5 rounded-lg border border-orange-200">
+                      <p className="font-bold text-neutral-950">
+                        {language === 'kn'
+                          ? 'Uburyo bworoshye bwo kubikemura:'
+                          : 'Quick 3-step setup in Firebase Console:'}
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1 text-neutral-700">
+                        <li>
+                          {language === 'kn' ? (
+                            <>
+                              Fungura{' '}
+                              <a
+                                href="https://console.firebase.google.com/project/topson-media/authentication/settings"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline font-bold text-orange-700 hover:text-orange-900 inline-flex items-center gap-0.5"
+                              >
+                                Firebase Console Settings{' '}
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </>
+                          ) : (
+                            <>
+                              Open{' '}
+                              <a
+                                href="https://console.firebase.google.com/project/topson-media/authentication/settings"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline font-bold text-orange-700 hover:text-orange-900 inline-flex items-center gap-0.5"
+                              >
+                                Firebase Console Settings{' '}
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </>
+                          )}
+                        </li>
+                        <li>
+                          {language === 'kn'
+                            ? 'Muri "Authorized domains", kanda "Add domain"'
+                            : 'Under "Authorized domains", click "Add domain"'}
+                        </li>
+                        <li>
+                          {language === 'kn'
+                            ? 'Shyiramo domain wakoporoye hejuru (cyangwa shyiramo "run.app") hanyuma ukande "Add"'
+                            : 'Paste the domain copied above (or simply "run.app") and save'}
+                        </li>
+                      </ol>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        setUnauthorizedDomain(null);
+                        const input = document.getElementById('auth-email-input');
+                        if (input) {
+                          input.focus();
+                        }
+                      }}
+                      className="w-full py-2 px-3 rounded-lg bg-orange-500 hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <span>
+                        👉{' '}
+                        {language === 'kn'
+                          ? 'Koresha Email & Password hasi hano (Birakora nonaha)'
+                          : 'Use Email & Password below instead (Works instantly)'}
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -777,6 +924,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <Mail className="w-4 h-4" />
                     </div>
                     <input
+                      id="auth-email-input"
                       type={isSignUp ? 'email' : 'text'}
                       required
                       value={isSignUp ? email : identifier}
