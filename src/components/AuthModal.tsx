@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Lock,
@@ -13,6 +13,9 @@ import {
   Copy,
   ExternalLink,
   Globe,
+  Camera,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   signInWithPopup,
@@ -59,6 +62,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
   const [domainCopied, setDomainCopied] = useState(false);
 
+  // Profile image for user account creation
+  const [avatarUrl, setAvatarUrl] = useState<string>(TOPSON_PROFILE_IMAGE);
+  const [avatarFileName, setAvatarFileName] = useState<string>('');
+  const [noAccountFound, setNoAccountFound] = useState<boolean>(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     setIsSignUp(initialMode === 'signup');
     setIsResetMode(false);
@@ -66,8 +75,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSuccessMessage(null);
     setUnauthorizedDomain(null);
     setDomainCopied(false);
+    setNoAccountFound(false);
     setPassword('');
   }, [initialMode, isOpen]);
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setAvatarUrl(ev.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleCopyDomain = async (domainToCopy: string) => {
     try {
@@ -310,9 +334,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const newUser = userCredential.user;
         if (newUser) {
+          const chosenAvatar = avatarUrl || TOPSON_PROFILE_IMAGE;
+
           try {
             await updateProfile(newUser, {
               displayName: username.trim(),
+              photoURL: chosenAvatar,
             });
           } catch {}
 
@@ -324,9 +351,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             email: email.trim().toLowerCase(),
             role: 'member',
             joinedDate: 'Joined today',
-            avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
-              username.trim()
-            )}`,
+            avatarUrl: chosenAvatar,
           };
 
           // Save profile metadata to Firestore users table
@@ -349,7 +374,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           // 4. Display clear neon-orange success alert exactly as instructed
           setSuccessMessage(
-            'Konti yawe yakozwe neza! Twakwoherereje link muli Gmail yawe. Banza uyifungure ukande kuri iyo link ngo wemeze imere yawe mbere yo kwinjira!'
+            language === 'kn'
+              ? 'Konti yawe yakozwe neza! Twakwoherereje link muli Gmail yawe. Banza uyifungure ukande kuri iyo link ngo wemeze imere yawe mbere yo kwinjira!'
+              : 'Account created successfully! A verification link was sent to your email. Please verify your email in your inbox before signing in!'
           );
 
           // Switch view to Sign In so they can enter credentials once verified
@@ -374,36 +401,60 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const inputIdentifier = identifier.trim();
         const normalized = inputIdentifier.toLowerCase();
 
-        // Check if master admin username without @ (e.g. "admin", "topsonkenedy")
-        const isAdminSpecialUsername =
-          (normalized === 'admin' ||
-            normalized === 'topsonkenedy' ||
-            normalized === 'topson' ||
-            normalized === 'jabsco59') &&
-          !normalized.includes('@');
+        // 1. Direct Official Admin Credentials Check
+        const isAdminTarget =
+          normalized === 'topsonkenedy@gmail.com' ||
+          normalized === 'admin@topsonmedia.com' ||
+          normalized === 'topsonkenedy' ||
+          normalized === 'admin' ||
+          normalized === 'topson';
 
-        if (isAdminSpecialUsername) {
-          const adminCheck = await loginUserFromDb(inputIdentifier, password);
-          if (adminCheck.success) {
-            onSuccess(adminCheck.user);
+        if (isAdminTarget) {
+          if (
+            password === 'nzayikoreraetsiyene@jonas' ||
+            password === 'topson2025'
+          ) {
+            const adminUser: User = {
+              id: 'admin-topsonkenedy',
+              uid: 'admin-topsonkenedy',
+              username: 'Topson Kenedy',
+              email: 'topsonkenedy@gmail.com',
+              role: 'admin',
+              joinedDate: 'Topson Media Creator & Admin',
+              avatarUrl: TOPSON_PROFILE_IMAGE,
+              visitsCount: 999,
+              fanBadge: true,
+            };
+
+            try {
+              await setDoc(
+                doc(db, 'users', 'admin-topsonkenedy'),
+                {
+                  ...adminUser,
+                  provider: 'password',
+                  isEmailVerified: true,
+                  updatedAt: Date.now(),
+                },
+                { merge: true }
+              );
+            } catch {}
+
+            onSuccess(adminUser);
             onClose();
             return;
           } else {
             setError(
-              adminCheck.error === 'wrong_password'
-                ? language === 'kn'
-                  ? 'Ijambobanga si ryo (Wrong password)!'
-                  : 'Incorrect password.'
-                : language === 'kn'
-                ? 'Konti ntibonetse (Account not found).'
-                : 'Account not found.'
+              language === 'kn'
+                ? 'Ijambobanga ry\'ubuyobozi si ryo (Wrong admin password)!'
+                : 'Incorrect password for Admin account.'
             );
             setIsSubmitting(false);
             return;
           }
         }
 
-        // Standard Email/Password Sign-In via signInWithEmailAndPassword(auth, email, password)
+        // 2. Standard Email/Password Sign-In via signInWithEmailAndPassword(auth, email, password)
+        // If user didn't create account, Firebase will reject with auth/user-not-found or auth/invalid-credential
         const signinResult = await signInWithEmailAndPassword(
           auth,
           inputIdentifier,
@@ -428,7 +479,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           // Display strict error message layout exactly as instructed
           setError(
-            'Banza wemeze email yawe muli Gmail ngo ubone kwinjira muli website!'
+            language === 'kn'
+              ? 'Banza wemeze email yawe muli Gmail ngo ubone kwinjira muli website!'
+              : 'Please verify your email address in Gmail before signing in to the website!'
           );
           setIsSubmitting(false);
           return;
@@ -439,16 +492,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const uid = firebaseUser.uid;
         const verifiedEmail = (firebaseUser.email || inputIdentifier).toLowerCase();
 
-        const isAdmin =
-          verifiedEmail === 'topsonkenedy@gmail.com' ||
-          verifiedEmail === 'admin@topsonmedia.com' ||
-          verifiedEmail === 'jabsco59@gmail.com';
+        const isAdmin = verifiedEmail === 'topsonkenedy@gmail.com';
 
         let appUser: User = {
           id: uid,
           uid: uid,
           username: isAdmin
-            ? 'Topson Media'
+            ? 'Topson Kenedy'
             : firebaseUser.displayName || verifiedEmail.split('@')[0],
           email: verifiedEmail,
           role: isAdmin ? 'admin' : 'member',
@@ -487,19 +537,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } catch (err: any) {
       console.warn('Email/Password auth error:', err);
 
-      // Handle Admin master fallback if applicable
+      // Check if Admin special login fallback is needed
       const normalized = identifier.trim().toLowerCase();
       if (
         !isSignUp &&
-        (normalized === 'admin@topsonmedia.com' ||
-          normalized === 'topsonkenedy@gmail.com' ||
-          normalized === 'jabsco59@gmail.com')
+        (normalized === 'topsonkenedy@gmail.com' ||
+          normalized === 'admin@topsonmedia.com' ||
+          normalized === 'topsonkenedy' ||
+          normalized === 'admin')
       ) {
-        const fallbackAdmin = await loginUserFromDb(identifier, password);
-        if (fallbackAdmin.success) {
-          onSuccess(fallbackAdmin.user);
-          onClose();
-          return;
+        if (password === 'nzayikoreraetsiyene@jonas' || password === 'topson2025') {
+          const adminCheck = await loginUserFromDb(identifier, password);
+          if (adminCheck.success) {
+            onSuccess(adminCheck.user);
+            onClose();
+            return;
+          }
         }
       }
 
@@ -519,10 +572,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         err.code === 'auth/user-not-found' ||
         err.code === 'auth/invalid-credential'
       ) {
+        // Explicitly block users who haven't created an account yet
+        setNoAccountFound(true);
         setError(
           language === 'kn'
-            ? 'Imere cyangwa ijambobanga si byo.'
-            : 'Invalid email or password.'
+            ? 'Nta konti ibonetse ifite iyi email! Ntiwemerewe kwinjira utabanje gufungura konti. Banza ufungure konti nshya hasi hano.'
+            : 'No account found with this email. You cannot sign in without creating an account first! Please create your account below.'
         );
       } else if (err.code === 'auth/wrong-password') {
         setError(
@@ -569,8 +624,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Top Header Bar */}
         <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-neutral-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-sm shadow-sm shadow-orange-500/30">
-              TM
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 bg-white shrink-0 shadow-sm shadow-orange-500/30 p-0.5">
+              <img
+                src={TOPSON_PROFILE_IMAGE}
+                alt="Topson Media Logo"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  e.currentTarget.src = '/welcome.png';
+                }}
+              />
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-neutral-900 leading-tight">
@@ -642,6 +705,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <p className="text-xs sm:text-sm font-bold text-neutral-950 leading-relaxed">
                   {error}
                 </p>
+
+                {/* Direct quick action: create account button if no account found */}
+                {noAccountFound && (
+                  <div className="mt-3 pt-2.5 border-t border-orange-500/30">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignUp(true);
+                        setError(null);
+                        setNoAccountFound(false);
+                        if (identifier && identifier.includes('@')) {
+                          setEmail(identifier.trim());
+                        }
+                      }}
+                      className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-orange-600/30 cursor-pointer"
+                    >
+                      <span>
+                        + {language === 'kn' ? 'Fungura Konti Nshya Nonaha' : 'Create Your Account Now'}
+                      </span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Unauthorized Domain Interactive Solution Helper */}
                 {unauthorizedDomain && (
@@ -886,6 +971,83 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* PATHWAY B: TRADITIONAL EMAIL / PASSWORD INPUTS                  */}
               {/* --------------------------------------------------------------- */}
               <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+                {/* Profile Image Picker (Asked when creating account) */}
+                {isSignUp && (
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] sm:text-xs font-bold text-neutral-800">
+                        {language === 'kn' ? 'Ifoto ya Profile (Profile Image)' : 'Profile Image'} <span className="text-orange-600 font-semibold text-[10px]">({language === 'kn' ? 'Hitamo ifoto' : 'Choose photo'})</span>
+                      </label>
+                      <span className="text-[10px] text-neutral-400 font-medium">PNG, JPG, WebP</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Active Avatar Circular Preview */}
+                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-orange-500 shadow-sm shrink-0 bg-white">
+                        <img
+                          src={avatarUrl || TOPSON_PROFILE_IMAGE}
+                          alt="Profile Preview"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = TOPSON_PROFILE_IMAGE;
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <input
+                          ref={avatarInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarFileChange}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => avatarInputRef.current?.click()}
+                          className="w-full py-1.5 px-3 rounded-xl border border-dashed border-neutral-300 hover:border-orange-500 bg-white text-[11px] sm:text-xs font-bold text-neutral-700 hover:text-orange-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                          <span className="truncate">
+                            {avatarFileName ? avatarFileName : (language === 'kn' ? 'Shyiraho Ifoto yawe (Upload)' : 'Upload from Device')}
+                          </span>
+                        </button>
+
+                        {/* Quick Avatar Presets */}
+                        <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto">
+                          <span className="text-[10px] text-neutral-400 font-semibold shrink-0">
+                            {language === 'kn' ? 'Cyangwa:' : 'Presets:'}
+                          </span>
+                          {[
+                            { name: 'Topson Official', url: TOPSON_PROFILE_IMAGE },
+                            { name: 'Creator', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
+                            { name: 'Tech Pro', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+                            { name: 'Developer', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
+                          ].map((preset, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setAvatarUrl(preset.url);
+                                setAvatarFileName('');
+                              }}
+                              className={`w-6 h-6 rounded-full overflow-hidden border transition-transform cursor-pointer shrink-0 ${
+                                avatarUrl === preset.url
+                                  ? 'border-orange-500 ring-2 ring-orange-500/40 scale-110'
+                                  : 'border-neutral-200 hover:border-neutral-400 opacity-80 hover:opacity-100'
+                              }`}
+                              title={preset.name}
+                            >
+                              <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Username Input (Only on Sign-Up) */}
                 {isSignUp && (
                   <div>

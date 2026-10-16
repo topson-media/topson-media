@@ -16,6 +16,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { User } from '../types';
+import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb } from '../services/firebase';
 
 interface UserManagementProps {
@@ -394,17 +395,16 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                 >
                   {/* Left: User Identity Info */}
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-neutral-900 text-white font-bold text-sm flex items-center justify-center shrink-0 border border-neutral-300 shadow-2xs relative">
-                      {u.avatarUrl ? (
-                        <img
-                          src={u.avatarUrl}
-                          alt={u.username}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover rounded-full"
-                        />
-                      ) : (
-                        <span>{u.username.slice(0, 1).toUpperCase()}</span>
-                      )}
+                    <div className="w-11 h-11 rounded-full bg-neutral-900 text-white font-bold text-sm flex items-center justify-center shrink-0 border border-neutral-300 shadow-2xs relative overflow-hidden">
+                      <img
+                        src={u.avatarUrl || (isThisAdmin ? TOPSON_PROFILE_IMAGE : `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80`)}
+                        alt={u.username}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover rounded-full"
+                        onError={(e) => {
+                          e.currentTarget.src = TOPSON_PROFILE_IMAGE;
+                        }}
+                      />
                       {u.fanBadge && (
                         <span
                           className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-neutral-900 flex items-center justify-center text-[10px] shadow-2xs"

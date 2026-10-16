@@ -25,6 +25,7 @@ import { VideoItem, VideoComment, User } from '../types';
 import {
   getYouTubeThumbnail,
   extractYouTubeId,
+  buildYouTubeEmbedUrl,
   fetchYouTubeVideoDetails,
   formatViewsCount,
   formatVideoDuration,
@@ -327,26 +328,33 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
       newCategory.toLowerCase().includes('pc') ? 'pc' :
       'digital';
 
+    const cleanYtId = uploadType === 'link' ? extractYouTubeId(videoLink.trim()) : null;
     const urlToSave =
       uploadType === 'link'
-        ? videoLink.trim()
+        ? (cleanYtId ? `https://www.youtube.com/watch?v=${cleanYtId}` : videoLink.trim())
         : deviceFilePreviewUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
+    const tutorialPayload: Record<string, any> = {
+      title: newTitle.trim(),
+      category: categoryCode,
+      video_url: urlToSave,
+      created_at: serverTimestamp(),
+      thumbnail: finalThumbnail,
+      duration: newDuration.trim() || '10:00',
+      description: newDescription.trim() || 'Tech walkthrough on ' + newTitle.trim(),
+      views: finalViews,
+      viewsCount: uploadType === 'device' ? 0 : 1500,
+      likes: 0,
+      likedBy: [],
+      comments: [],
+    };
+
+    if (cleanYtId) {
+      tutorialPayload.youtube_id = cleanYtId;
+    }
+
     try {
-      addDoc(collection(db, 'video_tutorials'), {
-        title: newTitle.trim(),
-        category: categoryCode,
-        video_url: urlToSave,
-        created_at: serverTimestamp(),
-        thumbnail: finalThumbnail,
-        duration: newDuration.trim() || '10:00',
-        description: newDescription.trim() || 'Tech walkthrough on ' + newTitle.trim(),
-        views: finalViews,
-        viewsCount: uploadType === 'device' ? 0 : 1500,
-        likes: 0,
-        likedBy: [],
-        comments: [],
-      });
+      addDoc(collection(db, 'video_tutorials'), tutorialPayload);
     } catch (err) {
       console.warn('Failed to add doc in VideoGallery:', err);
     }
@@ -386,8 +394,10 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
     e.preventDefault();
     if (!editingVideo) return;
 
-    const autoYt = getYouTubeThumbnail(editVideoUrl);
+    const cleanYtId = extractYouTubeId(editVideoUrl.trim());
+    const autoYt = editVideoUrl ? getYouTubeThumbnail(editVideoUrl) : null;
     const finalThumb = editThumbnail || autoYt || editingVideo.thumbnail;
+    const finalVideoUrl = cleanYtId ? `https://www.youtube.com/watch?v=${cleanYtId}` : editVideoUrl.trim() || editingVideo.videoUrl;
 
     const updated: VideoItem = {
       ...editingVideo,
@@ -398,8 +408,9 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
       date: editDate.trim() || editingVideo.date,
       description: editDescription.trim() || editingVideo.description,
       thumbnail: finalThumb,
-      videoUrl: editVideoUrl.trim() || editingVideo.videoUrl,
-      sourceType: editVideoUrl ? 'link' : editingVideo.sourceType,
+      youtubeId: cleanYtId || editingVideo.youtubeId,
+      videoUrl: finalVideoUrl,
+      sourceType: cleanYtId ? 'link' : (editVideoUrl ? 'link' : editingVideo.sourceType),
       tags: editTags
         ? editTags.split(',').map((t) => t.trim()).filter(Boolean)
         : editingVideo.tags,
@@ -914,45 +925,41 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="relative aspect-video w-full bg-neutral-900 overflow-hidden">
-                {isVideoLink(activeVideo) ? (
-                  <div className="relative w-full h-full">
-                    <img
-                      src={activeVideo.thumbnail}
-                      alt={activeVideo.title}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover opacity-75"
-                    />
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-6 text-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg">
-                        <svg className="w-7 h-7 fill-white" viewBox="0 0 24 24">
-                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                        </svg>
+              <div className="relative aspect-video w-full bg-black overflow-hidden shadow-2xl">
+                {(() => {
+                  const candidateUrl = activeVideo.videoUrl || activeVideo.youtubeId || '';
+                  const extractedId = extractYouTubeId(candidateUrl);
+
+                  if (extractedId) {
+                    const embedUrl = buildYouTubeEmbedUrl(extractedId);
+                    return (
+                      <div className="relative w-full h-full bg-black">
+                        <iframe
+                          src={embedUrl}
+                          title={activeVideo.title}
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          loading="eager"
+                        />
                       </div>
-                      <h4 className="text-lg font-bold text-white max-w-md">{activeVideo.title}</h4>
-                      <a
-                        href={activeVideo.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FF0000] hover:bg-[#CC0000] text-white font-bold text-sm shadow-md transition-colors"
-                      >
-                        <LinkIcon className="w-4 h-4" />
-                        <span>Watch on YouTube</span>
-                      </a>
-                    </div>
-                  </div>
-                ) : (
-                  <video
-                    src={
-                      activeVideo.videoUrl ||
-                      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
-                    }
-                    controls
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-contain bg-black"
-                  />
-                )}
+                    );
+                  }
+
+                  // Fallback for direct uploaded video files (MP4, WebM)
+                  return (
+                    <video
+                      src={
+                        activeVideo.videoUrl ||
+                        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+                      }
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  );
+                })()}
               </div>
 
               {/* Video Info & Interaction Section */}

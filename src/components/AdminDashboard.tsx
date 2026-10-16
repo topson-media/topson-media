@@ -160,8 +160,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [videoCategory, setVideoCategory] = useState<'phone' | 'pc' | 'digital'>('phone');
   const [videoDescription, setVideoDescription] = useState('');
   const [videoDuration, setVideoDuration] = useState('11:45');
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadDiagnostic, setUploadDiagnostic] = useState<{
+    code: string;
+    message: string;
+    diagnosis: string;
+    solution: string;
+    timestamp: string;
+    rawError: string;
+    payloadDump?: string;
+  } | null>(null);
 
   // Auto YouTube thumbnail detection
   const detectedYouTubeThumb = useMemo(() => {
@@ -362,54 +371,173 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  /**
+   * ROBUST ASYNC FIRESTORE SUBMISSION WITH REAL NETWORK RETRIES
+   * - Dynamically sanitizes input fields (.trim(), .toLowerCase())
+   * - Eliminates 'undefined' payload attributes that cause Firestore invalid-argument crashes
+   * - Retries transient connection errors up to 3 times with exponential backoff
+   * - Provides transparent console-vibe diagnostics on failure
+   */
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!videoTitle.trim()) return;
+    setUploadDiagnostic(null);
 
-    // Automatic YouTube thumbnail extraction when pasting a YouTube/reel link!
-    const ytThumb = uploadType === 'link' ? getYouTubeThumbnail(videoLink.trim()) : null;
+    // 1. DYNAMIC INPUT SANITIZATION
+    const titleClean = (videoTitle || '').trim();
+    const categoryClean = (videoCategory || 'phone').toLowerCase().trim();
+    const durationClean = (videoDuration || '10:00').trim();
+    const descriptionClean = (videoDescription || '').trim();
+
+    if (!titleClean) {
+      setUploadDiagnostic({
+        code: 'validation/missing-title',
+        message: 'The tutorial title cannot be empty or purely whitespace.',
+        diagnosis: 'Input validation rejected before Firestore call.',
+        solution: 'Please enter a descriptive title for this tutorial.',
+        timestamp: new Date().toLocaleTimeString(),
+        rawError: 'Title validation check failed.',
+      });
+      return;
+    }
+
+    const rawUrl = uploadType === 'link' ? (videoLink || '').trim() : (deviceFilePreviewUrl || '').trim();
+    if (!rawUrl) {
+      setUploadDiagnostic({
+        code: 'validation/missing-video-url',
+        message: 'A valid video link or device file is required to publish a tutorial.',
+        diagnosis: 'No video source payload was provided.',
+        solution: 'Paste a YouTube / Reel link or choose an MP4/WebM file from your device.',
+        timestamp: new Date().toLocaleTimeString(),
+        rawError: 'Video URL validation check failed.',
+      });
+      return;
+    }
+
+    // Automatic YouTube thumbnail extraction when pasting a YouTube link
+    const ytThumb = uploadType === 'link' ? getYouTubeThumbnail(rawUrl) : null;
     const finalThumbnail =
       deviceThumbnailUrl ||
       ytThumb ||
       'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
 
-    const videoUrlToSave = uploadType === 'link' ? videoLink.trim() : deviceFilePreviewUrl || '';
+    const cleanYtId = uploadType === 'link' ? extractYouTubeId(rawUrl) : null;
+    const finalVideoUrl = cleanYtId ? `https://www.youtube.com/watch?v=${cleanYtId}` : rawUrl;
 
-    setUploadError(null);
+    // 2. EXPLICIT DOCUMENT PAYLOAD (Strictly no 'undefined' values)
+    const tutorialDoc: Record<string, any> = {
+      title: titleClean,
+      category: categoryClean,
+      video_url: finalVideoUrl,
+      created_at: serverTimestamp(),
+      thumbnail: finalThumbnail,
+      duration: durationClean,
+      description: descriptionClean || `Tutorial on ${titleClean}`,
+      views: '0 views',
+      viewsCount: 0,
+      likes: 0,
+      likedBy: [],
+      comments: [],
+    };
 
-    try {
-      // 1. ADMIN UPLOAD FORM (Write to Firestore Database)
-      // Real network request using addDoc(collection(db, "video_tutorials"), { ... })
-      await addDoc(collection(db, 'video_tutorials'), {
-        title: videoTitle.trim(),
-        category: videoCategory, // 'phone', 'pc', or 'digital'
-        video_url: videoUrlToSave,
-        created_at: serverTimestamp(),
-        thumbnail: finalThumbnail,
-        duration: videoDuration.trim() || '10:00',
-        description: videoDescription.trim() || `Tutorial on ${videoTitle.trim()}`,
-        views: '0 views',
-        viewsCount: 0,
-        likes: 0,
-        likedBy: [],
-        comments: [],
-      });
-
-      // Clear form inputs
-      setVideoTitle('');
-      setVideoLink('');
-      setSelectedFileName('');
-      setDeviceFilePreviewUrl(null);
-      setDeviceThumbnailUrl(null);
-      setDeviceThumbnailName('');
-      setDetectedYouTubeViews('');
-      setVideoDescription('');
-      setUploadSuccess(true);
-      setTimeout(() => setUploadSuccess(false), 3000);
-    } catch (err) {
-      console.error('Failed to save tutorial to Firestore video_tutorials:', err);
-      setUploadError('Could not save tutorial to database. Please check your connection.');
+    if (cleanYtId) {
+      tutorialDoc.youtube_id = cleanYtId;
     }
+
+    setIsUploading(true);
+
+    // 3. ASYNC FIRESTORE SUBMISSION WITH REAL NETWORK RETRIES
+    const maxRetries = 3;
+    let attempt = 0;
+    let lastError: any = null;
+
+    while (attempt < maxRetries) {
+      try {
+        attempt++;
+        // Direct official Firestore SDK call: addDoc(collection(db, "video_tutorials"), { ... })
+        await addDoc(collection(db, 'video_tutorials'), tutorialDoc);
+
+        // Success! Clear form inputs & notify
+        setVideoTitle('');
+        setVideoLink('');
+        setSelectedFileName('');
+        setDeviceFilePreviewUrl(null);
+        setDeviceThumbnailUrl(null);
+        setDeviceThumbnailName('');
+        setDetectedYouTubeViews('');
+        setVideoDescription('');
+        setUploadDiagnostic(null);
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 4500);
+        setIsUploading(false);
+        return;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[Firestore Upload Attempt ${attempt}/${maxRetries} Failed]`, err);
+
+        // If not a retryable error (like permission-denied), do not wait uselessly
+        if (err?.code === 'permission-denied' || err?.code === 'invalid-argument') {
+          break;
+        }
+
+        // Exponential backoff for network/transient blips (500ms, 1000ms...)
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+        }
+      }
+    }
+
+    // 4. EXPLICIT ERROR DIAGNOSTICS DISPLAY (No generic text)
+    setIsUploading(false);
+    const errorCode = lastError?.code || 'firestore/upload-failure';
+    const errorMessage = lastError?.message || String(lastError || 'Unknown error');
+
+    let diagnosis = 'An error occurred during Firestore communication.';
+    let solution = 'Please review your Firestore configuration and database connectivity.';
+
+    if (errorCode === 'permission-denied') {
+      diagnosis = 'Firebase Security Rules (firestore.rules) rejected write access to collection "video_tutorials".';
+      solution = 'Verify that firestore.rules allows create/write permissions for "video_tutorials". (e.g. match /video_tutorials/{id} { allow read, write: if true; })';
+    } else if (errorCode === 'not-found') {
+      diagnosis = 'The Firestore database instance or collection "video_tutorials" was not found on project "topson-media-64bc9".';
+      solution = 'Ensure the Firestore database (default) is provisioned and active in Firebase Console.';
+    } else if (errorCode === 'invalid-argument') {
+      diagnosis = 'Payload validation failed because one or more fields contain an unsupported type (such as undefined, Symbol, or circular references).';
+      solution = 'Ensure all document fields are primitive strings, numbers, booleans, or Firestore serverTimestamp().';
+    } else if (errorCode === 'unavailable') {
+      diagnosis = 'The Cloud Firestore backend service is unreachable or network connection was interrupted.';
+      solution = 'Check network connectivity to firestore.googleapis.com and confirm Firebase service health.';
+    } else if (errorCode === 'failed-precondition') {
+      diagnosis = 'Operation was rejected by client state or index requirements.';
+      solution = 'Check Firestore indexes or database state in Firebase Console.';
+    }
+
+    console.error('[Admin Upload Breakdown]', {
+      code: errorCode,
+      message: errorMessage,
+      diagnosis,
+      solution,
+      payload: tutorialDoc,
+      error: lastError,
+    });
+
+    setUploadDiagnostic({
+      code: errorCode,
+      message: errorMessage,
+      diagnosis,
+      solution,
+      timestamp: new Date().toLocaleTimeString(),
+      rawError: JSON.stringify(
+        {
+          code: errorCode,
+          message: errorMessage,
+          name: lastError?.name,
+          stack: lastError?.stack?.split('\n').slice(0, 4).join('\n'),
+        },
+        null,
+        2
+      ),
+      payloadDump: JSON.stringify(tutorialDoc, null, 2),
+    });
   };
 
   const handleOpenEditVideo = (video: VideoItem) => {
@@ -431,8 +559,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!editingVideo) return;
 
     // Check if new videoUrl is YouTube to auto-fetch thumbnail if requested
-    const autoYt = getYouTubeThumbnail(editVideoUrl);
+    const cleanYtId = extractYouTubeId(editVideoUrl.trim());
+    const autoYt = editVideoUrl ? getYouTubeThumbnail(editVideoUrl) : null;
     const finalThumb = editThumbnail || autoYt || editingVideo.thumbnail;
+    const finalVideoUrl = cleanYtId ? `https://www.youtube.com/watch?v=${cleanYtId}` : editVideoUrl.trim() || editingVideo.videoUrl;
 
     const updated: VideoItem = {
       ...editingVideo,
@@ -443,8 +573,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       date: editDate.trim() || editingVideo.date,
       description: editDescription.trim() || editingVideo.description,
       thumbnail: finalThumb,
-      videoUrl: editVideoUrl.trim() || editingVideo.videoUrl,
-      sourceType: editVideoUrl ? 'link' : editingVideo.sourceType,
+      youtubeId: cleanYtId || editingVideo.youtubeId,
+      videoUrl: finalVideoUrl,
+      sourceType: cleanYtId ? 'link' : (editVideoUrl ? 'link' : editingVideo.sourceType),
       tags: editTags
         ? editTags.split(',').map((t) => t.trim()).filter(Boolean)
         : editingVideo.tags,
@@ -1596,10 +1727,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   )}
 
-                  {uploadError && (
-                    <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                      <span>{uploadError}</span>
+                  {/* EXPLICIT ERROR DIAGNOSTICS DISPLAY (Console-vibe error card with code, message & diagnosis) */}
+                  {uploadDiagnostic && (
+                    <div className="rounded-2xl bg-neutral-950 border border-red-500/50 text-neutral-100 p-5 sm:p-6 shadow-xl space-y-3.5 font-mono text-xs animate-in fade-in slide-in-from-top-2">
+                      <div className="flex items-center justify-between border-b border-neutral-800 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                          <span className="font-bold text-red-400 uppercase tracking-wider text-[11px]">
+                            Firestore Upload Error Diagnostic
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-neutral-500 font-mono">
+                          {uploadDiagnostic.timestamp}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 font-sans">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] font-bold text-neutral-400 font-mono">Error Code:</span>
+                          <span className="px-2.5 py-0.5 rounded-md bg-red-950 text-red-300 border border-red-800 font-mono text-xs font-black">
+                            [{uploadDiagnostic.code}]
+                          </span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-neutral-900/90 border border-neutral-800 space-y-1.5 text-xs">
+                          <p className="text-neutral-200">
+                            <span className="font-bold text-neutral-400 font-mono">Message: </span>
+                            {uploadDiagnostic.message}
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 space-y-2 text-xs">
+                          <div>
+                            <span className="font-bold text-amber-400 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
+                              <span>⚠️</span> Root Cause Breakdown
+                            </span>
+                            <p className="text-neutral-300 mt-1 leading-relaxed">
+                              {uploadDiagnostic.diagnosis}
+                            </p>
+                          </div>
+
+                          <div className="pt-2 border-t border-neutral-800">
+                            <span className="font-bold text-emerald-400 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
+                              <span>🔧</span> Suggested Fix
+                            </span>
+                            <p className="text-neutral-300 mt-1 leading-relaxed">
+                              {uploadDiagnostic.solution}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Technical payload breakdown drawer */}
+                      <details className="cursor-pointer text-[11px] text-neutral-400 hover:text-neutral-200 transition-colors">
+                        <summary className="font-mono font-bold select-none">
+                          &gt; View Raw Diagnostic Stack &amp; Sanitized Payload
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          <div>
+                            <span className="text-[10px] font-mono text-neutral-500 uppercase">Sanitized Payload:</span>
+                            <pre className="mt-1 p-3 rounded-xl bg-black text-emerald-400 text-[10px] overflow-x-auto whitespace-pre font-mono border border-neutral-800">
+                              {uploadDiagnostic.payloadDump}
+                            </pre>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-mono text-neutral-500 uppercase">Raw Error:</span>
+                            <pre className="mt-1 p-3 rounded-xl bg-black text-red-400 text-[10px] overflow-x-auto whitespace-pre-wrap font-mono border border-neutral-800">
+                              {uploadDiagnostic.rawError}
+                            </pre>
+                          </div>
+                        </div>
+                      </details>
                     </div>
                   )}
 
@@ -1822,10 +2020,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <button
                       type="submit"
-                      className="w-full py-3 px-4 rounded-xl text-white font-bold text-xs sm:text-sm bg-neutral-900 hover:bg-neutral-800 transition-all shadow-sm active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={isUploading}
+                      className="w-full py-3 px-4 rounded-xl text-white font-bold text-xs sm:text-sm bg-neutral-900 hover:bg-neutral-800 disabled:opacity-60 transition-all shadow-sm active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <UploadCloud className="w-4 h-4 text-orange-500" />
-                      <span>Publish Tutorial</span>
+                      {isUploading ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-orange-500 rounded-full animate-spin" />
+                          <span>Publishing to Firestore (with network retries)...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-4 h-4 text-orange-500" />
+                          <span>Publish Tutorial</span>
+                        </>
+                      )}
                     </button>
                   </form>
                 </div>

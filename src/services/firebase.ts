@@ -788,32 +788,30 @@ export async function loginUserFromDb(
 ): Promise<{ success: true; user: User } | { success: false; user?: undefined; error?: string }> {
   const normalized = identifier.trim().toLowerCase();
 
-  // Admin special fallback accounts
+  // Official Admin account configuration
   const isAdminSpecial =
-    normalized === 'admin@topsonmedia.com' ||
     normalized === 'topsonkenedy@gmail.com' ||
-    normalized === 'jabsco59@gmail.com' ||
+    normalized === 'admin@topsonmedia.com' ||
     normalized === 'topsonkenedy' ||
+    normalized === 'admin' ||
     normalized === 'topson' ||
     normalized === 'jabsco59';
 
   if (isAdminSpecial) {
-    // If master admin password matches or standard admin credentials
+    // Official admin password verified
     if (
-      password === 'topson2025' ||
-      password === 'admin123' ||
-      password === 'topsonkenedy' ||
-      password === 'jabsco59' ||
-      password.length >= 6
+      password === 'nzayikoreraetsiyene@jonas' ||
+      password === 'topson2025'
     ) {
       const adminUser: User = {
-        id: 'admin-topson-master',
-        uid: 'admin-topson-master',
-        username: 'Topson Kenedy (Admin)',
+        id: 'admin-topsonkenedy',
+        uid: 'admin-topsonkenedy',
+        username: 'Topson Kenedy',
         email: 'topsonkenedy@gmail.com',
         role: 'admin',
-        joinedDate: 'Topson Media Creator',
-        visitsCount: 100,
+        joinedDate: 'Topson Media Creator & Admin',
+        avatarUrl: 'https://i.postimg.cc/Hsb9TQcX/profile.png',
+        visitsCount: 999,
         fanBadge: true,
       };
       return { success: true, user: adminUser };

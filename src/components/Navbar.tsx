@@ -267,18 +267,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="w-8 h-8 rounded-full overflow-hidden border border-neutral-300 bg-white shrink-0 flex items-center justify-center shadow-2xs"
                   title={currentUser.role === 'admin' ? 'Admin: Topson Media' : currentUser.username}
                 >
-                  {currentUser.avatarUrl ? (
-                    <img
-                      src={currentUser.avatarUrl}
-                      alt={currentUser.username}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-neutral-900 text-white font-bold text-xs flex items-center justify-center">
-                      {currentUser.username.slice(0, 1).toUpperCase()}
-                    </div>
-                  )}
+                  <img
+                    src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.username)}`)}
+                    alt={currentUser.username}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      e.currentTarget.src = TOPSON_PROFILE_IMAGE;
+                    }}
+                  />
                 </div>
                 <div className="hidden xl:flex flex-col text-left max-w-[120px]">
                   <span className="text-xs font-bold text-neutral-900 truncate flex items-center gap-1">
