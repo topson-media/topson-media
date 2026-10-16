@@ -193,8 +193,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setUnauthorizedDomain(currentHostname);
         setError(
           language === 'kn'
-            ? `Domain "${currentHostname}" ntiri muri Authorized Domains muri Firebase Console ya "topson-media".`
-            : `Domain "${currentHostname}" is not authorized for OAuth in Firebase Console ("topson-media").`
+            ? `Domain "${currentHostname}" ntiri muri Authorized Domains muri Firebase Console ya "topson-media-64bc9".`
+            : `Domain "${currentHostname}" is not authorized for OAuth in Firebase Console ("topson-media-64bc9").`
         );
       } else {
         setError(
@@ -691,7 +691,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             <>
                               Fungura{' '}
                               <a
-                                href="https://console.firebase.google.com/project/topson-media/authentication/settings"
+                                href="https://console.firebase.google.com/project/topson-media-64bc9/authentication/settings"
                                 target="_blank"
                                 rel="noreferrer"
                                 className="underline font-bold text-orange-700 hover:text-orange-900 inline-flex items-center gap-0.5"
@@ -704,7 +704,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             <>
                               Open{' '}
                               <a
-                                href="https://console.firebase.google.com/project/topson-media/authentication/settings"
+                                href="https://console.firebase.google.com/project/topson-media-64bc9/authentication/settings"
                                 target="_blank"
                                 rel="noreferrer"
                                 className="underline font-bold text-orange-700 hover:text-orange-900 inline-flex items-center gap-0.5"

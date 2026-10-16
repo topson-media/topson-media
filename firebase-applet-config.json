@@ -1,9 +1,12 @@
 {
-  "projectId": "topson-media",
-  "appId": "1:913929800746:web:e86642e844de1c771e0753",
-  "apiKey": "AIzaSyAh6MUfrBdCQj4DPJpmrh-8uquZ_RQblk0",
-  "authDomain": "topson-media.firebaseapp.com",
-  "storageBucket": "topson-media.firebasestorage.app",
-  "messagingSenderId": "913929800746",
-  "measurementId": "G-78320MJ5C2"
+  "projectId": "topson-media-64bc9",
+  "appId": "1:872355095326:web:492891171a85128a4c5f0f",
+  "apiKey": "AIzaSyA2Jp49BUxzl5qySiKd5q-EMmCb4-oLU4Y",
+  "authDomain": "topson-media-64bc9.firebaseapp.com",
+  "firestoreDatabaseId": "default",
+  "storageBucket": "topson-media-64bc9.firebasestorage.app",
+  "messagingSenderId": "872355095326",
+  "measurementId": "",
+  "oAuthClientId": "872355095326-o7o8lgu6cagsgre1uqrp2coub0bvok88.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }
