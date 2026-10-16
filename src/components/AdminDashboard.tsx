@@ -56,6 +56,8 @@ import { extractVideoDurationFromFile } from '../utils/videoDuration';
 import { WhatsAppBrandBadge, WhatsAppIcon } from './WhatsAppIcon';
 import { AdminChatDashboard } from './AdminChatDashboard';
 import { UserManagement } from './UserManagement';
+import { ViewsVsTimeDashboard } from './ViewsVsTimeDashboard';
+import { YouTubeModalPlayer } from './YouTubeModalPlayer';
 import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb, db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -181,6 +183,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [uploadType, videoLink]);
 
   // Video Editing modal state
+  const [previewModalVideo, setPreviewModalVideo] = useState<VideoItem | null>(null);
   const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editCategory, setEditCategory] = useState<string>('Phone Mastery');
@@ -1369,9 +1372,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* TAB: DEDICATED VIDEO ENGAGEMENT ANALYTICS */}
+          {/* TAB: DEDICATED VIDEO ENGAGEMENT ANALYTICS & VIEWS VS TIME */}
             {activeTab === 'analytics' && (
               <div className="space-y-8 animate-in fade-in">
+                <ViewsVsTimeDashboard
+                  videos={videos}
+                  onPlayVideo={(v) => setPreviewModalVideo(v)}
+                />
                 {renderVideoEngagementVisualization()}
               </div>
             )}
@@ -2337,6 +2344,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modern YouTube Modal Player Preview in Admin */}
+      <YouTubeModalPlayer
+        video={previewModalVideo}
+        isOpen={!!previewModalVideo}
+        onClose={() => setPreviewModalVideo(null)}
+        currentUser={currentUser}
+      />
 
     </div>
   );

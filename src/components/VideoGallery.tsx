@@ -19,8 +19,11 @@ import {
   Sparkles,
   Radio,
   ArrowUpRight,
+  BarChart3,
 } from 'lucide-react';
 import { WatchPartyModal } from './WatchPartyModal';
+import { YouTubeModalPlayer } from './YouTubeModalPlayer';
+import { ViewsVsTimeDashboard } from './ViewsVsTimeDashboard';
 import { VideoItem, VideoComment, User } from '../types';
 import {
   getYouTubeThumbnail,
@@ -67,6 +70,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [watchPartyVideo, setWatchPartyVideo] = useState<VideoItem | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [activePlayingId, setActivePlayingId] = useState<string | null>(null);
 
   // Edit Video Modal state
@@ -461,33 +465,29 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
       return;
     }
 
-    if (isVideoLink(video) && video.videoUrl) {
-      try {
-        const raw = localStorage.getItem('watchedVideos');
-        let watchedVideos: string[] = [];
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) watchedVideos = parsed;
-          } catch {
-            watchedVideos = [];
-          }
+    try {
+      const raw = localStorage.getItem('watchedVideos');
+      let watchedVideos: string[] = [];
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) watchedVideos = parsed;
+        } catch {
+          watchedVideos = [];
         }
-        if (!watchedVideos.includes(video.id)) {
-          watchedVideos.push(video.id);
-          localStorage.setItem('watchedVideos', JSON.stringify(watchedVideos));
-          if (onIncrementViews) {
-            onIncrementViews(video.id);
-          }
-        }
-      } catch (err) {
-        console.warn('Watched videos tracking error:', err);
       }
-
-      window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
-      return;
+      if (!watchedVideos.includes(video.id)) {
+        watchedVideos.push(video.id);
+        localStorage.setItem('watchedVideos', JSON.stringify(watchedVideos));
+        if (onIncrementViews) {
+          onIncrementViews(video.id);
+        }
+      }
+    } catch (err) {
+      console.warn('Watched videos tracking error:', err);
     }
 
+    // Launch modern popup video modal player component
     setActiveVideo(video);
   };
 
@@ -573,13 +573,23 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowAnalyticsModal(true)}
+              className="h-11 sm:h-12 px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-neutral-800 bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 transition-all shadow-2xs active:scale-95 cursor-pointer flex items-center gap-2 shrink-0"
+              title="View YouTube Views vs Time trends and peak engagement hours"
+            >
+              <BarChart3 className="w-4 h-4 text-orange-600" />
+              <span>Views vs Time Trends</span>
+            </button>
+
             {/* ONLY ADMIN CAN SEE WHERE TO UPLOAD */}
             {currentUser?.role === 'admin' && (
               <button
                 type="button"
                 onClick={() => setUploadModalOpen(true)}
-                className="h-12 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm text-white bg-neutral-900 hover:bg-neutral-800 transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-2 shrink-0"
+                className="h-11 sm:h-12 px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-neutral-900 hover:bg-neutral-800 transition-all shadow-sm active:scale-95 cursor-pointer flex items-center gap-2 shrink-0"
               >
                 <UploadCloud className="w-4 h-4 text-orange-500" />
                 <span>Upload Video (Admin)</span>
@@ -904,190 +914,94 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
           </a>
         </div>
 
-        {/* Video Player Modal with Likes & Comments */}
-        {activeVideo && (
+        {/* NATIVE OFFICIAL YOUTUBE MODAL PLAYER COMPONENT */}
+        <YouTubeModalPlayer
+          video={activeVideo}
+          isOpen={!!activeVideo}
+          onClose={() => setActiveVideo(null)}
+          currentUser={currentUser}
+          onLikeVideo={(vidId) => {
+            const target = tutorials.find((t) => t.id === vidId);
+            if (target) handleLikeClick(target);
+          }}
+          onCommentSubmit={(vidId, text) => {
+            const author = currentUser?.username || 'Viewer';
+            const newComment: VideoComment = {
+              id: 'c-' + Date.now(),
+              authorName: author,
+              authorAvatar: currentUser?.avatarUrl,
+              userId: currentUser?.id,
+              text: text.trim(),
+              timestamp: 'Just now',
+              createdAt: Date.now(),
+              hasFanBadge: !!currentUser?.fanBadge,
+            };
+            if (onAddComment) {
+              onAddComment(vidId, newComment);
+            } else {
+              setTutorials((prev) =>
+                prev.map((v) =>
+                  v.id === vidId
+                    ? { ...v, comments: [newComment, ...(v.comments || [])] }
+                    : v
+                )
+              );
+              if (activeVideo && activeVideo.id === vidId) {
+                setActiveVideo({
+                  ...activeVideo,
+                  comments: [newComment, ...(activeVideo.comments || [])],
+                });
+              }
+            }
+          }}
+        />
+
+        {/* VIEWS VS TIME & PEAK ENGAGEMENT ANALYTICS MODAL */}
+        {showAnalyticsModal && (
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-y-auto"
-            onClick={() => setActiveVideo(null)}
+            aria-label="Views vs Time Analytics"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-in fade-in overflow-y-auto"
+            onClick={() => setShowAnalyticsModal(false)}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-3xl my-8 rounded-3xl overflow-hidden bg-neutral-950 border border-neutral-800 text-white shadow-2xl"
+              className="relative w-full max-w-5xl my-6 bg-white rounded-3xl shadow-2xl overflow-hidden border border-neutral-200 animate-in zoom-in-95 duration-200"
             >
-              <button
-                type="button"
-                onClick={() => setActiveVideo(null)}
-                className="absolute top-4 right-4 z-30 p-2 rounded-full bg-black/70 hover:bg-neutral-800 text-neutral-300 hover:text-white cursor-pointer"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="p-4 sm:p-5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/70">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                    <BarChart3 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-neutral-900 leading-tight">
+                      Video Views vs Time &amp; Peak Engagement Dashboard
+                    </h3>
+                    <p className="text-[11px] text-neutral-500 font-medium">
+                      Audience retention curves, 24-hour peak windows &amp; upload schedule recommendations
+                    </p>
+                  </div>
+                </div>
 
-              <div className="relative aspect-video w-full bg-black overflow-hidden shadow-2xl">
-                {(() => {
-                  const candidateUrl = activeVideo.videoUrl || activeVideo.youtubeId || '';
-                  const extractedId = extractYouTubeId(candidateUrl);
-
-                  if (extractedId) {
-                    const embedUrl = buildYouTubeEmbedUrl(extractedId);
-                    return (
-                      <div className="relative w-full h-full bg-black">
-                        <iframe
-                          src={embedUrl}
-                          title={activeVideo.title}
-                          className="w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                          loading="eager"
-                        />
-                      </div>
-                    );
-                  }
-
-                  // Fallback for direct uploaded video files (MP4, WebM)
-                  return (
-                    <video
-                      src={
-                        activeVideo.videoUrl ||
-                        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
-                      }
-                      controls
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-contain bg-black"
-                    />
-                  );
-                })()}
+                <button
+                  type="button"
+                  onClick={() => setShowAnalyticsModal(false)}
+                  className="w-8 h-8 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Close analytics modal"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Video Info & Interaction Section */}
-              <div className="p-6 bg-white text-neutral-900 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-                  <div>
-                    <h3 className="text-lg font-black text-neutral-900 leading-snug">
-                      {activeVideo.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-xs text-neutral-500 font-semibold mt-1">
-                      <span>{activeVideo.category}</span>
-                      <span>·</span>
-                      <span>{activeVideo.duration}</span>
-                      <span>·</span>
-                      <span className="text-neutral-900 font-bold">
-                        {typeof activeVideo.viewsCount === 'number'
-                          ? formatViewsCount(activeVideo.viewsCount, language)
-                          : activeVideo.views}
-                      </span>
-                      <span>·</span>
-                      <span>{formatUploadedTimeAgo(activeVideo.createdAt || activeVideo.uploadTimestamp || activeVideo.date, language)}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons: Watch Party + Like Button */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const v = activeVideo;
-                        setActiveVideo(null);
-                        setWatchPartyVideo(v);
-                      }}
-                      className="h-10 px-3.5 py-2 rounded-xl text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      title="Launch synchronized Watch Party"
-                    >
-                      <Radio className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
-                      <span>Watch Party</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={(e) => handleLikeClick(activeVideo, e)}
-                      className={`h-10 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shrink-0 ${
-                        activeVideo.likedBy?.includes(currentUser?.id || 'guest')
-                          ? 'bg-rose-50 text-rose-600 border-rose-200'
-                          : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
-                      }`}
-                    >
-                      <Heart className={`w-4 h-4 ${activeVideo.likedBy?.includes(currentUser?.id || 'guest') ? 'fill-rose-500 text-rose-500' : ''}`} />
-                      <span>{activeVideo.likes || 0} Likes</span>
-                    </button>
-                  </div>
-                </div>
-
-                <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
-                  {activeVideo.description}
-                </p>
-
-                {/* Comments Section */}
-                <div className="pt-4 border-t border-neutral-100 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-                      {t.common.comments} ({activeVideo.comments?.length || 0})
-                    </h4>
-                  </div>
-
-                  {/* Add comment form */}
-                  <form onSubmit={handleCommentSubmit} className="space-y-2">
-                    {!currentUser && (
-                      <input
-                        type="text"
-                        value={commentAuthor}
-                        onChange={(e) => setCommentAuthor(e.target.value)}
-                        placeholder="Your name (optional)"
-                        className="w-full px-3 py-1.5 text-xs rounded-xl border border-neutral-300 text-neutral-900 focus:outline-none focus:border-neutral-900"
-                      />
-                    )}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        required
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder={t.common.leaveComment}
-                        className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-neutral-300 text-neutral-900 focus:outline-none focus:border-neutral-900"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!commentText.trim()}
-                        className="h-10 px-4 rounded-xl bg-neutral-900 text-white font-bold text-xs hover:bg-neutral-800 disabled:opacity-40 transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
-                      >
-                        <span>Post</span>
-                        <Send className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </form>
-
-                  {/* Comments list */}
-                  <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
-                    {(!activeVideo.comments || activeVideo.comments.length === 0) ? (
-                      <p className="text-xs text-neutral-400 italic py-2">
-                        {t.common.noComments}
-                      </p>
-                    ) : (
-                      activeVideo.comments.map((c) => (
-                        <div
-                          key={c.id}
-                          className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/60 text-xs space-y-1"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-neutral-900">{c.authorName}</span>
-                              {(c.hasFanBadge || (currentUser?.username?.toLowerCase() === c.authorName.toLowerCase() && currentUser?.fanBadge)) && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[8px] font-black uppercase shadow-2xs tracking-wide">
-                                  <span>⭐</span> Top Fan
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-neutral-400">{formatTimeAgo(c.createdAt || c.timestamp, language)}</span>
-                          </div>
-                          <p className="text-neutral-700 text-xs leading-relaxed">{c.text}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
+              <div className="p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
+                <ViewsVsTimeDashboard
+                  videos={tutorials}
+                  onPlayVideo={(v) => {
+                    setShowAnalyticsModal(false);
+                    setActiveVideo(v);
+                  }}
+                />
               </div>
             </div>
           </div>
