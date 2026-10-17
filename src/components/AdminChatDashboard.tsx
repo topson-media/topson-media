@@ -175,6 +175,8 @@ export const AdminChatDashboard: React.FC<AdminChatDashboardProps> = ({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       avatarUrl: TOPSON_PROFILE_IMAGE,
       isRead: true,
+      createdAt: Date.now(),
+      created_at: Date.now(),
     };
 
     onSendMessage(newReply);

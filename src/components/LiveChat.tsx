@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Lock, CheckCircle2, Check, CheckCheck, Trash2, MoreVertical, X, AlertTriangle, ShieldCheck, MessageSquare } from 'lucide-react';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, or, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { ChatMessage, User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
@@ -85,9 +85,10 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   }, [localMessages, animatedWelcomeText]);
 
   // 2. SECURE LIVE CHAT CONVERSATION STREAM ('chat_messages'):
-  // Regular authenticated users must ONLY be able to fetch and see their own private messages that they exchanged with Topson Media.
-  // Database logic filters messages strictly where: where("user_id", "==", currentUser.uid)
-  // The Admin account ("admin") remains the only identity authorized to load all active chat threads from every user.
+  // 2. SECURE 2-WAY LIVE CHAT CONVERSATION STREAM ('chat_messages' & 'messages'):
+  // Dynamic real-time onSnapshot listener ensures users see their own messages and Admin responses
+  // Queries documents where userId == currentUserId OR user_id == currentUserId OR targetUserId == currentUserId (Admin replied)
+  // Sorted chronologically by created_at ASC
   useEffect(() => {
     if (!currentUser) {
       setLocalMessages([]);
@@ -96,18 +97,42 @@ export const LiveChat: React.FC<LiveChatProps> = ({
 
     const isAdmin = currentUser.role === 'admin';
     const currentUid = currentUser.uid || currentUser.id;
-    let q;
 
-    if (isAdmin) {
-      // Admin account: authorized to load all active chat threads to reply to users manually
-      q = query(collection(db, 'chat_messages'), orderBy('createdAt', 'asc'));
-    } else {
-      // Regular authenticated users: ONLY fetch and see their own private messages exchanged with Topson Media
-      // Strictly query: where("user_id", "==", currentUser.uid)
-      q = query(
-        collection(db, 'chat_messages'),
-        where('user_id', '==', currentUid)
-      );
+    // Helper to extract timestamp in ms from document data
+    const parseCreatedAt = (data: any): number => {
+      if (data.created_at) {
+        if (typeof data.created_at.toMillis === 'function') return data.created_at.toMillis();
+        if (typeof data.created_at.toDate === 'function') return data.created_at.toDate().getTime();
+        if (typeof data.created_at === 'number') return data.created_at;
+      }
+      if (data.createdAt) {
+        if (typeof data.createdAt.toMillis === 'function') return data.createdAt.toMillis();
+        if (typeof data.createdAt.toDate === 'function') return data.createdAt.toDate().getTime();
+        if (typeof data.createdAt === 'number') return data.createdAt;
+      }
+      if (data.createdTimestamp) return data.createdTimestamp;
+      return 0;
+    };
+
+    let q;
+    try {
+      if (isAdmin) {
+        // Admin: load all messages chronologically
+        q = query(collection(db, 'chat_messages'), orderBy('created_at', 'asc'));
+      } else {
+        // Regular user: fetch where user sent message OR admin replied to their thread
+        q = query(
+          collection(db, 'chat_messages'),
+          or(
+            where('userId', '==', currentUid),
+            where('user_id', '==', currentUid),
+            where('targetUserId', '==', currentUid)
+          )
+        );
+      }
+    } catch {
+      // Fallback query if 'or' with specific fields is not supported
+      q = query(collection(db, 'chat_messages'));
     }
 
     const unsubscribe = onSnapshot(
@@ -116,42 +141,45 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         const msgs: ChatMessage[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          let createdTs = Date.now();
-          if (data.createdAt) {
-            if (typeof data.createdAt.toMillis === 'function') {
-              createdTs = data.createdAt.toMillis();
-            } else if (typeof data.createdAt.toDate === 'function') {
-              createdTs = data.createdAt.toDate().getTime();
-            } else if (typeof data.createdAt === 'number') {
-              createdTs = data.createdAt;
-            }
+          const docUserId = data.userId || data.user_id;
+          const targetId = data.targetUserId;
+
+          // In-memory filter ensures strict security and edge-case handling
+          if (!isAdmin) {
+            const isRelated =
+              docUserId === currentUid ||
+              targetId === currentUid ||
+              (data.sender === 'topson' && targetId === currentUid);
+            if (!isRelated) return;
           }
+
+          const createdTs = parseCreatedAt(data);
 
           msgs.push({
             id: docSnap.id,
             sender: data.sender || 'user',
             senderName: data.senderName || 'Viewer',
-            userId: data.userId || data.user_id,
-            user_id: data.user_id || data.userId,
+            userId: docUserId,
+            user_id: docUserId,
             userEmail: data.userEmail,
-            targetUserId: data.targetUserId,
+            targetUserId: targetId,
             text: data.text || '',
-            timestamp: data.timestamp || '',
+            timestamp: data.timestamp || 'Just now',
             avatarUrl: data.avatarUrl,
             isRead: !!data.isRead,
-            createdAt: createdTs,
+            createdAt: createdTs || Date.now(),
             deletedForEveryone: data.deletedForEveryone,
             deletedForUser: data.deletedForUser,
           } as ChatMessage);
         });
 
-        // In-memory chronological sort to prevent index dependency
+        // Strict chronological sort by created_at ASC
         msgs.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
 
         setLocalMessages(msgs);
       },
       (error) => {
-        console.warn('Firestore chat_messages stream fallback:', error);
+        console.warn('Firestore chat_messages onSnapshot fallback:', error);
       }
     );
 

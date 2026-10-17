@@ -495,28 +495,45 @@ export function subscribeToMessages(
 }
 
 export async function sendMessageToDb(message: ChatMessage): Promise<string> {
+  const currentUid = message.userId || message.user_id;
+  const payload = {
+    ...message,
+    userId: currentUid,
+    user_id: currentUid,
+    targetUserId: message.targetUserId,
+    createdAt: serverTimestamp(),
+    created_at: serverTimestamp(),
+    createdTimestamp: Date.now(),
+  };
+
   try {
-    const docRef = await addDoc(collection(db, 'messages'), {
-      ...message,
-      createdAt: serverTimestamp(),
-    });
+    const docRef = await addDoc(collection(db, 'chat_messages'), payload);
+    // Mirror to 'messages' as well for complete backwards compatibility
+    await addDoc(collection(db, 'messages'), payload).catch(() => {});
     return docRef.id;
   } catch (err) {
-    console.warn('sendMessageToDb fallback:', err);
+    console.warn('sendMessageToDb fallback to messages collection:', err);
     try {
-      const cached = localStorage.getItem('topson_chat_messages_cache');
-      const msgs: ChatMessage[] = cached ? JSON.parse(cached) : [];
-      localStorage.setItem('topson_chat_messages_cache', JSON.stringify([...msgs, message]));
-    } catch {
-      // ignore
+      const docRef = await addDoc(collection(db, 'messages'), payload);
+      return docRef.id;
+    } catch (e2) {
+      console.warn('sendMessageToDb local fallback:', e2);
+      try {
+        const cached = localStorage.getItem('topson_chat_messages_cache');
+        const msgs: ChatMessage[] = cached ? JSON.parse(cached) : [];
+        localStorage.setItem('topson_chat_messages_cache', JSON.stringify([...msgs, message]));
+      } catch {
+        // ignore
+      }
+      return message.id || 'msg-' + Date.now();
     }
-    return message.id || 'msg-' + Date.now();
   }
 }
 
 export async function deleteMessageFromDb(messageId: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, 'messages', messageId));
+    await deleteDoc(doc(db, 'chat_messages', messageId)).catch(() => {});
+    await deleteDoc(doc(db, 'messages', messageId)).catch(() => {});
   } catch (err) {
     console.warn('deleteMessageFromDb fallback:', err);
   }
@@ -525,7 +542,8 @@ export async function deleteMessageFromDb(messageId: string): Promise<void> {
 export async function markMessagesReadInDb(messageIds: string[]): Promise<void> {
   try {
     for (const id of messageIds) {
-      await updateDoc(doc(db, 'messages', id), { isRead: true });
+      await updateDoc(doc(db, 'chat_messages', id), { isRead: true }).catch(() => {});
+      await updateDoc(doc(db, 'messages', id), { isRead: true }).catch(() => {});
     }
   } catch (err) {
     console.warn('markMessagesReadInDb fallback:', err);
