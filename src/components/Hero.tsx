@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, ArrowRight, Smartphone, ArrowDown, Heart } from 'lucide-react';
+import { Play, ArrowRight, ArrowDown } from 'lucide-react';
 import { TOPSON_HERO_BADGE, TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -188,31 +188,6 @@ export const Hero: React.FC<HeroProps> = ({
 
                 {/* Subtle Inner Circular Highlight */}
                 <div className="absolute inset-0 rounded-full pointer-events-none ring-1 ring-inset ring-orange-400/30" />
-              </div>
-
-              {/* Floating Badge Top-Left: PHONE MASTERY (Hidden on mobile) */}
-              <div className="hidden md:flex absolute -top-2 left-0 sm:left-1 bg-white/95 text-neutral-900 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full shadow-lg border border-neutral-200 items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold backdrop-blur-sm z-10 transition-transform hover:scale-105">
-                <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-500" />
-                <span className="tracking-wide uppercase text-[9px] sm:text-[10px]">PHONE MASTERY</span>
-              </div>
-
-              {/* Floating Badge Top-Right: LEARN · CREATE · SHARE (Hidden on mobile) */}
-              <div className="hidden md:flex absolute top-2 -right-1 sm:right-0 bg-neutral-900/85 backdrop-blur-md px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest text-white shadow-md border border-neutral-800 z-10">
-                LEARN · CREATE · SHARE
-              </div>
-
-              {/* Floating Badge Bottom-Right: NEW UPLOAD ▶ (Hidden on mobile) */}
-              <div
-                className="hidden md:flex absolute -bottom-2 right-1 sm:right-4 bg-white text-neutral-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-xl border border-neutral-200 items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold cursor-pointer hover:bg-orange-50 transition-all hover:scale-105 active:scale-95 z-10"
-                onClick={onWatchTutorials}
-              >
-                <span className="text-orange-600 uppercase text-[9px] sm:text-[10px] tracking-wider font-extrabold">NEW UPLOAD</span>
-                <Play className="w-3 h-3 fill-orange-600 text-orange-600" />
-              </div>
-
-              {/* Floating Badge Bottom-Left: TOPSON MEDIA (Hidden on mobile) */}
-              <div className="hidden md:flex absolute bottom-4 -left-1 sm:left-0 bg-neutral-900/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest uppercase text-white shadow-md border border-neutral-700/60 z-10">
-                TOPSON MEDIA
               </div>
 
             </div>
