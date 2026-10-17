@@ -18,6 +18,7 @@ interface NavbarProps {
   matchingCount: number;
   activeNav: NavSection;
   onNavClick: (section: NavSection) => void;
+  integratedDark?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -31,6 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   matchingCount,
   activeNav,
   onNavClick,
+  integratedDark = false,
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -110,7 +112,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-neutral-200/80 transition-colors duration-200">
+    <header
+      className={`transition-colors duration-200 ${
+        integratedDark
+          ? 'relative z-50 bg-black/40 backdrop-blur-md shadow-xl border border-white/10 rounded-2xl text-white'
+          : 'sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-neutral-200/80'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex flex-row items-center justify-between gap-2 sm:gap-3 w-full">
         
         {/* Left: Brand Logo & Wordmark */}
@@ -121,7 +129,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-2 sm:gap-2.5 focus-visible:outline-none rounded-lg group text-left cursor-pointer"
             aria-label="Topson Media Home"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-neutral-300 bg-white shrink-0 shadow-2xs">
+            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border shrink-0 shadow-2xs ${integratedDark ? 'border-orange-500/60 bg-neutral-900 ring-2 ring-orange-500/20' : 'border-neutral-300 bg-white'}`}>
               <img
                 src={TOPSON_PROFILE_IMAGE}
                 alt="Topson Media Logo"
@@ -129,7 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="w-full h-full object-cover rounded-full"
               />
             </div>
-            <span className="text-xs sm:text-base font-black tracking-wider uppercase text-neutral-900 whitespace-nowrap">
+            <span className={`text-xs sm:text-base font-black tracking-wider uppercase whitespace-nowrap ${integratedDark ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-neutral-900'}`}>
               TOPSON MEDIA
             </span>
           </button>
@@ -146,7 +154,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => handleNavSelect(item.id)}
                 className={`px-2.5 xl:px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-bold flex items-center gap-1 xl:gap-1.5 ${
                   isActive
-                    ? 'bg-neutral-900 text-white shadow-2xs'
+                    ? 'bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.45)]'
+                    : integratedDark
+                    ? 'text-neutral-300 hover:text-white hover:bg-white/10'
                     : 'text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100'
                 }`}
               >
@@ -163,12 +173,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavSelect('admin')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
                 activeNav === 'admin'
-                  ? 'bg-neutral-900 text-white border-neutral-900'
+                  ? 'bg-orange-600 text-white border-orange-500 shadow-sm'
+                  : integratedDark
+                  ? 'bg-white/10 text-white border-white/20 hover:border-orange-500'
                   : 'bg-neutral-100 text-neutral-900 border-neutral-200 hover:border-neutral-400'
               }`}
               title="Admin Creator Studio"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
+              <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
               <span>{t.nav.adminStudio}</span>
             </button>
           )}
@@ -179,7 +191,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           
           {/* 2. SLEEK MODERN LANGUAGE SWITCHER TOGGLE: [EN | KN] Placed near ADMIN / Auth Area */}
           <div
-            className="inline-flex items-center p-0.5 rounded-xl bg-neutral-100 border border-neutral-200 shadow-2xs"
+            className={`inline-flex items-center p-0.5 rounded-xl border shadow-2xs ${
+              integratedDark ? 'bg-white/10 border-white/15' : 'bg-neutral-100 border-neutral-200'
+            }`}
             role="group"
             aria-label="Language selection toggle"
           >
@@ -189,6 +203,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               className={`px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer ${
                 language === 'en'
                   ? 'bg-neutral-900 text-white shadow-xs'
+                  : integratedDark
+                  ? 'text-neutral-300 hover:text-white hover:bg-white/10'
                   : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
               }`}
               title="Switch to English (EN)"
@@ -201,6 +217,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               className={`px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-black transition-all cursor-pointer ${
                 language === 'kn'
                   ? 'bg-orange-500 text-white shadow-xs'
+                  : integratedDark
+                  ? 'text-neutral-300 hover:text-white hover:bg-white/10'
                   : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
               }`}
               title="Hindura mu Kinyarwanda (KN)"
@@ -230,17 +248,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 placeholder={t.nav.searchPlaceholder}
                 className={`py-1.5 sm:py-2 text-xs sm:text-sm rounded-full transition-all duration-300 ease-out focus:outline-none ${
-                  isSearchFocused || searchQuery
+                  integratedDark
+                    ? isSearchFocused || searchQuery
+                      ? 'w-28 xs:w-40 sm:w-52 md:w-44 lg:w-64 pl-8 sm:pl-9 pr-7 sm:pr-8 bg-neutral-900/90 border border-orange-500 text-white placeholder:text-neutral-400'
+                      : 'w-16 xs:w-24 sm:w-28 md:w-28 lg:w-32 pl-7 sm:pl-8 pr-2.5 sm:pr-3 bg-white/10 border border-white/20 text-white placeholder:text-neutral-400 hover:border-orange-500/70 cursor-pointer font-medium'
+                    : isSearchFocused || searchQuery
                     ? 'w-28 xs:w-40 sm:w-52 md:w-44 lg:w-64 pl-8 sm:pl-9 pr-7 sm:pr-8 bg-white border border-neutral-900 text-neutral-900'
                     : 'w-16 xs:w-24 sm:w-28 md:w-28 lg:w-32 pl-7 sm:pl-8 pr-2.5 sm:pr-3 bg-neutral-100 border border-neutral-200 text-neutral-900 placeholder:text-neutral-500 hover:border-neutral-400 cursor-pointer font-medium'
                 }`}
               />
-              <Search className="absolute left-2.5 w-3.5 h-3.5 text-neutral-500 pointer-events-none" />
+              <Search className={`absolute left-2.5 w-3.5 h-3.5 pointer-events-none ${integratedDark ? 'text-neutral-400' : 'text-neutral-500'}`} />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => onSearchChange('')}
-                  className="absolute right-2 p-0.5 rounded-full text-neutral-400 hover:text-neutral-900 cursor-pointer"
+                  className={`absolute right-2 p-0.5 rounded-full cursor-pointer ${integratedDark ? 'text-neutral-400 hover:text-white' : 'text-neutral-400 hover:text-neutral-900'}`}
                   aria-label="Clear search"
                 >
                   <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -250,9 +272,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Quick search match counter popup */}
             {searchQuery && (
-              <div className="absolute top-full mt-1.5 right-0 w-48 sm:w-52 py-2 px-3 bg-white rounded-xl shadow-lg border border-neutral-200 text-xs text-neutral-800 flex items-center justify-between z-50">
+              <div className={`absolute top-full mt-1.5 right-0 w-48 sm:w-52 py-2 px-3 rounded-xl shadow-lg border text-xs flex items-center justify-between z-50 ${
+                integratedDark
+                  ? 'bg-neutral-900 text-white border-neutral-700 shadow-2xl'
+                  : 'bg-white text-neutral-800 border-neutral-200'
+              }`}>
                 <span className="font-medium">{t.nav.matchingTutorials}</span>
-                <span className="font-bold text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded">
+                <span className={`font-bold px-2 py-0.5 rounded ${integratedDark ? 'bg-orange-500/20 text-orange-400' : 'bg-neutral-100 text-neutral-900'}`}>
                   {matchingCount} {t.nav.found}
                 </span>
               </div>
@@ -262,9 +288,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Desktop User Auth / Admin Account (Hidden on Mobile & Tablet) */}
           <div className="hidden lg:flex items-center">
             {currentUser ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-neutral-200">
+              <div className={`flex items-center gap-2 pl-2 border-l ${integratedDark ? 'border-white/15' : 'border-neutral-200'}`}>
                 <div
-                  className="w-8 h-8 rounded-full overflow-hidden border border-neutral-300 bg-white shrink-0 flex items-center justify-center shadow-2xs"
+                  className={`w-8 h-8 rounded-full overflow-hidden border shrink-0 flex items-center justify-center shadow-2xs ${
+                    integratedDark ? 'border-white/30 bg-neutral-900' : 'border-neutral-300 bg-white'
+                  }`}
                   title={currentUser.role === 'admin' ? 'Admin: Topson Media' : currentUser.username}
                 >
                   <img
@@ -278,16 +306,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   />
                 </div>
                 <div className="hidden xl:flex flex-col text-left max-w-[120px]">
-                  <span className="text-xs font-bold text-neutral-900 truncate flex items-center gap-1">
+                  <span className={`text-xs font-bold truncate flex items-center gap-1 ${integratedDark ? 'text-white' : 'text-neutral-900'}`}>
                     <span>{currentUser.username}</span>
                     {currentUser.fanBadge && <span title={t.nav.topFan}>⭐</span>}
                   </span>
                   {currentUser.role === 'admin' ? (
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-orange-600 -mt-0.5">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-orange-400 -mt-0.5">
                       {t.nav.admin}
                     </span>
                   ) : currentUser.fanBadge ? (
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-600 -mt-0.5">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-400 -mt-0.5">
                       {t.nav.topFan}
                     </span>
                   ) : null}
@@ -296,7 +324,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   type="button"
                   onClick={onLogout}
                   title={t.nav.signOut}
-                  className="p-1.5 text-neutral-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    integratedDark
+                      ? 'text-neutral-400 hover:text-rose-400 hover:bg-white/10'
+                      : 'text-neutral-400 hover:text-red-500 hover:bg-red-50'
+                  }`}
                   aria-label={t.nav.signOut}
                 >
                   <LogOut className="w-4 h-4" />
@@ -307,7 +339,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenAuth('signin')}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap"
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer whitespace-nowrap ${
+                    integratedDark
+                      ? 'text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-[0_0_20px_rgba(249,115,22,0.35)]'
+                      : 'text-white bg-neutral-900 hover:bg-neutral-800'
+                  }`}
                 >
                   {t.nav.signIn}
                 </button>
@@ -319,14 +355,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-1.5 sm:p-2 rounded-xl text-neutral-800 hover:text-neutral-950 hover:bg-neutral-100 transition-colors cursor-pointer active:scale-95 shrink-0"
+            className={`lg:hidden p-1.5 sm:p-2 rounded-xl transition-colors cursor-pointer active:scale-95 shrink-0 ${
+              integratedDark
+                ? 'text-white hover:bg-white/10'
+                : 'text-neutral-800 hover:text-neutral-950 hover:bg-neutral-100'
+            }`}
             aria-label="Toggle navigation drawer"
             aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? (
-              <X className="w-5 h-5 text-neutral-900" />
+              <X className={`w-5 h-5 ${integratedDark ? 'text-white' : 'text-neutral-900'}`} />
             ) : (
-              <Menu className="w-5 h-5 text-neutral-900" />
+              <Menu className={`w-5 h-5 ${integratedDark ? 'text-white' : 'text-neutral-900'}`} />
             )}
           </button>
 

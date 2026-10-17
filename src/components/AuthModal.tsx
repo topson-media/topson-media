@@ -62,8 +62,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
   const [domainCopied, setDomainCopied] = useState(false);
 
-  // Profile image for user account creation
-  const [avatarUrl, setAvatarUrl] = useState<string>(TOPSON_PROFILE_IMAGE);
+  const DEFAULT_MEMBER_AVATAR = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80';
+
+  // Profile image for user account creation (uses regular member avatar, never admin profile picture)
+  const [avatarUrl, setAvatarUrl] = useState<string>(DEFAULT_MEMBER_AVATAR);
   const [avatarFileName, setAvatarFileName] = useState<string>('');
   const [noAccountFound, setNoAccountFound] = useState<boolean>(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -334,7 +336,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const newUser = userCredential.user;
         if (newUser) {
-          const chosenAvatar = avatarUrl || TOPSON_PROFILE_IMAGE;
+          const chosenAvatar = avatarUrl || DEFAULT_MEMBER_AVATAR;
 
           try {
             await updateProfile(newUser, {
@@ -985,12 +987,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       {/* Active Avatar Circular Preview */}
                       <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-orange-500 shadow-sm shrink-0 bg-white">
                         <img
-                          src={avatarUrl || TOPSON_PROFILE_IMAGE}
+                          src={avatarUrl || DEFAULT_MEMBER_AVATAR}
                           alt="Profile Preview"
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.currentTarget.src = TOPSON_PROFILE_IMAGE;
+                            e.currentTarget.src = DEFAULT_MEMBER_AVATAR;
                           }}
                         />
                       </div>
@@ -1014,16 +1016,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           </span>
                         </button>
 
-                        {/* Quick Avatar Presets */}
+                        {/* Quick Avatar Presets (Member-only avatars, no admin picture) */}
                         <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto">
                           <span className="text-[10px] text-neutral-400 font-semibold shrink-0">
                             {language === 'kn' ? 'Cyangwa:' : 'Presets:'}
                           </span>
                           {[
-                            { name: 'Topson Official', url: TOPSON_PROFILE_IMAGE },
+                            { name: 'Tech Explorer', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80' },
                             { name: 'Creator', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
                             { name: 'Tech Pro', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
                             { name: 'Developer', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
+                            { name: 'Innovator', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
                           ].map((preset, idx) => (
                             <button
                               key={idx}

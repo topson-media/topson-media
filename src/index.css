@@ -139,3 +139,42 @@
   background: rgba(249, 115, 22, 0.5);
 }
 
+/* Floating Tech Particles */
+@keyframes floatParticle {
+  0% {
+    transform: translateY(0px) translateX(0px) scale(0.9);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-28px) translateX(12px) scale(1.15);
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateY(-56px) translateX(-8px) scale(0.9);
+    opacity: 0.2;
+  }
+}
+
+.animate-particle-1 {
+  animation: floatParticle 7s ease-in-out infinite alternate;
+}
+.animate-particle-2 {
+  animation: floatParticle 10s ease-in-out infinite alternate 1.5s;
+}
+.animate-particle-3 {
+  animation: floatParticle 8.5s ease-in-out infinite alternate 3s;
+}
+.animate-particle-4 {
+  animation: floatParticle 11s ease-in-out infinite alternate 0.5s;
+}
+
+/* Typing blinking cursor */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-type-cursor {
+  animation: cursorBlink 0.9s infinite;
+}
+

@@ -134,6 +134,21 @@ export default function App() {
   // Interactive Live Chat Messages (Loaded dynamically via Firestore real-time listener)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
+  // Persistent sticky navbar state when scrolled past the full-screen integrated hero
+  const [isScrolledPastHero, setIsScrolledPastHero] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const heroEl = document.getElementById('hero-container');
+      const threshold = heroEl ? heroEl.offsetHeight - 80 : 500;
+      setIsScrolledPastHero(window.scrollY > threshold);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Real-time Firestore Subscriptions for Videos, Feedbacks, Messages, and Contact Submissions
   useEffect(() => {
     const unsubVideos = subscribeToVideos((vids) => {
@@ -751,17 +766,21 @@ export default function App() {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-white text-neutral-900 font-sans selection:bg-orange-500 selection:text-white flex flex-col justify-between relative">
       <div>
-        {/* Sticky Modern Top Navigation (With icons on every nav & Scroll-Spy active state) */}
-        <Navbar
-          currentUser={currentUser}
-          onOpenAuth={handleOpenAuth}
-          onLogout={handleLogout}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          matchingCount={matchingCount}
-          activeNav={activeNav}
-          onNavClick={handleNavClick}
-        />
+        {/* Persistent sticky navigation when scrolled past the full-screen hero or in admin view */}
+        {(isScrolledPastHero || currentPage === 'admin') && (
+          <div className="fixed top-0 left-0 right-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm bg-white/95 backdrop-blur-md">
+            <Navbar
+              currentUser={currentUser}
+              onOpenAuth={handleOpenAuth}
+              onLogout={handleLogout}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              matchingCount={matchingCount}
+              activeNav={activeNav}
+              onNavClick={handleNavClick}
+            />
+          </div>
+        )}
 
         {/* Real Email Verification Success Toast */}
         {verificationToast?.show && (
@@ -789,15 +808,41 @@ export default function App() {
           {currentPage === 'home' ? (
             /* ALL SECTIONS INTEGRATED ON MAIN FLOW (Scrollable, with Scroll-Spy) */
             <div className="animate-in fade-in">
-              {/* Welcome / Hero Section */}
-              <Hero
-                onWatchTutorials={() => handleNavClick('tutorials')}
-                onLiveChat={() => handleNavClick('chat')}
-                onExploreScroll={() => {
-                  const el = document.getElementById('about');
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              />
+              {/* 1. ELIMINATE EMPTY VERTICAL SPACE & REVEAL "ABOUT ME" (Tablet & Laptop):
+                  Tightly wrapped dynamic height min-h-[85vh] or h-auto with clean padding.
+                  No empty layout spacers or huge margins; pulls About Me directly upward into the viewport. */}
+              <div
+                id="hero-container"
+                className="w-full min-h-[85vh] h-auto flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#0e0e12] to-[#050507] relative pb-6 sm:pb-8 md:pb-10"
+              >
+                {/* Position the Navbar at the very top relative with clean layout padding */}
+                <div className="w-full relative z-40 pt-1.5 sm:pt-2 md:pt-3 px-2 sm:px-4 md:px-6 lg:px-8">
+                  <Navbar
+                    currentUser={currentUser}
+                    onOpenAuth={handleOpenAuth}
+                    onLogout={handleLogout}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    matchingCount={matchingCount}
+                    activeNav={activeNav}
+                    onNavClick={handleNavClick}
+                    integratedDark={true}
+                  />
+                </div>
+
+                {/* Welcome Section content tightly wrapped so About Me is immediately visible on screen */}
+                <div className="flex-1 flex flex-col justify-center items-center w-full">
+                  <Hero
+                    onWatchTutorials={() => handleNavClick('tutorials')}
+                    onLiveChat={() => handleNavClick('chat')}
+                    onExploreScroll={() => {
+                      const el = document.getElementById('about');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    isFullScreenIntegrated={true}
+                  />
+                </div>
+              </div>
 
               {/* About / Mission Section */}
               <AboutSection

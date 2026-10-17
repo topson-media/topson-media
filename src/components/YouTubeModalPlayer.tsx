@@ -151,6 +151,23 @@ export const YouTubeModalPlayer: React.FC<YouTubeModalPlayerProps> = ({
     }
   };
 
+  /**
+   * 3. YOUTUBE ACTION LINK INTERFACE:
+   * Launches clean web target redirect directly to https://www.youtube.com/watch?v=${videoId}
+   * so viewers can legally hit like and drop a comment directly on the channel network.
+   */
+  const handleYouTubeAction = (action: 'like' | 'comment') => {
+    if (videoId) {
+      const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      window.open(watchUrl, '_blank', 'noopener,noreferrer');
+    }
+    if (action === 'like' && onLikeVideo) {
+      onLikeVideo(video.id);
+    } else if (action === 'comment') {
+      setIsCommentsOpen(true);
+    }
+  };
+
   const handleSendComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !onCommentSubmit) return;
@@ -276,12 +293,13 @@ export const YouTubeModalPlayer: React.FC<YouTubeModalPlayerProps> = ({
             <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
               <button
                 type="button"
-                onClick={() => onLikeVideo && onLikeVideo(video.id)}
+                onClick={() => handleYouTubeAction('like')}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                   isLiked
                     ? 'bg-orange-500 text-white shadow-orange-500/20'
                     : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800'
                 }`}
+                title="Like on YouTube (Opens official channel video)"
               >
                 <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? 'fill-white' : ''}`} />
                 <span>{video.likes || 0}</span>
@@ -308,8 +326,9 @@ export const YouTubeModalPlayer: React.FC<YouTubeModalPlayerProps> = ({
 
               <button
                 type="button"
-                onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+                onClick={() => handleYouTubeAction('comment')}
                 className="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Comment on YouTube (Opens official channel video)"
               >
                 <MessageSquare className="w-3.5 h-3.5 text-neutral-600" />
                 <span>{video.comments?.length || 0}</span>
