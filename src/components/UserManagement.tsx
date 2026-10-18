@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
-import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb } from '../services/firebase';
+import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb, setUserSuspendedInDb } from '../services/firebase';
 
 interface UserManagementProps {
   currentUser?: User | null;
@@ -56,6 +56,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     try {
       const list = await fetchUsersListFromDb();
       setUsersList(list);
+      const firestoreSuspended = list.filter((u) => u.suspended).map((u) => u.id);
+      if (firestoreSuspended.length > 0) {
+        setSuspendedUserIds((prev) => Array.from(new Set([...prev, ...firestoreSuspended])));
+      }
       if (onUserCountChange) {
         onUserCountChange(list.length);
       }
@@ -71,14 +75,16 @@ export const UserManagement: React.FC<UserManagementProps> = ({
   }, []);
 
   // Toggle user account status (Active <-> Suspended)
-  const handleToggleAccountStatus = (userId: string, username: string) => {
+  const handleToggleAccountStatus = async (userId: string, username: string) => {
     const isSuspended = suspendedUserIds.includes(userId);
     let nextSuspended: string[];
     if (isSuspended) {
       nextSuspended = suspendedUserIds.filter((id) => id !== userId);
+      await setUserSuspendedInDb(userId, false);
       showToast(`Account for "${username}" was re-activated successfully.`, 'success');
     } else {
       nextSuspended = [...suspendedUserIds, userId];
+      await setUserSuspendedInDb(userId, true);
       showToast(`Account for "${username}" was suspended. User can no longer post or chat.`, 'info');
     }
     setSuspendedUserIds(nextSuspended);

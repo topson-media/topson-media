@@ -9,6 +9,9 @@ export interface User {
   visitsCount?: number;
   fanBadge?: boolean;
   fanBadgeOffered?: boolean;
+  suspended?: boolean;
+  isEmailVerified?: boolean;
+  provider?: string;
 }
 
 export interface ChatMessage {
@@ -19,12 +22,17 @@ export interface ChatMessage {
   user_id?: string;
   userEmail?: string;
   targetUserId?: string;
+  senderId?: string;
+  receiverId?: string;
+  status?: 'sent' | 'read';
   text: string;
   timestamp: string;
   avatarUrl?: string;
   isRead?: boolean;
   deletedForEveryone?: boolean;
   deletedForUser?: boolean;
+  createdAt?: any;
+  created_at?: any;
 }
 
 export interface FeedbackReply {

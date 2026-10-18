@@ -27,7 +27,7 @@ import {
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, loginUserFromDb } from '../services/firebase';
 import { User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
@@ -162,6 +162,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         userEmail === 'topsonkenedy@gmail.com' ||
         userEmail === 'admin@topsonmedia.com' ||
         userEmail === 'jabsco59@gmail.com';
+
+      // Check if this account was suspended by Topson Media in Firestore
+      try {
+        const existingDoc = await getDoc(doc(db, 'users', uid));
+        if (existingDoc.exists() && existingDoc.data().suspended === true) {
+          await signOut(auth);
+          setError('Your account was suspended by Topson Media, you must call help center TM');
+          setIsGoogleSubmitting(false);
+          return;
+        }
+      } catch (checkErr) {
+        console.warn('Suspension check notice:', checkErr);
+      }
 
       const appUser: User = {
         id: uid,
@@ -356,16 +369,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             avatarUrl: chosenAvatar,
           };
 
-          // Save profile metadata to Firestore users table
+          // Hold database entry in pending state until email confirmation is complete
+          // Users are NOT saved into active users table until auth.currentUser.emailVerified evaluates to true
           try {
-            await setDoc(doc(db, 'users', uid), {
+            await setDoc(doc(db, 'pending_verifications', uid), {
               ...newUserData,
               provider: 'password',
               isEmailVerified: false,
+              status: 'pending_verification',
               createdAt: Date.now(),
             });
           } catch (dbErr) {
-            console.warn('Firestore record error:', dbErr);
+            console.warn('Pending verification record notice:', dbErr);
           }
 
           // 2. Immediately trigger the official verification function: sendEmailVerification(auth.currentUser)
@@ -508,30 +523,61 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           avatarUrl: firebaseUser.photoURL || TOPSON_PROFILE_IMAGE,
         };
 
-        // Query Firestore users record to preserve custom avatar/username
+        // Check if user is suspended in Firestore
         try {
           const userSnap = await getDoc(doc(db, 'users', uid));
-          if (userSnap.exists()) {
+          if (userSnap.exists() && userSnap.data().suspended === true) {
+            await signOut(auth);
+            setError('Your account was suspended by Topson Media, you must call help center TM');
+            setIsSubmitting(false);
+            return;
+          }
+        } catch {}
+
+        // Email is verified! Promote from pending_verifications to active users collection
+        try {
+          const pendingSnap = await getDoc(doc(db, 'pending_verifications', uid));
+          const userSnap = await getDoc(doc(db, 'users', uid));
+
+          if (pendingSnap.exists()) {
+            const pData = pendingSnap.data();
+            appUser = {
+              ...appUser,
+              username: pData.username || appUser.username,
+              avatarUrl: pData.avatarUrl || appUser.avatarUrl,
+              role: pData.role || appUser.role,
+              isEmailVerified: true,
+            };
+          } else if (userSnap.exists()) {
             const data = userSnap.data();
             appUser = {
               ...appUser,
               username: data.username || appUser.username,
               avatarUrl: data.avatarUrl || appUser.avatarUrl,
               role: data.role || appUser.role,
+              isEmailVerified: true,
             };
-          } else {
-            await setDoc(
-              doc(db, 'users', uid),
-              {
-                ...appUser,
-                provider: 'password',
-                isEmailVerified: true,
-                updatedAt: Date.now(),
-              },
-              { merge: true }
-            );
           }
-        } catch {}
+
+          // Save to active users table now that email confirmation is complete
+          await setDoc(
+            doc(db, 'users', uid),
+            {
+              ...appUser,
+              provider: 'password',
+              isEmailVerified: true,
+              updatedAt: Date.now(),
+            },
+            { merge: true }
+          );
+
+          // Clean up pending entry
+          if (pendingSnap.exists()) {
+            await deleteDoc(doc(db, 'pending_verifications', uid)).catch(() => {});
+          }
+        } catch (dbErr) {
+          console.warn('User promotion sync notice:', dbErr);
+        }
 
         onSuccess(appUser);
         onClose();
@@ -616,65 +662,126 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-neutral-200 overflow-hidden relative my-auto animate-in zoom-in-95 duration-200"
+        className="w-full max-w-4xl bg-slate-950 rounded-3xl shadow-[0_0_60px_rgba(249,115,22,0.35)] border border-orange-500/40 overflow-hidden relative my-auto animate-in zoom-in-95 duration-200 grid grid-cols-1 md:grid-cols-12"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Header Bar */}
-        <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-neutral-100 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 bg-white shrink-0 shadow-sm shadow-orange-500/30 p-0.5">
-              <img
-                src={TOPSON_PROFILE_IMAGE}
-                alt="Topson Media Logo"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover rounded-full"
-                onError={(e) => {
-                  e.currentTarget.src = '/welcome.png';
-                }}
-              />
+        {/* ========================================================================= */}
+        {/* LEFT SIDE: DYNAMIC VISUAL AREA WITH FLOATING PROFILE & AMBIENT NEON GLOW  */}
+        {/* ========================================================================= */}
+        <div className="md:col-span-5 bg-gradient-to-b from-slate-950 via-slate-900 to-black p-6 sm:p-8 md:p-10 flex flex-col items-center justify-between relative overflow-hidden text-center border-b md:border-b-0 md:border-r border-slate-800/80">
+          {/* Ambient High-End Neon-Orange Radial Glow & Cyber Grid */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(249,115,22,0.4)_0%,rgba(0,0,0,0)_75%)] pointer-events-none animate-pulse" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#f9731612_1px,transparent_1px),linear-gradient(to_bottom,#f9731612_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
+
+          {/* Top subtle branding badge */}
+          <div className="relative z-10 w-full flex items-center justify-between text-left">
+            <span className="text-[11px] font-black uppercase tracking-widest text-orange-400 bg-orange-500/10 border border-orange-500/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(249,115,22,0.3)]">
+              Official Hub
+            </span>
+            <span className="text-[11px] font-bold text-slate-400">
+              TM 2025
+            </span>
+          </div>
+
+          {/* Floating Profile Picture: Smooth infinite gliding animation with neon radial ring */}
+          <div className="relative z-10 my-auto py-6 sm:py-8 flex flex-col items-center">
+            {/* Ambient Radial Backlight Glow */}
+            <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 opacity-50 blur-2xl animate-pulse pointer-events-none" />
+
+            {/* Floating Image with Smooth CSS Translation Loop */}
+            <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-tr from-orange-500 via-amber-400 to-orange-600 shadow-[0_0_45px_rgba(249,115,22,0.7)] animate-bounce [animation-duration:3.6s] ease-in-out">
+              <div className="w-full h-full rounded-full overflow-hidden bg-slate-950 p-1 border-2 border-white/30">
+                <img
+                  src={TOPSON_PROFILE_IMAGE}
+                  alt="topson media"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover rounded-full"
+                  onError={(e) => {
+                    e.currentTarget.src = '/welcome.png';
+                  }}
+                />
+              </div>
             </div>
+
+            {/* Text description under floating image */}
+            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-5">
+              topson media
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-[260px] mt-2 leading-relaxed">
+              Empowering you with Phone & PC tutorials, daily tech hacks, and 24/7 direct support.
+            </p>
+
+            {/* Feature Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+              <span className="px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] font-bold shadow-[0_0_10px_rgba(249,115,22,0.25)]">
+                YouTube Partner
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700 text-[10px] font-bold">
+                Live Support
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700 text-[10px] font-bold">
+                100% Free
+              </span>
+            </div>
+          </div>
+
+          {/* Bottom quote / footer in left side */}
+          <div className="relative z-10 text-[11px] text-slate-400 font-medium">
+            &ldquo;Making tech feel easy for curious minds everywhere&rdquo;
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* RIGHT SIDE: CLEAN COMPACT CREDENTIALS SECTION & GOOGLE BUTTON             */}
+        {/* ========================================================================= */}
+        <div className="md:col-span-7 bg-white text-neutral-900 p-6 sm:p-8 flex flex-col justify-between relative overflow-y-auto max-h-[85vh] md:max-h-none">
+          {/* Top Form Header with Close Button */}
+          <div className="pb-4 border-b border-neutral-100 flex items-start justify-between">
             <div>
-              <h3 className="text-base sm:text-lg font-black text-neutral-900 leading-tight">
+              <h2 className="text-xl sm:text-2xl font-black text-neutral-950 tracking-tight leading-tight">
                 {isResetMode
                   ? language === 'kn'
                     ? 'Guhindura Ijambobanga'
                     : 'Reset Password'
                   : isSignUp
                   ? language === 'kn'
-                    ? 'Fungura Konti Nshya'
-                    : 'Create Your Account'
+                    ? 'Join Topson Media'
+                    : 'Join Topson Media'
                   : language === 'kn'
                   ? 'Injira muli Topson Media'
                   : 'Sign In to Topson Media'}
-              </h3>
-              <p className="text-[11px] sm:text-xs text-neutral-500 font-medium">
+              </h2>
+              <p className="text-xs text-neutral-500 font-medium mt-1">
                 {isResetMode
                   ? language === 'kn'
-                    ? 'Twandikire email yawe tukoherereze link muli Gmail'
+                    ? 'Twandikire email yawe tukoherereze link yo guhindura ijambobanga'
                     : 'Enter your email to receive a password reset link'
+                  : isSignUp
+                  ? language === 'kn'
+                    ? 'Kora konti yawe nonaha ngo ubone tutorials na live chat yihuse'
+                    : 'Create your account to access tutorials and instant live chat'
                   : language === 'kn'
-                  ? 'Ikoranabuhanga rikgutera imbere buri munsi'
-                  : 'Practical Phone & PC tech tutorials'}
+                  ? 'Injira muri konti yawe ya Topson Media'
+                  : 'Welcome back! Please enter your details'}
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-3"
+              aria-label="Close authentication modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-colors cursor-pointer"
-            aria-label="Close authentication modal"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-5 sm:p-6 space-y-4">
+          {/* Form Content */}
+          <div className="py-4 space-y-4">
           {/* Neon-Orange Success Alert (Sign-Up Email Verification / Reset Password Link) */}
           {successMessage && (
             <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-600/15 border-2 border-orange-500 text-neutral-950 shadow-[0_0_25px_rgba(249,115,22,0.35)] flex items-start gap-2.5 sm:gap-3 animate-in fade-in slide-in-from-top-2">
@@ -1236,5 +1343,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

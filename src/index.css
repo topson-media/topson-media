@@ -64,6 +64,20 @@
   }
 }
 
+/* Official Profile Picture Smooth Floating Animation for Split Auth Modal */
+@keyframes topsonFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-16px) scale(1.02);
+  }
+}
+
+.animate-topson-float {
+  animation: topsonFloat 3.6s ease-in-out infinite;
+}
+
 /* Word by word staggered fade-up */
 @keyframes wordFadeUp {
   0% {

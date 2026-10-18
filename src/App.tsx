@@ -46,7 +46,10 @@ import {
   replyToContactSubmissionInDb,
   acceptFanBadgeInDb,
   recordUserVisitInDb,
+  subscribeToUserSuspension,
+  auth,
 } from './services/firebase';
+import { signOut } from 'firebase/auth';
 
 export default function App() {
   // Enforce white background on <html>, <body>, and localStorage
@@ -131,6 +134,28 @@ export default function App() {
       });
     }
   }, [currentUser?.id]);
+
+  // Account Suspension Enforcement (Mandatory requirement):
+  // Check if account has flag suspended: true in Firestore:
+  // - Block login access immediately
+  // - Trigger fullscreen notice: "Your account was suspended by Topson Media, you must call help center TM"
+  const [isAccountSuspended, setIsAccountSuspended] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+    const currentUid = currentUser.uid || currentUser.id;
+    const unsub = subscribeToUserSuspension(currentUid, (suspended) => {
+      if (suspended) {
+        setIsAccountSuspended(true);
+        setCurrentUser(null);
+        localStorage.removeItem('topson_user');
+        signOut(auth).catch(() => {});
+      }
+    });
+    return () => unsub();
+  }, [currentUser?.id, currentUser?.uid]);
 
   // Interactive Live Chat Messages (Loaded dynamically via Firestore real-time listener)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -964,6 +989,53 @@ export default function App() {
 
       {/* Global Footer */}
       <Footer />
+
+      {/* Mandatory Account Suspension Fullscreen Notice */}
+      {isAccountSuspended && (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-red-500 rounded-3xl p-6 sm:p-8 text-center text-white shadow-[0_0_50px_rgba(239,68,68,0.4)] relative">
+            <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500 text-red-500 flex items-center justify-center mx-auto mb-4 animate-bounce">
+              <svg className="w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-black text-white tracking-tight mb-2">
+              Account Suspended
+            </h3>
+
+            <p className="text-sm font-bold text-red-200 bg-red-950/60 border border-red-800/80 rounded-2xl p-4 mb-6 leading-relaxed">
+              &ldquo;Your account was suspended by Topson Media, you must call help center TM&rdquo;
+            </p>
+
+            <div className="space-y-3">
+              <a
+                href="tel:+250794903078"
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-600/30 cursor-pointer"
+              >
+                <span>📞 Call Help Center TM (0794903078)</span>
+              </a>
+
+              <a
+                href="https://wa.me/250794903078?text=Hello%20Topson%20Media%20Help%20Center%2C%20my%20account%20was%20suspended"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+              >
+                <span>WhatsApp Help Center TM</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setIsAccountSuspended(false)}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close Notice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Glassmorphic Auth Modal */}
       <AuthModal

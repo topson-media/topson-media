@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Lock, CheckCircle2, Check, CheckCheck, Trash2, MoreVertical, X, AlertTriangle, ShieldCheck, MessageSquare } from 'lucide-react';
 import { collection, query, where, or, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, markThreadReadInDb } from '../services/firebase';
 import { ChatMessage, User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -141,15 +141,21 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         const msgs: ChatMessage[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          const docUserId = data.userId || data.user_id;
-          const targetId = data.targetUserId;
+          const rawSender = data.sender || (data.senderId === 'admin' ? 'topson' : 'user');
+          const docUserId = data.userId || data.user_id || data.senderId;
+          const targetId = data.targetUserId || data.receiverId;
+          const senderId = data.senderId || (rawSender === 'topson' ? 'admin' : docUserId);
+          const receiverId = data.receiverId || (rawSender === 'topson' ? targetId : 'admin');
+          const status: 'sent' | 'read' = data.status === 'read' || data.isRead ? 'read' : 'sent';
 
           // In-memory filter ensures strict security and edge-case handling
           if (!isAdmin) {
             const isRelated =
               docUserId === currentUid ||
+              senderId === currentUid ||
               targetId === currentUid ||
-              (data.sender === 'topson' && targetId === currentUid);
+              receiverId === currentUid ||
+              (rawSender === 'topson' && (targetId === currentUid || receiverId === currentUid));
             if (!isRelated) return;
           }
 
@@ -157,8 +163,11 @@ export const LiveChat: React.FC<LiveChatProps> = ({
 
           msgs.push({
             id: docSnap.id,
-            sender: data.sender || 'user',
-            senderName: data.senderName || 'Viewer',
+            sender: rawSender,
+            senderName: data.senderName || (rawSender === 'topson' ? 'Topson Media' : 'Viewer'),
+            senderId: senderId,
+            receiverId: receiverId,
+            status: status,
             userId: docUserId,
             user_id: docUserId,
             userEmail: data.userEmail,
@@ -166,7 +175,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             text: data.text || '',
             timestamp: data.timestamp || 'Just now',
             avatarUrl: data.avatarUrl,
-            isRead: !!data.isRead,
+            isRead: status === 'read',
             createdAt: createdTs || Date.now(),
             deletedForEveryone: data.deletedForEveryone,
             deletedForUser: data.deletedForUser,
@@ -186,6 +195,16 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     return () => unsubscribe();
   }, [currentUser?.id, currentUser?.uid, currentUser?.role]);
 
+  // Hook up an intersection / visibility trigger:
+  // When user opens their panel, automatically update all Admin replies to this user to status = "read"
+  // When Admin opens the chat thread, mark all unread messages from that user as status = "read"
+  useEffect(() => {
+    if (!currentUser) return;
+    const currentUid = currentUser.uid || currentUser.id;
+    const isAdmin = currentUser.role === 'admin';
+    markThreadReadInDb(currentUid, isAdmin ? 'admin' : 'user');
+  }, [currentUser?.id, currentUser?.uid, currentUser?.role, localMessages.length]);
+
   // 1. PERSISTENT CHAT HISTORY & REAL ADMIN/USER MESSAGING (ZERO AI BOTS)
   const handleSend = (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent, textToSend?: string) => {
     if (e && typeof e.preventDefault === 'function') {
@@ -202,13 +221,17 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       id: newMsgId,
       sender: isAdmin ? 'topson' : 'user',
       senderName: isAdmin ? 'Topson Media (Admin)' : currentUser.username,
+      senderId: isAdmin ? 'admin' : currentUid,
+      receiverId: isAdmin ? 'user' : 'admin',
       userId: isAdmin ? undefined : currentUid,
       user_id: isAdmin ? undefined : currentUid,
       userEmail: isAdmin ? undefined : currentUser.email,
+      targetUserId: isAdmin ? undefined : 'admin',
+      status: 'sent', // Initially sent with 1 tick (✓)
       text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       avatarUrl: isAdmin ? TOPSON_PROFILE_IMAGE : currentUser.avatarUrl,
-      isRead: isAdmin, // Admin message is already read; user message starts unread
+      isRead: false,
     };
 
     // Clear input text area cleanly
@@ -568,21 +591,24 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                         </div>
                       </div>
 
-                      {/* Time and Checkmark */}
+                      {/* Time and Checkmark Indicator */}
                       <div className={`flex items-center gap-1 mt-0.5 px-0.5 text-[9px] text-neutral-400 font-medium select-none ${
                         isTopson ? 'justify-start' : 'justify-end'
                       }`}>
                         <span>{msg.timestamp}</span>
 
-                        {!isTopson && (
+                        {/* 2-Way Message Status Indicator (Ticks):
+                            Render ONE TICK (✓) if status == "sent"
+                            Render TWO TICKS (✓✓) if status == "read" */}
+                        {(!isTopson || currentUser?.role === 'admin') && (
                           <span className="inline-flex items-center ml-0.5">
-                            {msg.isRead ? (
-                              <span title="Read" className="inline-flex items-center text-blue-600">
-                                <CheckCheck className="w-3 h-3 stroke-[2.5]" />
+                            {msg.status === 'read' || msg.isRead ? (
+                              <span title="Read (✓✓)" className="inline-flex items-center text-sky-500 font-bold">
+                                <CheckCheck className="w-3.5 h-3.5 stroke-[2.5]" />
                               </span>
                             ) : (
-                              <span title="Sent (Unread)" className="inline-flex items-center text-neutral-400">
-                                <Check className="w-3 h-3 stroke-[2.5]" />
+                              <span title="Sent (✓)" className="inline-flex items-center text-slate-400">
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                               </span>
                             )}
                           </span>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { ChatMessage, User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
+import { markThreadReadInDb } from '../services/firebase';
 
 interface AdminChatDashboardProps {
   currentUser: User | null;
@@ -141,15 +142,18 @@ export const AdminChatDashboard: React.FC<AdminChatDashboardProps> = ({
 
   // Automatically mark unread messages as read when admin opens a conversation
   useEffect(() => {
+    if (selectedUserId && selectedUserId !== 'all-public') {
+      markThreadReadInDb(selectedUserId, 'admin');
+    }
     if (activeConversation && activeConversation.unreadCount > 0 && onMarkMessagesRead) {
       const unreadIds = activeMessages
-        .filter((m) => m.sender === 'user' && !m.isRead)
+        .filter((m) => m.sender === 'user' && (!m.isRead || m.status !== 'read'))
         .map((m) => m.id);
       if (unreadIds.length > 0) {
         onMarkMessagesRead(unreadIds);
       }
     }
-  }, [selectedUserId, activeConversation, activeMessages, onMarkMessagesRead]);
+  }, [selectedUserId, activeConversation, activeMessages.length, onMarkMessagesRead]);
 
   // Scroll to bottom of internal chat thread when conversation changes or new messages arrive
   useEffect(() => {
@@ -164,17 +168,22 @@ export const AdminChatDashboard: React.FC<AdminChatDashboardProps> = ({
     const text = replyText.trim();
     if (!text) return;
 
+    const targetUser = selectedUserId === 'all-public' ? 'user' : selectedUserId;
+
     const newReply: ChatMessage = {
       id: 'msg-' + Date.now(),
       sender: 'topson',
       senderName: 'Topson Media (Admin)',
+      senderId: 'admin',
+      receiverId: targetUser,
       userId: selectedUserId === 'all-public' ? undefined : selectedUserId,
       user_id: selectedUserId === 'all-public' ? undefined : selectedUserId,
       targetUserId: selectedUserId === 'all-public' ? undefined : selectedUserId,
+      status: 'sent', // 1 tick until user opens thread
       text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       avatarUrl: TOPSON_PROFILE_IMAGE,
-      isRead: true,
+      isRead: false,
       createdAt: Date.now(),
       created_at: Date.now(),
     };
@@ -453,18 +462,29 @@ export const AdminChatDashboard: React.FC<AdminChatDashboardProps> = ({
                         </span>
                         <div className="flex items-center gap-1 text-[9px] text-neutral-400">
                           <span>{msg.timestamp}</span>
-                          {isAdmin && (
-                            <CheckCheck className="w-3 h-3 text-sky-400" />
-                          )}
-                          {!isAdmin && msg.isRead && (
-                            <span title="Read by Admin">
-                              <CheckCheck className="w-3 h-3 text-sky-500" />
-                            </span>
-                          )}
-                          {!isAdmin && !msg.isRead && (
-                            <span title="Delivered to Admin">
-                              <Check className="w-3 h-3 text-neutral-400" />
-                            </span>
+                          {/* 2-Way Message Status Indicator (Ticks):
+                              ONE TICK (✓) if status == "sent"
+                              TWO TICKS (✓✓) if status == "read" */}
+                          {isAdmin ? (
+                            msg.status === 'read' || msg.isRead ? (
+                              <span title="Read by User (✓✓)">
+                                <CheckCheck className="w-3.5 h-3.5 text-sky-400 stroke-[2.5]" />
+                              </span>
+                            ) : (
+                              <span title="Sent to User (✓)">
+                                <Check className="w-3.5 h-3.5 text-slate-400 stroke-[2.5]" />
+                              </span>
+                            )
+                          ) : (
+                            msg.status === 'read' || msg.isRead ? (
+                              <span title="Read by Admin (✓✓)">
+                                <CheckCheck className="w-3.5 h-3.5 text-sky-500 stroke-[2.5]" />
+                              </span>
+                            ) : (
+                              <span title="Delivered to Admin (✓)">
+                                <Check className="w-3.5 h-3.5 text-neutral-400 stroke-[2.5]" />
+                              </span>
+                            )
                           )}
                         </div>
                       </div>

@@ -630,32 +630,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Recharts Video Engagement Visualization Module
   const renderVideoEngagementVisualization = () => (
-    <div className="rounded-3xl p-6 sm:p-7 bg-white border border-neutral-200 shadow-sm space-y-6">
+    <div className="rounded-3xl p-6 sm:p-7 bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl space-y-6">
       {/* Header with KPI highlights & View switcher */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-neutral-100">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)]">
               <BarChart3 className="w-4 h-4" />
             </div>
-            <h3 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight">
+            <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
               Video Engagement & Performance Analytics
             </h3>
           </div>
-          <p className="text-xs text-neutral-600 font-medium mt-1">
+          <p className="text-xs text-slate-400 font-medium mt-1">
             Data visualization of video views, estimated like momentum, and category engagement across {videos.length} tutorials.
           </p>
         </div>
 
         {/* Metric Switcher Pills */}
-        <div className="flex items-center gap-1.5 p-1 bg-neutral-100 rounded-xl border border-neutral-200 self-start md:self-auto text-xs font-bold">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-800/80 rounded-xl border border-slate-700/80 self-start md:self-auto text-xs font-bold">
           <button
             type="button"
             onClick={() => setVideoMetricView('views')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               videoMetricView === 'views'
-                ? 'bg-neutral-900 text-white shadow-xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
             Views by Video
@@ -665,8 +665,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setVideoMetricView('likes')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               videoMetricView === 'likes'
-                ? 'bg-neutral-900 text-white shadow-xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
             Like Trends
@@ -676,8 +676,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setVideoMetricView('categories')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               videoMetricView === 'categories'
-                ? 'bg-neutral-900 text-white shadow-xs'
-                : 'text-neutral-600 hover:text-neutral-900'
+                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
             Category Distribution
@@ -687,54 +687,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 4 Quick Stat Micro-Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80">
-          <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1">
-            <Eye className="w-3.5 h-3.5 text-orange-500" />
+        <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/60 hover:border-orange-500/40 transition-colors">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <Eye className="w-3.5 h-3.5 text-orange-400" />
             <span>Total Video Views</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-neutral-900 mt-1">
+          <div className="text-xl sm:text-2xl font-black text-white mt-1">
             {totalVideoViews.toLocaleString()}
           </div>
-          <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
+          <div className="text-[10px] text-emerald-400 font-bold mt-0.5">
             Across {videos.length} published tutorials
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80">
-          <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1">
-            <ThumbsUp className="w-3.5 h-3.5 text-blue-500" />
+        <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/60 hover:border-blue-500/40 transition-colors">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <ThumbsUp className="w-3.5 h-3.5 text-blue-400" />
             <span>Total Estimated Likes</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-neutral-900 mt-1">
+          <div className="text-xl sm:text-2xl font-black text-white mt-1">
             {totalEstimatedLikes.toLocaleString()}
           </div>
-          <div className="text-[10px] text-blue-600 font-bold mt-0.5">
+          <div className="text-[10px] text-blue-400 font-bold mt-0.5">
             ~8.8% average like rate
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80">
-          <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1">
-            <Flame className="w-3.5 h-3.5 text-amber-500" />
+        <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/60 hover:border-amber-500/40 transition-colors">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <Flame className="w-3.5 h-3.5 text-amber-400" />
             <span>Avg Views / Tutorial</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-neutral-900 mt-1">
+          <div className="text-xl sm:text-2xl font-black text-white mt-1">
             {avgViews.toLocaleString()}
           </div>
-          <div className="text-[10px] text-neutral-500 font-medium mt-0.5">
+          <div className="text-[10px] text-slate-400 font-medium mt-0.5">
             Per video average
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80">
-          <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/60 hover:border-emerald-500/40 transition-colors">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
             <span>Top Performing Video</span>
           </div>
-          <div className="text-xs sm:text-sm font-black text-neutral-900 truncate mt-1" title={topVideo?.title}>
+          <div className="text-xs sm:text-sm font-black text-white truncate mt-1" title={topVideo?.title}>
             {topVideo?.title || 'Tutorial Guide'}
           </div>
-          <div className="text-[10px] font-bold text-orange-600 mt-0.5 truncate">
+          <div className="text-[10px] font-bold text-orange-400 mt-0.5 truncate">
             {topVideo?.views || '0 views'} · {topVideo?.category}
           </div>
         </div>
@@ -921,38 +921,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   );
 
   return (
-    <div className="py-8 sm:py-12 bg-neutral-50/60 min-h-[calc(100vh-4rem)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="py-8 sm:py-12 bg-slate-950 text-slate-100 min-h-[calc(100vh-4rem)] relative overflow-hidden">
+      {/* Cyber-tech ambient background grid & radial glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(249,115,22,0.18),rgba(2,6,23,0))] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b18_1px,transparent_1px),linear-gradient(to_bottom,#1e293b18_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-40" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Navigation Breadcrumb & Top Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-neutral-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onNavigateHome}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-neutral-200 text-xs sm:text-sm font-bold text-neutral-800 hover:text-neutral-950 hover:border-neutral-300 transition-all shadow-2xs cursor-pointer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs sm:text-sm font-bold text-slate-200 hover:text-white hover:border-orange-500/50 transition-all shadow-xs cursor-pointer hover:shadow-[0_0_15px_rgba(249,115,22,0.25)]"
             >
-              <ArrowLeft className="w-4 h-4 text-orange-500" />
+              <ArrowLeft className="w-4 h-4 text-orange-400" />
               <span>Back to Home</span>
             </button>
-            <div className="h-4 w-px bg-neutral-300" />
-            <h1 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight flex items-center gap-2">
+            <div className="h-4 w-px bg-slate-700" />
+            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
               <span>Admin Creator Studio</span>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                Primary Control
+              <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-[0_0_10px_rgba(249,115,22,0.3)]">
+                Cyber Primary Control
               </span>
             </h1>
           </div>
 
           {isAdmin && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-neutral-500 font-medium">Logged in as:</span>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-neutral-200 shadow-2xs">
-                <div className="w-6 h-6 rounded-full overflow-hidden border border-orange-500">
+              <span className="text-xs text-slate-400 font-medium">Logged in as:</span>
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/80 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                <div className="w-6 h-6 rounded-full overflow-hidden border border-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]">
                   <img src={TOPSON_PROFILE_IMAGE} alt="Admin" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-xs font-bold text-neutral-900">Topson Media</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-white">Topson Media</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
               </div>
             </div>
           )}
@@ -964,63 +968,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           /* ========================================================================= */
           <div className="space-y-8 animate-in fade-in">
             
-            {/* 1. METRICS & VISITOR OVERVIEW CARDS */}
+            {/* 1. METRICS & VISITOR OVERVIEW CARDS WITH VIBRANT NEON GLOW */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
               
               {/* Traffic Overview Card with Total Visitors & Interactive Recharts line chart (5 cols) */}
-              <div className="lg:col-span-5 p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-white via-white to-orange-50/40 border border-neutral-200 shadow-sm relative overflow-hidden group hover:border-orange-500/50 hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="lg:col-span-5 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-orange-500/60 hover:shadow-[0_0_30px_rgba(249,115,22,0.25)] transition-all duration-300 flex flex-col justify-between hover:-translate-y-1">
+                {/* Neon Ambient Corner Glow */}
+                <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-orange-500/15 blur-2xl pointer-events-none group-hover:bg-orange-500/25 transition-all" />
+
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-neutral-600 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.9)]" />
                       Traffic Overview
                     </span>
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
-                      <TrendingUp className="w-3 h-3 text-emerald-600" />
+                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold shadow-[0_0_10px_rgba(52,211,153,0.2)]">
+                      <TrendingUp className="w-3 h-3 text-emerald-400" />
                       <span>+18.4% this week</span>
                     </div>
                   </div>
 
                   <div className="flex items-baseline gap-2 mt-1">
-                    <div className="text-3xl sm:text-4xl font-black text-neutral-900 tracking-tight">
+                    <div className="text-3xl sm:text-4xl font-black text-white tracking-tight group-hover:text-orange-400 transition-colors">
                       {totalVisitorsCount.toLocaleString()}
                     </div>
-                    <span className="text-xs text-neutral-500 font-semibold">Total unique visitors</span>
+                    <span className="text-xs text-slate-400 font-semibold">Total unique visitors</span>
                   </div>
                 </div>
 
                 {/* Recharts Line Chart displaying daily visitor trends over the past week */}
-                <div className="mt-4 pt-3 border-t border-neutral-100">
-                  <div className="flex items-center justify-between text-[11px] text-neutral-500 font-medium mb-1.5">
+                <div className="mt-4 pt-3 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1.5">
                     <span>Daily Visitors Trend</span>
-                    <span className="text-neutral-900 font-bold">Past 7 Days (Mon - Sun)</span>
+                    <span className="text-white font-bold">Past 7 Days (Mon - Sun)</span>
                   </div>
                   <div className="h-28 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={weeklyVisitorTrendData} margin={{ top: 8, right: 10, left: -22, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
                         <XAxis
                           dataKey="day"
-                          stroke="#94a3b8"
+                          stroke="#64748b"
                           fontSize={10}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          stroke="#94a3b8"
+                          stroke="#64748b"
                           fontSize={10}
                           tickLine={false}
                           axisLine={false}
                         />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: '#0f172a',
+                            backgroundColor: '#090d16',
                             borderColor: '#334155',
                             borderRadius: '0.75rem',
                             fontSize: '11px',
                             color: '#ffffff',
                             fontWeight: '600',
-                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)',
+                            boxShadow: '0 0 20px rgba(0, 0, 0, 0.8)',
                           }}
                           itemStyle={{ color: '#f97316' }}
                           formatter={(value) => [`${value} visitors`, 'Traffic']}
@@ -1028,10 +1035,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <Line
                           type="monotone"
                           dataKey="visitors"
-                          stroke="#ea580c"
+                          stroke="#f97316"
                           strokeWidth={2.75}
-                          dot={{ r: 3, fill: '#ea580c', strokeWidth: 1.5, stroke: '#ffffff' }}
-                          activeDot={{ r: 5.5, fill: '#ea580c', stroke: '#ffffff', strokeWidth: 2 }}
+                          dot={{ r: 3, fill: '#f97316', strokeWidth: 1.5, stroke: '#ffffff' }}
+                          activeDot={{ r: 5.5, fill: '#f97316', stroke: '#ffffff', strokeWidth: 2 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -1040,80 +1047,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Total Email Messages (4 cols) */}
-              <div className="lg:col-span-4 p-5 sm:p-6 rounded-3xl bg-white border border-neutral-200 shadow-sm relative overflow-hidden group hover:border-orange-500/40 transition-all flex flex-col justify-between">
+              <div className="lg:col-span-4 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-500/60 hover:shadow-[0_0_25px_rgba(59,130,246,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Inbound Emails
                     </span>
-                    <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.3)]">
                       <Mail className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="text-3xl font-black text-neutral-900 tracking-tight">
+                  <div className="text-3xl font-black text-white tracking-tight group-hover:text-blue-400 transition-colors">
                     {emailMessages.length}
                   </div>
                 </div>
-                <div className="pt-3 border-t border-neutral-100 flex items-center justify-between text-[11px]">
-                  <span className="text-neutral-500">Target Inbox</span>
-                  <span className="text-blue-600 font-bold truncate">mail topson media</span>
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">Target Inbox</span>
+                  <span className="text-blue-400 font-bold truncate">mail topson media</span>
                 </div>
               </div>
 
               {/* Community Reviews (2 cols) */}
-              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-white border border-neutral-200 shadow-sm relative overflow-hidden group hover:border-orange-500/40 transition-all flex flex-col justify-between">
+              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-amber-500/60 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Reviews
                     </span>
-                    <div className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.3)]">
                       <MessageSquare className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="text-3xl font-black text-neutral-900 tracking-tight">
+                  <div className="text-3xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">
                     {feedbacks.length}
                   </div>
                 </div>
-                <div className="pt-3 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium">
+                <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 font-medium">
                   Delete & reply enabled
                 </div>
               </div>
 
               {/* Published Videos (2 cols) */}
-              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-white border border-neutral-200 shadow-sm relative overflow-hidden group hover:border-orange-500/40 transition-all flex flex-col justify-between">
+              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Tutorials
                     </span>
-                    <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.3)]">
                       <Film className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="text-3xl font-black text-neutral-900 tracking-tight">
+                  <div className="text-3xl font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors">
                     {videos.length}
                   </div>
                 </div>
-                <div className="pt-3 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium">
+                <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 font-medium">
                   Edit & delete enabled
                 </div>
               </div>
 
             </div>
 
-            {/* 2. TAB CONTROLS */}
-            <div className="flex items-center gap-2 border-b border-neutral-200 overflow-x-auto custom-scrollbar pb-2">
+            {/* 2. TAB CONTROLS (Cyber-Tech Glassmorphism Pills) */}
+            <div className="flex items-center gap-2 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md p-2 rounded-2xl overflow-x-auto custom-scrollbar border">
               <button
                 type="button"
                 onClick={() => setActiveTab('overview')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'overview'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <Activity className="w-4 h-4 text-orange-500" />
+                <Activity className="w-4 h-4 text-orange-400" />
                 <span>Live Activity & Visitors</span>
               </button>
 
@@ -1122,11 +1129,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setActiveTab('analytics')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'analytics'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <BarChart3 className="w-4 h-4 text-orange-500" />
+                <BarChart3 className="w-4 h-4 text-orange-400" />
                 <span>Video Engagement Analytics</span>
               </button>
 
@@ -1135,14 +1142,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setActiveTab('chat')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'chat'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <MessageSquare className="w-4 h-4 text-orange-500" />
+                <MessageSquare className="w-4 h-4 text-orange-400" />
                 <span>Live Chat Studio</span>
-                {chatMessages.some((m) => m.sender === 'user' && !m.isRead) && (
-                  <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                {chatMessages.some((m) => m.sender === 'user' && (!m.isRead || m.status !== 'read')) && (
+                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.9)]" />
                 )}
               </button>
 
@@ -1151,11 +1158,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setActiveTab('tutorials')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'tutorials'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <Film className="w-4 h-4 text-orange-500" />
+                <Film className="w-4 h-4 text-orange-400" />
                 <span>Manage Tutorials ({videos.length})</span>
               </button>
 
@@ -1164,14 +1171,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setActiveTab('messages')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'messages'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <Mail className="w-4 h-4 text-orange-500" />
+                <Mail className="w-4 h-4 text-orange-400" />
                 <span>Inbound Email Messages</span>
                 {emailMessages.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-orange-500 text-white font-bold">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-orange-500 text-white font-bold shadow-[0_0_8px_rgba(249,115,22,0.6)]">
                     {emailMessages.length}
                   </span>
                 )}
@@ -1182,11 +1189,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setActiveTab('reviews')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'reviews'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <MessageSquare className="w-4 h-4 text-orange-500" />
+                <MessageSquare className="w-4 h-4 text-orange-400" />
                 <span>Manage Community Feedbacks</span>
               </button>
 
@@ -1195,11 +1202,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setActiveTab('upload')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'upload'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <UploadCloud className="w-4 h-4 text-orange-500" />
+                <UploadCloud className="w-4 h-4 text-orange-400" />
                 <span>Publish Reel / Tutorial</span>
               </button>
 
@@ -1208,14 +1215,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={() => setActiveTab('users')}
                 className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   activeTab === 'users'
-                    ? 'bg-neutral-900 text-white shadow-sm'
-                    : 'bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200'
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border border-orange-500/50'
+                    : 'bg-slate-800/50 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60'
                 }`}
               >
-                <Users className="w-4 h-4 text-orange-500" />
+                <Users className="w-4 h-4 text-orange-400" />
                 <span>Users & Fan Badges</span>
                 {usersList.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-neutral-200 text-neutral-900 font-bold">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-orange-400 border border-orange-500/30 font-bold">
                     {usersList.length}
                   </span>
                 )}
@@ -1233,18 +1240,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
                 {/* Left 8 Cols: Real-time Activity Stream */}
-                <div className="lg:col-span-8 rounded-3xl p-6 sm:p-8 bg-white border border-neutral-200 shadow-sm space-y-6">
-                  <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
+                <div className="lg:col-span-8 rounded-3xl p-6 sm:p-8 bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl space-y-6">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                     <div>
-                      <h3 className="text-base sm:text-lg font-black text-neutral-900">
+                      <h3 className="text-base sm:text-lg font-black text-white">
                         Live User Traffic & Actions
                       </h3>
-                      <p className="text-xs text-neutral-600 font-medium">
+                      <p className="text-xs text-slate-400 font-medium">
                         Real-time visitor logs, tutorial watches, chat interactions, and inquiries.
                       </p>
                     </div>
-                    <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 shadow-[0_0_10px_rgba(52,211,153,0.2)]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                       Live Stream
                     </span>
                   </div>
@@ -1253,25 +1260,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {visitorActivities.map((act) => (
                       <div
                         key={act.id}
-                        className="p-3.5 rounded-2xl bg-neutral-50 hover:bg-neutral-100/70 border border-neutral-200/80 flex items-start gap-3 transition-colors"
+                        className="p-3.5 rounded-2xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/60 flex items-start gap-3 transition-colors"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-orange-500 shrink-0 shadow-2xs mt-0.5">
-                          {act.type === 'visit' && <Users className="w-4 h-4 text-blue-500" />}
-                          {act.type === 'watch' && <Film className="w-4 h-4 text-purple-500" />}
-                          {act.type === 'comment' && <MessageSquare className="w-4 h-4 text-amber-500" />}
-                          {act.type === 'chat' && <Sparkles className="w-4 h-4 text-orange-500" />}
-                          {act.type === 'email' && <Mail className="w-4 h-4 text-emerald-500" />}
+                        <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-orange-400 shrink-0 shadow-2xs mt-0.5">
+                          {act.type === 'visit' && <Users className="w-4 h-4 text-blue-400" />}
+                          {act.type === 'watch' && <Film className="w-4 h-4 text-purple-400" />}
+                          {act.type === 'comment' && <MessageSquare className="w-4 h-4 text-amber-400" />}
+                          {act.type === 'chat' && <Sparkles className="w-4 h-4 text-orange-400" />}
+                          {act.type === 'email' && <Mail className="w-4 h-4 text-emerald-400" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-neutral-900">
+                            <span className="text-xs font-bold text-white">
                               {act.userIpOrName || 'Visitor'}
                             </span>
-                            <span className="text-[11px] text-neutral-600 font-semibold shrink-0">
+                            <span className="text-[11px] text-slate-400 font-semibold shrink-0">
                               {act.timestamp}
                             </span>
                           </div>
-                          <p className="text-xs text-neutral-600 font-medium mt-0.5">
+                          <p className="text-xs text-slate-300 font-medium mt-0.5">
                             {act.description}
                           </p>
                         </div>
@@ -1282,85 +1289,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Right 4 Cols: Quick Creator Info & Quick Actions */}
                 <div className="lg:col-span-4 space-y-5">
-                  <div className="rounded-3xl p-6 bg-white border border-neutral-200 shadow-sm space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                  <div className="rounded-3xl p-6 bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Channel Creator Status
                     </h4>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-white shrink-0">
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-slate-950 shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.4)]">
                         <img src={TOPSON_PROFILE_IMAGE} alt="Topson Media" className="w-full h-full object-cover rounded-full" />
                       </div>
                       <div>
-                        <div className="text-sm font-black text-neutral-900">Topson Media</div>
-                        <div className="text-xs text-neutral-600 font-medium">Administrator & Host</div>
-                        <div className="text-[11px] text-emerald-600 font-bold mt-0.5">Verified Channels Owner</div>
+                        <div className="text-sm font-black text-white">Topson Media</div>
+                        <div className="text-xs text-slate-400 font-medium">Administrator & Host</div>
+                        <div className="text-[11px] text-emerald-400 font-bold mt-0.5">Verified Channels Owner</div>
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-neutral-100 space-y-2 text-xs">
-                      <div className="flex items-center justify-between text-neutral-600 font-medium">
+                    <div className="pt-3 border-t border-slate-800 space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-slate-300 font-medium">
                         <span className="flex items-center gap-1.5">
-                          <svg className="w-4 h-4 fill-red-600" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 fill-red-500" viewBox="0 0 24 24">
                             <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                           </svg>
-                          <span className="text-neutral-800 font-bold">YouTube:</span>
+                          <span className="text-slate-200 font-bold">YouTube:</span>
                         </span>
                         <a
                           href="https://www.youtube.com/@topson-media1"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-red-600 hover:text-red-700 font-extrabold transition-colors truncate max-w-[150px]"
+                          className="text-red-400 hover:text-red-300 font-extrabold transition-colors truncate max-w-[150px]"
                         >
                           @topson-media1
                         </a>
                       </div>
-                      <div className="flex items-center justify-between text-neutral-600 font-medium">
+                      <div className="flex items-center justify-between text-slate-300 font-medium">
                         <span className="flex items-center gap-1.5">
                           <svg className="w-4 h-4 fill-[#1877F2]" viewBox="0 0 24 24">
                             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                           </svg>
-                          <span className="text-neutral-800 font-bold">Facebook:</span>
+                          <span className="text-slate-200 font-bold">Facebook:</span>
                         </span>
                         <a
                           href="https://www.facebook.com/etienne.topson.kenedy"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700 font-extrabold transition-colors truncate max-w-[150px]"
+                          className="text-blue-400 hover:text-blue-300 font-extrabold transition-colors truncate max-w-[150px]"
                         >
                           Etienne Topson Kenedy
                         </a>
                       </div>
-                      <div className="flex items-center justify-between text-neutral-600 font-medium">
+                      <div className="flex items-center justify-between text-slate-300 font-medium">
                         <span className="flex items-center gap-1.5">
                           <WhatsAppBrandBadge className="w-4 h-4 rounded-md" iconClassName="w-3 h-3 fill-white" />
-                          <span className="text-neutral-800 font-bold">WhatsApp:</span>
+                          <span className="text-slate-200 font-bold">WhatsApp:</span>
                         </span>
                         <a
                           href="https://wa.me/250794903078"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-neutral-900 hover:text-emerald-600 font-extrabold transition-colors"
+                          className="text-emerald-400 hover:text-emerald-300 font-extrabold transition-colors"
                         >
                           0794903078
                         </a>
                       </div>
-                      <div className="flex justify-between text-neutral-600 font-medium">
+                      <div className="flex justify-between text-slate-300 font-medium">
                         <span>Receiving Email:</span>
-                        <span className="text-neutral-900 font-bold">mail topson media</span>
+                        <span className="text-white font-bold">mail topson media</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Switch to Upload */}
-                  <div className="rounded-3xl p-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white shadow-sm space-y-3">
-                    <h4 className="text-sm font-black">Publish New Content</h4>
-                    <p className="text-xs text-neutral-300 font-medium leading-relaxed">
+                  <div className="rounded-3xl p-6 bg-gradient-to-br from-slate-900 to-slate-950 border border-orange-500/40 shadow-[0_0_25px_rgba(249,115,22,0.2)] text-white space-y-3">
+                    <h4 className="text-sm font-black text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-orange-400" />
+                      <span>Publish New Content</span>
+                    </h4>
+                    <p className="text-xs text-slate-300 font-medium leading-relaxed">
                       Upload directly from your phone/PC or paste YouTube links to feature them instantly.
                     </p>
                     <button
                       type="button"
                       onClick={() => setActiveTab('upload')}
-                      className="w-full py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                      className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.35)] active:scale-95"
                     >
                       <UploadCloud className="w-4 h-4" />
                       <span>Upload Tutorial Now</span>

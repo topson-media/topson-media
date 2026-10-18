@@ -14,6 +14,7 @@ import {
   query,
   orderBy,
   limit,
+  where,
   addDoc,
   serverTimestamp,
   increment,
@@ -424,31 +425,41 @@ export function subscribeToMessages(
   currentUser?: User | null
 ): () => void {
   try {
-    const q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'), limit(200));
+    const q = query(collection(db, 'chat_messages'), orderBy('createdAt', 'asc'), limit(250));
     return onSnapshot(
       q,
       (snapshot) => {
         if (!snapshot.empty) {
           const msgs: ChatMessage[] = snapshot.docs.map((docSnap) => {
             const data = docSnap.data();
+            const rawSender = data.sender || (data.senderId === 'admin' ? 'topson' : 'user');
+            const senderId = data.senderId || (rawSender === 'topson' ? 'admin' : (data.userId || data.user_id));
+            const receiverId = data.receiverId || (rawSender === 'topson' ? (data.targetUserId || 'user') : 'admin');
+            const status: 'sent' | 'read' = (data.status === 'read' || data.isRead) ? 'read' : 'sent';
+
             return {
               id: docSnap.id,
-              sender: data.sender || 'user',
-              senderName: data.senderName || 'Anonymous',
-              userId: data.userId || data.user_id,
-              user_id: data.userId || data.user_id,
+              sender: rawSender,
+              senderName: data.senderName || (rawSender === 'topson' ? 'Topson Media' : 'Viewer'),
+              senderId: senderId,
+              receiverId: receiverId,
+              status: status,
+              userId: data.userId || data.user_id || senderId,
+              user_id: data.userId || data.user_id || senderId,
               userEmail: data.userEmail,
-              targetUserId: data.targetUserId,
+              targetUserId: data.targetUserId || receiverId,
               text: data.text || '',
               timestamp: data.timestamp || 'Just now',
               avatarUrl: data.avatarUrl,
-              isRead: !!data.isRead,
+              isRead: status === 'read',
               deletedForEveryone: !!data.deletedForEveryone,
               deletedForUser: !!data.deletedForUser,
+              createdAt: data.createdAt,
+              created_at: data.created_at,
             };
           });
 
-          // Filter out deleted messages if needed
+          // Filter out deleted messages
           const filtered = msgs.filter((m) => {
             if (m.deletedForEveryone) return false;
             if (m.deletedForUser && currentUser?.id && m.userId === currentUser.id) return false;
@@ -462,29 +473,18 @@ export function subscribeToMessages(
             // ignore
           }
         } else {
-          try {
-            const cached = localStorage.getItem('topson_chat_messages_cache');
-            if (cached) {
-              callback(JSON.parse(cached));
-              return;
-            }
-          } catch {
-            // ignore
-          }
           callback([]);
         }
       },
       (error) => {
-        console.warn('Firestore messages subscription fallback:', error);
+        console.warn('Firestore chat_messages onSnapshot fallback:', error);
         try {
           const cached = localStorage.getItem('topson_chat_messages_cache');
           if (cached) {
             callback(JSON.parse(cached));
             return;
           }
-        } catch {
-          // ignore
-        }
+        } catch {}
         callback([]);
       }
     );
@@ -495,12 +495,31 @@ export function subscribeToMessages(
 }
 
 export async function sendMessageToDb(message: ChatMessage): Promise<string> {
-  const currentUid = message.userId || message.user_id;
-  const payload = {
-    ...message,
+  const isTopson = message.sender === 'topson';
+  const currentUid = message.userId || message.user_id || message.senderId || 'user';
+  const senderId = message.senderId || (isTopson ? 'admin' : currentUid);
+  const receiverId = message.receiverId || (isTopson ? (message.targetUserId || 'user') : 'admin');
+  const status: 'sent' | 'read' = message.status || (isTopson ? 'sent' : 'sent');
+
+  // Strict Firestore Document Architecture:
+  // Must contain senderId, receiverId, text, timestamp, and status ('sent' | 'read')
+  const payload: Record<string, any> = {
+    senderId: senderId,
+    receiverId: receiverId,
+    text: message.text,
+    timestamp: message.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    status: status,
+    // Supporting fields for UI & backward compatibility
+    sender: message.sender,
+    senderName: message.senderName,
     userId: currentUid,
     user_id: currentUid,
-    targetUserId: message.targetUserId,
+    userEmail: message.userEmail || null,
+    targetUserId: message.targetUserId || receiverId,
+    avatarUrl: message.avatarUrl || null,
+    isRead: status === 'read',
+    deletedForEveryone: false,
+    deletedForUser: false,
     createdAt: serverTimestamp(),
     created_at: serverTimestamp(),
     createdTimestamp: Date.now(),
@@ -508,23 +527,16 @@ export async function sendMessageToDb(message: ChatMessage): Promise<string> {
 
   try {
     const docRef = await addDoc(collection(db, 'chat_messages'), payload);
-    // Mirror to 'messages' as well for complete backwards compatibility
+    // Mirror to 'messages' as well for backwards compatibility
     await addDoc(collection(db, 'messages'), payload).catch(() => {});
     return docRef.id;
   } catch (err) {
-    console.warn('sendMessageToDb fallback to messages collection:', err);
+    console.warn('sendMessageToDb error, trying fallback:', err);
     try {
       const docRef = await addDoc(collection(db, 'messages'), payload);
       return docRef.id;
     } catch (e2) {
       console.warn('sendMessageToDb local fallback:', e2);
-      try {
-        const cached = localStorage.getItem('topson_chat_messages_cache');
-        const msgs: ChatMessage[] = cached ? JSON.parse(cached) : [];
-        localStorage.setItem('topson_chat_messages_cache', JSON.stringify([...msgs, message]));
-      } catch {
-        // ignore
-      }
       return message.id || 'msg-' + Date.now();
     }
   }
@@ -540,13 +552,77 @@ export async function deleteMessageFromDb(messageId: string): Promise<void> {
 }
 
 export async function markMessagesReadInDb(messageIds: string[]): Promise<void> {
+  if (!messageIds || messageIds.length === 0) return;
   try {
     for (const id of messageIds) {
-      await updateDoc(doc(db, 'chat_messages', id), { isRead: true }).catch(() => {});
-      await updateDoc(doc(db, 'messages', id), { isRead: true }).catch(() => {});
+      await updateDoc(doc(db, 'chat_messages', id), { status: 'read', isRead: true }).catch(() => {});
+      await updateDoc(doc(db, 'messages', id), { status: 'read', isRead: true }).catch(() => {});
     }
   } catch (err) {
     console.warn('markMessagesReadInDb fallback:', err);
+  }
+}
+
+export async function markThreadReadInDb(
+  threadUserId: string,
+  readerRole: 'admin' | 'user'
+): Promise<void> {
+  try {
+    const q = query(
+      collection(db, 'chat_messages'),
+      where('status', '==', 'sent')
+    );
+    const snap = await getDocs(q);
+    const updatePromises: Promise<any>[] = [];
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const docSenderId = data.senderId || data.userId || data.user_id;
+      const docReceiverId = data.receiverId || data.targetUserId;
+
+      if (readerRole === 'admin') {
+        // Admin is reading: mark messages sent by this user to admin
+        if (docSenderId === threadUserId || data.userId === threadUserId || data.user_id === threadUserId) {
+          updatePromises.push(updateDoc(doc(db, 'chat_messages', docSnap.id), { status: 'read', isRead: true }).catch(() => {}));
+          updatePromises.push(updateDoc(doc(db, 'messages', docSnap.id), { status: 'read', isRead: true }).catch(() => {}));
+        }
+      } else {
+        // User is reading: mark replies from Admin to this user
+        if (docReceiverId === threadUserId || data.targetUserId === threadUserId) {
+          updatePromises.push(updateDoc(doc(db, 'chat_messages', docSnap.id), { status: 'read', isRead: true }).catch(() => {}));
+          updatePromises.push(updateDoc(doc(db, 'messages', docSnap.id), { status: 'read', isRead: true }).catch(() => {}));
+        }
+      }
+    });
+
+    await Promise.all(updatePromises);
+  } catch (err) {
+    console.warn('markThreadReadInDb notice:', err);
+  }
+}
+
+// User suspension management in Firestore
+export async function setUserSuspendedInDb(userId: string, suspended: boolean): Promise<void> {
+  try {
+    await setDoc(doc(db, 'users', userId), { suspended, suspendedAt: suspended ? Date.now() : null }, { merge: true });
+  } catch (err) {
+    console.warn('setUserSuspendedInDb error:', err);
+  }
+}
+
+export function subscribeToUserSuspension(
+  userId: string,
+  onSuspensionChanged: (isSuspended: boolean) => void
+): () => void {
+  try {
+    return onSnapshot(doc(db, 'users', userId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        onSuspensionChanged(!!data.suspended);
+      }
+    });
+  } catch {
+    return () => {};
   }
 }
 
