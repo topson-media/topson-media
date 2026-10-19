@@ -292,17 +292,21 @@ export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => vo
         if (!snapshot.empty) {
           const fbs: FeedbackItem[] = snapshot.docs.map((docSnap) => {
             const data = docSnap.data();
+            const createdTime = data.createdAt
+              ? (typeof data.createdAt?.toMillis === 'function' ? data.createdAt.toMillis() : data.createdAt)
+              : (data.created_at ? (data.created_at instanceof Date ? data.created_at.getTime() : (typeof data.created_at?.toMillis === 'function' ? data.created_at.toMillis() : Date.now())) : Date.now());
+
             return {
               id: docSnap.id,
-              authorName: data.authorName || 'Member',
-              authorHandle: data.authorHandle,
+              authorName: data.authorName || data.user || 'Member',
+              authorHandle: data.authorHandle || (data.user ? `@${data.user.toLowerCase().replace(/\s+/g, '')}` : undefined),
               authorRole: data.authorRole || 'Community Member',
               avatarUrl: data.avatarUrl || '',
               rating: data.rating || 5,
               date: data.date || 'Recent',
-              createdAt: data.createdAt,
-              content: data.content || '',
-              verified: !!data.verified,
+              createdAt: createdTime,
+              content: data.content || data.text || '',
+              verified: data.verified !== undefined ? !!data.verified : true,
               likes: data.likes || 0,
               likedBy: data.likedBy || [],
               hidden: !!data.hidden,

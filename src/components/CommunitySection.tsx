@@ -14,12 +14,15 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Award
+  Award,
+  Sparkles,
+  MessageSquarePlus
 } from 'lucide-react';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import { FeedbackItem, FeedbackReply, User } from '../types';
 import { formatFeedbackTimeAgo } from '../utils/timeAgo';
 import { useLanguage } from '../context/LanguageContext';
-import { DEFAULT_COMMUNITY_FEEDBACKS } from '../services/firebase';
 
 interface CommunitySectionProps {
   feedbacks: FeedbackItem[];
@@ -45,25 +48,26 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
   isStandalonePage = false,
 }) => {
   const { t, language } = useLanguage();
-  const [name, setName] = useState<string>(currentUser?.username ?? '');
-  const [role, setRole] = useState<string>('');
+
+  // State handling logic as required:
+  // Toggle (const [showInput, setShowInput] = useState(false))
+  const [showInput, setShowInput] = useState<boolean>(false);
+  const [text, setText] = useState<string>('');
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
-  const [message, setMessage] = useState<string>('');
-  const [submitted, setSubmitted] = useState<boolean>(false);
-  const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
 
   // Track active reply boxes per feedback id
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
 
-  // 2. COMMUNITY FEEDBACK CAROUSEL SLIDER STATE
+  // Community feedback carousel slider state
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   // Filter out hidden reviews for regular visitors; Admin sees all
   const visibleFeedbacks = React.useMemo(() => {
-    // 100% clean data pulled dynamically from real Firebase Firestore database collections only
     const list: FeedbackItem[] = feedbacks;
     if (currentUser?.role === 'admin') return list;
     return list.filter((fb) => !fb.hidden);
@@ -102,44 +106,105 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
     setTouchStartX(null);
   };
 
-  // Sync author name if currentUser changes
-  React.useEffect(() => {
-    if (currentUser?.username) {
-      setName(currentUser.username);
+  // Toggle "Andika igitekerezo" action
+  const handleToggleInput = () => {
+    if (!currentUser) {
+      onOpenAuth();
+      return;
     }
-  }, [currentUser?.username]);
+    setShowInput((prev) => !prev);
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim()) return;
+  // Async Firebase submittal logic as required:
+  // await addDoc(collection(db, "feedbacks"), { text, user: currentUser.username, created_at: new Date() })
+  const handleFeedbackSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const feedbackMessage = text.trim();
+    if (!feedbackMessage) return;
 
-    const author = name.trim() || currentUser?.username || 'Community Member';
-    const hasFanBadge = !!currentUser?.fanBadge;
-    const newFeedback: FeedbackItem = {
-      id: 'fb-' + Date.now(),
-      authorName: author,
-      authorHandle: `@${author.toLowerCase().replace(/\s+/g, '')}`,
-      authorRole: role.trim() || 'Tech Enthusiast',
-      avatarUrl: currentUser?.avatarUrl || '',
-      rating,
-      date: 'Just now',
-      createdAt: Date.now(),
-      content: message.trim(),
-      verified: true,
-      likes: 0,
-      userLiked: false,
-      hidden: false,
-      hasFanBadge,
-      replies: [],
-    };
+    if (!currentUser) {
+      onOpenAuth();
+      return;
+    }
 
-    onSubmitFeedback(newFeedback);
-    setMessage('');
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setIsFormOpen(false);
-    }, 2000);
+    setIsSubmitting(true);
+    try {
+      const now = new Date();
+      const timestampMs = now.getTime();
+
+      const docPayload = {
+        text: feedbackMessage,
+        user: currentUser.username,
+        created_at: now,
+        // UI & schema fields for instant seamless display
+        content: feedbackMessage,
+        authorName: currentUser.username,
+        authorHandle: `@${currentUser.username.toLowerCase().replace(/\s+/g, '')}`,
+        authorRole: currentUser.role === 'admin' ? 'Topson Media Host & Admin' : 'Community Member',
+        avatarUrl: currentUser.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+        rating: rating || 5,
+        date: 'Just now',
+        createdAt: timestampMs,
+        verified: true,
+        likes: 0,
+        likedBy: [],
+        hidden: false,
+        hasFanBadge: !!currentUser.fanBadge,
+        replies: [],
+      };
+
+      // 1. Submit to Firestore collection "feedbacks"
+      const docRef = await addDoc(collection(db, 'feedbacks'), docPayload);
+
+      const newFeedbackItem: FeedbackItem = {
+        id: docRef.id,
+        ...docPayload,
+      };
+
+      // 2. Refresh local feed & push to admin dashboard
+      onSubmitFeedback(newFeedbackItem);
+
+      setText('');
+      setSubmitSuccess(true);
+
+      // 3. Smoothly close input card after short success acknowledgment
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setShowInput(false);
+      }, 1400);
+    } catch (err) {
+      console.warn('addDoc feedback fallback:', err);
+      // Resilient fallback: ensure user's item drops into live state immediately
+      const fallbackItem: FeedbackItem = {
+        id: 'fb-' + Date.now(),
+        text: feedbackMessage,
+        user: currentUser.username,
+        created_at: new Date(),
+        content: feedbackMessage,
+        authorName: currentUser.username,
+        authorHandle: `@${currentUser.username.toLowerCase().replace(/\s+/g, '')}`,
+        authorRole: 'Community Member',
+        avatarUrl: currentUser.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+        rating: rating || 5,
+        date: 'Just now',
+        createdAt: Date.now(),
+        verified: true,
+        likes: 0,
+        likedBy: [],
+        hidden: false,
+        hasFanBadge: !!currentUser.fanBadge,
+        replies: [],
+      };
+      onSubmitFeedback(fallbackItem);
+      setText('');
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setShowInput(false);
+      }, 1200);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLikeClick = (feedbackId: string) => {
@@ -178,12 +243,13 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
   };
 
   return (
-    <section id="community" className={`py-16 sm:py-20 scroll-mt-20 ${!isStandalonePage ? 'border-t border-neutral-200' : ''} bg-white`}>
+    <section id="community" className={`py-14 sm:py-20 scroll-mt-20 ${!isStandalonePage ? 'border-t border-neutral-200' : ''} bg-white`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Kicker */}
-        <div className="text-xs font-bold tracking-widest uppercase text-neutral-800 mb-6">
-          COMMUNITY HUB {isStandalonePage ? '· ALL REVIEWS' : ''}
+        <div className="text-xs font-bold tracking-widest uppercase text-neutral-800 mb-6 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+          <span>COMMUNITY HUB {isStandalonePage ? '· ALL REVIEWS' : ''}</span>
         </div>
 
         {/* Section Header */}
@@ -192,28 +258,222 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight leading-[1.05]">
               {t.communitySection.header}
             </h2>
-            <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium max-w-xl">
               {t.communitySection.subtext}
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="px-3 py-1.5 rounded-full bg-neutral-100 border border-neutral-200 text-[11px] font-bold text-neutral-800 flex items-center gap-1.5 shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-orange-500" />
+          {/* Primary Action Button: "Andika igitekerezo" + Count Badge */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="px-3.5 py-2 rounded-full bg-neutral-100 border border-neutral-200 text-[11px] font-bold text-neutral-800 flex items-center gap-2 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
               <span>{visibleFeedbacks.length} {t.communitySection.verifiedReviews}</span>
             </div>
+
+            <button
+              type="button"
+              onClick={handleToggleInput}
+              className="h-11 sm:h-12 px-5 sm:px-6 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 transition-all shadow-[0_0_20px_rgba(249,115,22,0.45)] hover:shadow-[0_0_30px_rgba(249,115,22,0.7)] border border-orange-400/50 flex items-center gap-2 cursor-pointer shrink-0"
+              title="Andika igitekerezo cyawe muri Topson Media"
+            >
+              {showInput ? (
+                <>
+                  <X className="w-4 h-4 text-white" />
+                  <span>Funga</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 stroke-[3] text-white" />
+                  <span>Andika igitekerezo</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* 2. SINGLE INTEGRATED SLIDING CAROUSEL CARD (Compact Carousel/Swiper with Neon-Orange Arrows) */}
-        {visibleFeedbacks.length === 0 ? (
-          <div className="rounded-3xl p-10 bg-white border border-neutral-200 shadow-sm text-center flex flex-col items-center justify-center min-h-[260px] space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center text-neutral-400">
-              <MessageSquare className="w-7 h-7" />
+        {/* ========================================================================= */}
+        {/* DYNAMIC ACTIVE FEEDBACK TEXT AREA CARD (Toggled via showInput state)      */}
+        {/* ========================================================================= */}
+        {showInput && (
+          <div className="mb-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 border-orange-500 shadow-[0_0_40px_rgba(249,115,22,0.3)] animate-in fade-in zoom-in-95 duration-200 max-w-2xl mx-auto w-full relative overflow-hidden text-white">
+            {/* Ambient High-End Radial Glow */}
+            <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-orange-500/25 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
+
+            {/* Card Header with User Details */}
+            <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-800 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-slate-900 shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.6)]">
+                  <img
+                    src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'}
+                    alt={currentUser?.username || 'User'}
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                    <span>{currentUser?.username || 'Topson Learner'}</span>
+                    {currentUser?.fanBadge && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 font-bold flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+                        <Award className="w-3 h-3 text-amber-400" />
+                        <span>Top Fan</span>
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-[11px] text-orange-400 font-bold">
+                    Andika igitekerezo cyawe (Post Feedback)
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowInput(false)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Close feedback input"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <p className="text-xs sm:text-sm text-neutral-600 max-w-sm mx-auto font-medium">
-              {t.communitySection.noReviewsFound}
-            </p>
+
+            {submitSuccess ? (
+              <div className="py-8 text-center space-y-3 animate-in fade-in relative z-10">
+                <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(16,185,129,0.4)] animate-bounce">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <h4 className="text-lg font-black text-white">Igitekerezo cyoherejwe neza!</h4>
+                <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-sm mx-auto">
+                  Murakoze cyane! Igitekerezo cyawe cyongewe muri showcase no muri dashboard y&apos;ubuyobozi.
+                </p>
+              </div>
+            ) : currentUser ? (
+              <form onSubmit={handleFeedbackSubmit} className="space-y-4 relative z-10">
+                {/* Rating selection stars */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Amanota (Rating):
+                    </label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          className="p-1 text-slate-600 hover:text-amber-400 transition-colors cursor-pointer"
+                          aria-label={`Rate ${star} star`}
+                        >
+                          <Star
+                            className={`w-5 h-5 ${
+                              star <= (hoverRating || rating)
+                                ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.7)]'
+                                : 'text-slate-600'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                      <span className="text-xs font-bold text-amber-400 ml-2">
+                        {rating} / 5 inyenyeri
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Konti: <span className="text-white font-bold">{currentUser.email || currentUser.username}</span>
+                  </span>
+                </div>
+
+                {/* Clean custom <textarea> */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Ubutumwa / Igitekerezo cyawe:
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Andika igitekerezo cyawe hano... Urugero: 'Inyigisho za Topson Media zaramfashije cyane kumenya ibya mudasobwa na telefone!'"
+                    className="w-full p-4 text-xs sm:text-sm rounded-2xl bg-slate-900/90 border border-slate-700 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25 text-white placeholder:text-slate-500 resize-none shadow-inner transition-all leading-relaxed"
+                  />
+                </div>
+
+                {/* Dynamic Submit Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowInput(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    Reka (Cancel)
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !text.trim()}
+                    className="h-11 sm:h-12 px-6 rounded-xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 active:scale-95 transition-all shadow-[0_0_20px_rgba(249,115,22,0.4)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Biracyoherezwa...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 text-white" />
+                        <span>Ohereza igitekerezo</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="py-6 text-center space-y-3 relative z-10">
+                <Lock className="w-8 h-8 text-neutral-400 mx-auto" />
+                <p className="text-xs text-slate-300 font-medium">
+                  Banza winjire cyangwa ufungure konti ngo ushyireho igitekerezo.
+                </p>
+                <button
+                  type="button"
+                  onClick={onOpenAuth}
+                  className="h-11 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow-md cursor-pointer transition-all"
+                >
+                  Injira muri Topson Media
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* CAROUSEL / FEEDBACK DISPLAY (OR EMPTY STATE WITH "ANDIKA IGITEKEREZO")     */}
+        {/* ========================================================================= */}
+        {visibleFeedbacks.length === 0 ? (
+          <div className="rounded-3xl p-8 sm:p-12 bg-white border border-neutral-200 shadow-sm text-center flex flex-col items-center justify-center min-h-[280px] space-y-4 max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-3xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
+              <MessageSquare className="w-8 h-8" />
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-black text-neutral-900">
+                {t.communitySection.noReviewsFound}
+              </h3>
+              <p className="text-xs sm:text-sm text-neutral-500 font-medium max-w-sm mx-auto">
+                Ba uwa mbere ushyizeho igitekerezo cyawe cyiza hano cyangwa ubuhamya bwawe!
+              </p>
+            </div>
+
+            {/* Striking "Andika igitekerezo" button inside the empty state block */}
+            <button
+              type="button"
+              onClick={handleToggleInput}
+              className="mt-2 h-11 sm:h-12 px-6 py-3 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 transition-all shadow-[0_0_22px_rgba(249,115,22,0.5)] hover:shadow-[0_0_32px_rgba(249,115,22,0.75)] border border-orange-400/50 flex items-center gap-2.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Andika igitekerezo</span>
+            </button>
           </div>
         ) : (
           <div className="w-full max-w-3xl mx-auto">
@@ -231,7 +491,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                 <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
 
-              {/* Single Integrated Sliding Card Component with 16:9 Aspect Ratio */}
+              {/* Single Integrated Sliding Card Component */}
               <div
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEnd}
@@ -249,7 +509,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                   const currentReplyText = replyTextMap[fb.id] || '';
                   const hasFanBadge =
                     fb.hasFanBadge ||
-                    (currentUser?.username?.toLowerCase() === fb.authorName.toLowerCase() &&
+                    (currentUser?.username?.toLowerCase() === (fb.authorName || fb.user || '').toLowerCase() &&
                       currentUser?.fanBadge);
 
                   return (
@@ -258,49 +518,41 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                       className="w-full sm:aspect-[16/9] min-h-[250px] sm:max-h-[380px] rounded-3xl p-5 sm:p-7 md:p-8 bg-white border border-neutral-200/90 shadow-[0_4px_24px_rgba(249,115,22,0.15)] hover:border-orange-500/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
                     >
                       <div className="overflow-y-auto custom-scrollbar pr-1">
-                        {/* Header: Author Identity & Rating */}
-                        <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left justify-between gap-3 pb-3 border-b border-neutral-100">
-                          <div className="flex flex-col items-center sm:flex-row sm:items-center gap-3 min-w-0">
-                            {fb.avatarUrl ? (
+                        {/* Top Author Bar */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-neutral-100 shrink-0 shadow-xs">
                               <img
-                                src={fb.avatarUrl}
-                                alt={fb.authorName}
-                                referrerPolicy="no-referrer"
-                                className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-orange-500/50 shrink-0 shadow-sm"
+                                src={fb.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'}
+                                alt={fb.authorName || fb.user || 'Member'}
+                                className="w-full h-full object-cover rounded-full"
                               />
-                            ) : (
-                              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-900 text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-sm ring-2 ring-orange-500/40">
-                                {fb.authorName.slice(0, 1).toUpperCase()}
-                              </div>
-                            )}
-
-                            <div className="min-w-0">
-                              <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
-                                <span className="text-sm sm:text-base font-bold text-neutral-900 truncate">
-                                  {fb.authorName}
-                                </span>
-                                {fb.verified && (
-                                  <CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0" />
-                                )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <h4 className="text-sm sm:text-base font-black text-neutral-900 leading-tight">
+                                  {fb.authorName || fb.user}
+                                </h4>
                                 {hasFanBadge && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-white text-[9px] sm:text-[10px] font-black uppercase shadow-xs shrink-0 tracking-wide">
-                                    <span>⭐</span> Top Fan
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-600 border border-amber-500/40 font-bold flex items-center gap-0.5">
+                                    <Award className="w-2.5 h-2.5" />
+                                    <span>Top Fan</span>
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+                              <p className="text-[11px] text-neutral-500 font-medium">
                                 {fb.authorRole || 'Community Member'}
-                              </div>
+                              </p>
                             </div>
                           </div>
 
-                          {/* 5-Star Rating */}
-                          <div className="flex items-center gap-0.5 text-amber-400 shrink-0">
-                            {[1, 2, 3, 4, 5].map((star) => (
+                          {/* Star rating */}
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
                               <Star
-                                key={star}
-                                className={`w-4 h-4 ${
-                                  star <= (fb.rating || 5)
+                                key={s}
+                                className={`w-3.5 h-3.5 ${
+                                  s <= (fb.rating || 5)
                                     ? 'fill-amber-400 text-amber-400'
                                     : 'text-neutral-200'
                                 }`}
@@ -309,74 +561,63 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                           </div>
                         </div>
 
-                        {/* Content Quote */}
-                        <div className="pt-3 pb-2 relative text-center sm:text-left">
-                          <Quote className="w-6 h-6 text-neutral-200/70 absolute -top-1 left-0 sm:-left-1 -z-0 pointer-events-none" />
-                          <p className="text-xs sm:text-sm text-neutral-800 leading-relaxed font-normal relative z-10 break-words px-1 sm:px-0">
-                            &ldquo;{fb.content}&rdquo;
+                        {/* Content */}
+                        <div className="relative pl-3 border-l-2 border-orange-500/40 my-3">
+                          <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed font-normal whitespace-pre-wrap">
+                            &ldquo;{fb.content || fb.text}&rdquo;
                           </p>
                         </div>
 
-                        {/* Replies Thread (if any) */}
+                        {/* Replies Thread */}
                         {replies.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5 max-h-24 overflow-y-auto">
-                            <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                          <div className="mt-3 pt-3 border-t border-neutral-100 space-y-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                               Replies ({replies.length})
-                            </div>
+                            </span>
                             {replies.map((rep) => (
-                              <div
-                                key={rep.id}
-                                className="p-2 rounded-xl bg-neutral-50 border border-neutral-200/60 text-[11px] space-y-0.5"
-                              >
-                                <div className="flex items-center justify-between font-bold text-neutral-800">
+                              <div key={rep.id} className="p-2.5 rounded-xl bg-neutral-50 border border-neutral-100 text-xs">
+                                <div className="flex items-center justify-between text-[11px] font-bold text-neutral-800 mb-0.5">
                                   <span>{rep.authorName}</span>
-                                  <span className="text-[9px] text-neutral-400 font-normal">{rep.date}</span>
+                                  <span className="text-[10px] text-neutral-400 font-normal">{rep.date}</span>
                                 </div>
-                                <p className="text-neutral-600 leading-snug">{rep.content}</p>
+                                <p className="text-neutral-600 text-[11px] leading-relaxed">{rep.content}</p>
                               </div>
                             ))}
                           </div>
                         )}
 
-                        {/* Inline Reply Input Form */}
+                        {/* Reply input box */}
                         {isReplying && (
-                          <form
-                            onSubmit={(e) => handleReplySubmit(fb.id, e)}
-                            className="mt-3 pt-2 border-t border-neutral-100 animate-in fade-in"
-                          >
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                required
-                                value={currentReplyText}
-                                onChange={(e) =>
-                                  setReplyTextMap((prev) => ({ ...prev, [fb.id]: e.target.value }))
-                                }
-                                placeholder="Write a reply..."
-                                className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900"
-                              />
-                              <button
-                                type="submit"
-                                disabled={!currentReplyText.trim()}
-                                className="px-3 py-1.5 text-xs font-bold text-white bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 rounded-xl transition-all cursor-pointer shrink-0"
-                              >
-                                <Send className="w-3 h-3" />
-                              </button>
-                            </div>
+                          <form onSubmit={(e) => handleReplySubmit(fb.id, e)} className="mt-3 flex gap-2">
+                            <input
+                              type="text"
+                              value={currentReplyText}
+                              onChange={(e) =>
+                                setReplyTextMap((prev) => ({ ...prev, [fb.id]: e.target.value }))
+                              }
+                              placeholder="Write a reply..."
+                              className="flex-1 h-9 px-3 rounded-xl bg-neutral-100 text-xs border border-neutral-200 text-neutral-900 focus:outline-none focus:border-neutral-900"
+                            />
+                            <button
+                              type="submit"
+                              className="h-9 px-3 rounded-xl bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 cursor-pointer"
+                            >
+                              Reply
+                            </button>
                           </form>
                         )}
                       </div>
 
-                      {/* Card Footer Actions: single-click toggle like, count, and time uploaded */}
-                      <div className="pt-3 mt-2 border-t border-neutral-100 flex items-center justify-between text-xs shrink-0">
+                      {/* Card Footer */}
+                      <div className="pt-3 border-t border-neutral-100 flex items-center justify-between mt-auto">
                         <div className="flex items-center gap-2">
-                          {/* 3. STRICT SINGLE-CLICK TOGGLE LIKE SYSTEM */}
+                          {/* Like button */}
                           <button
                             type="button"
                             onClick={() => handleLikeClick(fb.id)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                               isLiked
-                                ? 'bg-rose-50 text-rose-600 border border-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)] ring-1 ring-rose-400/30'
+                                ? 'bg-rose-50 text-rose-600 border border-rose-200'
                                 : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200'
                             }`}
                             title={isLiked ? 'Unlike review' : 'Like review'}
@@ -404,7 +645,6 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {/* Track time when feedback was uploaded */}
                           <span className="text-[11px] text-neutral-500 font-semibold flex items-center gap-1">
                             <span>🕒</span>
                             <span>{formatFeedbackTimeAgo(fb.createdAt || fb.date, language)}</span>
@@ -427,7 +667,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (window.confirm(`Delete review from "${fb.authorName}"?`)) {
+                                    if (window.confirm(`Delete review from "${fb.authorName || fb.user}"?`)) {
                                       onDeleteFeedback(fb.id);
                                     }
                                   }}
@@ -482,146 +722,17 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
               </span>
             </div>
 
-            {/* BUTTON 'Leave your review' UNDER FEEDBACK CARD */}
+            {/* SECONDARY "Andika igitekerezo" ACTION BUTTON UNDER CAROUSEL */}
             <div className="mt-7 flex flex-col items-center justify-center">
               <button
                 type="button"
-                onClick={() => {
-                  if (!currentUser) {
-                    onOpenAuth();
-                  } else {
-                    setIsFormOpen(!isFormOpen);
-                  }
-                }}
-                className="h-12 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm text-white bg-neutral-900 hover:bg-neutral-800 active:scale-95 transition-all shadow-md hover:shadow-orange-500/20 flex items-center gap-2.5 cursor-pointer shrink-0"
+                onClick={handleToggleInput}
+                className="h-12 px-6 py-3 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 transition-all shadow-[0_0_20px_rgba(249,115,22,0.45)] hover:shadow-[0_0_30px_rgba(249,115,22,0.7)] border border-orange-400/50 flex items-center gap-2.5 cursor-pointer shrink-0"
               >
-                {isFormOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4 text-orange-500" />}
-                <span>{isFormOpen ? t.communitySection.closeForm : t.communitySection.leaveReview}</span>
+                {showInput ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4 stroke-[3]" />}
+                <span>{showInput ? 'Funga igitekerezo' : 'Andika igitekerezo'}</span>
               </button>
             </div>
-
-            {/* Expandable Review Form Box displayed right under the button */}
-            {isFormOpen && (
-              <div className="mt-6 p-6 sm:p-8 rounded-3xl bg-neutral-50 border border-neutral-200/80 shadow-md animate-in fade-in max-w-2xl mx-auto w-full">
-                <div className="flex items-center justify-between pb-4 mb-4 border-b border-neutral-200">
-                  <h3 className="text-lg font-bold text-neutral-900">
-                    Share your experience
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setIsFormOpen(false)}
-                    className="p-1 rounded-full text-neutral-400 hover:text-neutral-700 cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {submitted ? (
-                  <div className="py-6 text-center space-y-2 animate-in fade-in">
-                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <h4 className="text-base font-bold text-neutral-900">Review published!</h4>
-                    <p className="text-xs text-neutral-600 font-medium">
-                      Your feedback is now visible in the community showcase above.
-                    </p>
-                  </div>
-                ) : currentUser ? (
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Rating stars */}
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-800 mb-1.5">
-                        Your Rating
-                      </label>
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            onClick={() => setRating(star)}
-                            onMouseEnter={() => setHoverRating(star)}
-                            onMouseLeave={() => setHoverRating(0)}
-                            className="p-1 text-neutral-300 hover:text-amber-400 transition-colors cursor-pointer"
-                          >
-                            <Star
-                              className={`w-6 h-6 ${
-                                star <= (hoverRating || rating)
-                                  ? 'fill-amber-400 text-amber-400'
-                                  : 'text-neutral-300'
-                              }`}
-                            />
-                          </button>
-                        ))}
-                        <span className="text-xs font-bold text-neutral-700 ml-2">
-                          {rating} / 5 stars
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-neutral-800 mb-1">
-                          Display Name
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="Your name"
-                          className="w-full h-11 px-3.5 text-xs rounded-xl bg-white border border-neutral-300 text-neutral-900 focus:outline-none focus:border-neutral-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-neutral-800 mb-1">
-                          Your Role or Device
-                        </label>
-                        <input
-                          type="text"
-                          value={role}
-                          onChange={(e) => setRole(e.target.value)}
-                          placeholder="e.g. Android User, Learner"
-                          className="w-full h-11 px-3.5 text-xs rounded-xl bg-white border border-neutral-300 text-neutral-900 focus:outline-none focus:border-neutral-900"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-800 mb-1">
-                        Your Feedback
-                      </label>
-                      <textarea
-                        required
-                        rows={3}
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Describe how a phone or PC tutorial helped you..."
-                        className="w-full p-3 text-xs rounded-xl bg-white border border-neutral-300 text-neutral-900 focus:outline-none focus:border-neutral-900 resize-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full h-12 py-3 px-4 font-bold text-xs sm:text-sm text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer"
-                    >
-                      Post Review
-                    </button>
-                  </form>
-                ) : (
-                  <div className="py-6 text-center space-y-3">
-                    <Lock className="w-8 h-8 text-neutral-400 mx-auto" />
-                    <p className="text-xs text-neutral-600">Please sign in to submit feedback.</p>
-                    <button
-                      type="button"
-                      onClick={onOpenAuth}
-                      className="h-11 px-5 rounded-xl bg-neutral-900 text-white text-xs font-bold cursor-pointer"
-                    >
-                      Sign In
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 

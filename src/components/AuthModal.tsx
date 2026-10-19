@@ -666,13 +666,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl bg-slate-950 rounded-3xl shadow-[0_0_60px_rgba(249,115,22,0.35)] border border-orange-500/40 overflow-hidden relative my-auto animate-in zoom-in-95 duration-200 grid grid-cols-1 md:grid-cols-12"
+        className="w-full max-w-md md:max-w-4xl bg-slate-950 rounded-3xl shadow-[0_0_60px_rgba(249,115,22,0.35)] border border-orange-500/40 overflow-hidden relative my-auto animate-in zoom-in-95 duration-200 grid grid-cols-1 md:grid-cols-12"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ========================================================================= */}
         {/* LEFT SIDE: DYNAMIC VISUAL AREA WITH FLOATING PROFILE & AMBIENT NEON GLOW  */}
+        {/* HIDDEN ON MOBILE (up to md breakpoint), VISIBLE ON MD+ SCREENS           */}
         {/* ========================================================================= */}
-        <div className="md:col-span-5 bg-gradient-to-b from-slate-950 via-slate-900 to-black p-6 sm:p-8 md:p-10 flex flex-col items-center justify-between relative overflow-hidden text-center border-b md:border-b-0 md:border-r border-slate-800/80">
+        <div className="hidden md:flex md:col-span-5 bg-gradient-to-b from-slate-950 via-slate-900 to-black p-6 sm:p-8 md:p-10 flex-col items-center justify-between relative overflow-hidden text-center border-b md:border-b-0 md:border-r border-slate-800/80">
           {/* Ambient High-End Neon-Orange Radial Glow & Cyber Grid */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(249,115,22,0.4)_0%,rgba(0,0,0,0)_75%)] pointer-events-none animate-pulse" />
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#f9731612_1px,transparent_1px),linear-gradient(to_bottom,#f9731612_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
@@ -737,10 +738,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* ========================================================================= */}
         {/* RIGHT SIDE: CLEAN COMPACT CREDENTIALS SECTION & GOOGLE BUTTON             */}
+        {/* COMPACT WIDTH WRAPPER (max-w-md lg:max-w-lg mx-auto) ON PC SCREENS         */}
         {/* ========================================================================= */}
-        <div className="md:col-span-7 bg-white text-neutral-900 p-6 sm:p-8 flex flex-col justify-between relative overflow-y-auto max-h-[85vh] md:max-h-none">
-          {/* Top Form Header with Close Button */}
-          <div className="pb-4 border-b border-neutral-100 flex items-start justify-between">
+        <div className="col-span-12 md:col-span-7 bg-white text-neutral-900 p-5 sm:p-6 md:p-8 flex flex-col justify-between relative overflow-y-auto max-h-[90vh] md:max-h-none">
+          <div className="w-full max-w-md lg:max-w-lg mx-auto flex flex-col justify-between h-full">
+            {/* Top Form Header with Close Button */}
+            <div className="pb-4 border-b border-neutral-100 flex items-start justify-between">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-neutral-950 tracking-tight leading-tight">
                 {isResetMode
@@ -1340,6 +1343,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
     </div>

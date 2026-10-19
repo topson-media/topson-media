@@ -61,6 +61,9 @@ export interface FeedbackItem {
   hidden?: boolean;
   hasFanBadge?: boolean;
   replies?: FeedbackReply[];
+  text?: string;
+  user?: string;
+  created_at?: any;
 }
 
 export interface VideoComment {
