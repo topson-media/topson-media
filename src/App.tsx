@@ -381,13 +381,23 @@ export default function App() {
     setAuthModalOpen(true);
   };
 
-  // Add new feedback (persists to Firestore database & local state)
+  // Add new feedback (persists to Firestore database & local state without duplicates)
   const handleAddFeedback = async (newFb: FeedbackItem) => {
-    try {
-      await addFeedbackToDb(newFb);
-    } catch (err) {
-      console.warn('Firestore addFeedback fallback:', err);
+    // If not already saved in Firestore (i.e. has temporary fallback id 'fb-'), persist it
+    if (!newFb.id || newFb.id.startsWith('fb-')) {
+      try {
+        const generatedId = await addFeedbackToDb(newFb);
+        newFb.id = generatedId;
+      } catch (err) {
+        console.warn('Firestore addFeedback fallback:', err);
+      }
     }
+
+    // Deduplicate in local state using unique Firestore document ID
+    setFeedbacks((prev) => {
+      if (prev.some((f) => f.id === newFb.id)) return prev;
+      return [newFb, ...prev];
+    });
 
     setVisitorActivities((prev) => [
       {
@@ -511,12 +521,13 @@ export default function App() {
           const nextLikedBy = currentlyLiked
             ? likedBy.filter((id) => id !== userId)
             : [...likedBy, userId];
-          const currentCount = typeof fb.likes === 'number' ? fb.likes : 0;
+          const currentCount = typeof fb.likesCount === 'number' ? fb.likesCount : (typeof fb.likes === 'number' ? fb.likes : 0);
           newLikes = isNowLiked ? currentCount + 1 : Math.max(0, currentCount - 1);
 
           return {
             ...fb,
             likes: newLikes,
+            likesCount: newLikes,
             likedBy: nextLikedBy,
             userLiked: isNowLiked,
           };

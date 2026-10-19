@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ArrowRight, ArrowDown } from 'lucide-react';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
@@ -18,54 +18,7 @@ export const Hero: React.FC<HeroProps> = ({
 }) => {
   const { t, language } = useLanguage();
 
-  const fullLine1 = t.hero.titleLine1 || "I'm";
-  const fullLine2 = t.hero.titleLine2 || "topson media";
 
-  // Typewriter text state for main headline
-  const [typedLine1, setTypedLine1] = useState('');
-  const [typedLine2, setTypedLine2] = useState('');
-  const [isTypingLine1, setIsTypingLine1] = useState(true);
-  const [isTypingComplete, setIsTypingComplete] = useState(false);
-
-  useEffect(() => {
-    // Reset typing animation on language or title change
-    setTypedLine1('');
-    setTypedLine2('');
-    setIsTypingLine1(true);
-    setIsTypingComplete(false);
-
-    let charIndex1 = 0;
-    let charIndex2 = 0;
-    let timer1: NodeJS.Timeout;
-    let timer2: NodeJS.Timeout;
-
-    // Type Line 1 smoothly
-    timer1 = setInterval(() => {
-      if (charIndex1 < fullLine1.length) {
-        charIndex1++;
-        setTypedLine1(fullLine1.slice(0, charIndex1));
-      } else {
-        clearInterval(timer1);
-        setIsTypingLine1(false);
-
-        // Pause briefly, then type Line 2
-        timer2 = setInterval(() => {
-          if (charIndex2 < fullLine2.length) {
-            charIndex2++;
-            setTypedLine2(fullLine2.slice(0, charIndex2));
-          } else {
-            clearInterval(timer2);
-            setIsTypingComplete(true);
-          }
-        }, 40);
-      }
-    }, 45);
-
-    return () => {
-      clearInterval(timer1);
-      clearInterval(timer2);
-    };
-  }, [fullLine1, fullLine2, language]);
 
   return (
     <section
@@ -118,27 +71,9 @@ export const Hero: React.FC<HeroProps> = ({
               <span>{t.hero.kicker}</span>
             </div>
 
-            {/* Main Heading with Slow, Smooth Typing Animation - Scaled for compact mobile/tablet */}
-            <h1 className={`font-black tracking-tight leading-[1.05] sm:leading-[0.98] ${
-              isFullScreenIntegrated
-                ? 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl min-h-[54px] sm:min-h-[72px] md:min-h-[96px] lg:min-h-[130px]'
-                : 'text-2xl sm:text-3xl md:text-5xl lg:text-7xl min-h-[58px] sm:min-h-[84px] md:min-h-[120px] lg:min-h-[160px]'
-            }`}>
-              <span className="block text-white">
-                {typedLine1}
-                {isTypingLine1 && (
-                  <span className="inline-block w-1 sm:w-1.5 h-6 sm:h-8 md:h-10 lg:h-14 bg-orange-500 ml-1 translate-y-0.5 animate-type-cursor" />
-                )}
-              </span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-orange-500 to-amber-400">
-                {typedLine2}
-                {!isTypingLine1 && !isTypingComplete && (
-                  <span className="inline-block w-1 sm:w-1.5 h-6 sm:h-8 md:h-10 lg:h-14 bg-orange-500 ml-1 translate-y-0.5 animate-type-cursor" />
-                )}
-                {isTypingComplete && (
-                  <span className="inline-block w-1 sm:w-1.5 h-6 sm:h-8 md:h-10 lg:h-14 bg-orange-500/80 ml-1 translate-y-0.5 animate-type-cursor" />
-                )}
-              </span>
+            {/* Main Headline: PREMIUM DYNAMIC GEOMETRIC TYPOGRAPHY OVERHAUL */}
+            <h1 className="font-sans font-black tracking-tight uppercase text-4xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-white to-orange-500 transition-all duration-300 leading-tight">
+              I&apos;M TOPSON MEDIA
             </h1>
 
             {/* 1. MOBILE VIEWPORT OPTIMIZATION: COMPLETELY HIDE description text on mobile using hidden md:block */}

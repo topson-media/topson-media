@@ -56,6 +56,7 @@ export interface FeedbackItem {
   content: string;
   verified: boolean;
   likes?: number;
+  likesCount?: number;
   userLiked?: boolean;
   likedBy?: string[];
   hidden?: boolean;
@@ -95,6 +96,7 @@ export interface VideoItem {
   description: string;
   tags: string[];
   likes?: number;
+  likesCount?: number;
   likedBy?: string[];
   comments?: VideoComment[];
 }

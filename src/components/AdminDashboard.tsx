@@ -275,9 +275,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const views = parseViewsNumber(v.views);
       sumViews += views;
 
-      // Realistic like calculation based on retention and index (~8-11% like ratio)
-      const baseRatio = 0.084 + ((idx * 7) % 25) / 1000;
-      const likes = Math.max(15, Math.round(views * baseRatio));
+      // Real authentic likes count from Firestore likedBy array or likesCount
+      const likes = Array.isArray(v.likedBy) ? v.likedBy.length : (v.likesCount !== undefined ? v.likesCount : (v.likes || 0));
       sumLikes += likes;
 
       if (views > highestViews) {
@@ -774,7 +773,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }}
                 formatter={(val: any, name: any) => [
                   `${Number(val).toLocaleString()} ${name === 'views' ? 'views' : 'likes'}`,
-                  name === 'views' ? 'Total Views' : 'Estimated Likes',
+                  name === 'views' ? 'Total Views' : 'Total Likes',
                 ]}
                 labelFormatter={(label, payload) => {
                   const fullTitle = payload?.[0]?.payload?.title || label;
@@ -823,7 +822,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }}
                 formatter={(val: any, name: any) => [
                   `${Number(val).toLocaleString()} ${name}`,
-                  name === 'views' ? 'Total Views' : 'Estimated Likes',
+                  name === 'views' ? 'Total Views' : 'Total Likes',
                 ]}
               />
               <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />

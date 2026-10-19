@@ -115,7 +115,7 @@ export function formatVideoDuration(seconds: number): string {
 export async function fetchYouTubeViews(url: string): Promise<{ views: string; viewsCount: number; title?: string }> {
   const videoId = extractYouTubeId(url);
   if (!videoId) {
-    return { views: '1.2K views', viewsCount: 1200 };
+    return { views: '0 views', viewsCount: 0 };
   }
 
   try {
@@ -158,25 +158,14 @@ export async function fetchYouTubeViews(url: string): Promise<{ views: string; v
       }
     }
 
-    // 3. Realistic deterministic algorithm based on YouTube video ID hash so the same link always displays
-    // authentic, stable view metrics matching real YouTube videos
-    let hash = 0;
-    for (let i = 0; i < videoId.length; i++) {
-      hash = (hash << 5) - hash + videoId.charCodeAt(i);
-      hash |= 0;
-    }
-    const positiveHash = Math.abs(hash);
-    // Views range realistically between 1,200 and 85,000 views
-    const calcViews = 1200 + (positiveHash % 84000);
-
     return {
-      views: formatViewsCount(calcViews),
-      viewsCount: calcViews,
+      views: '0 views',
+      viewsCount: 0,
       title: fetchedTitle,
     };
   } catch (err) {
     console.warn('Could not fetch YouTube view count:', err);
-    return { views: '1.5K views', viewsCount: 1500 };
+    return { views: '0 views', viewsCount: 0 };
   }
 }
 
@@ -293,11 +282,11 @@ export async function fetchOfficialYouTubeStats(videoIdOrUrl: string): Promise<O
   const fallbackDetails = await fetchYouTubeVideoDetails(videoId);
   return {
     videoId,
-    viewCount: fallbackDetails.viewsCount,
-    likeCount: Math.max(15, Math.round(fallbackDetails.viewsCount * 0.045)),
-    commentCount: Math.max(4, Math.round(fallbackDetails.viewsCount * 0.008)),
-    publishedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    publishedAgo: '4 days ago',
+    viewCount: fallbackDetails.viewsCount || 0,
+    likeCount: 0,
+    commentCount: 0,
+    publishedAt: new Date().toISOString(),
+    publishedAgo: 'Recent',
     title: fallbackDetails.title,
   };
 }

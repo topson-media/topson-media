@@ -18,6 +18,8 @@ import {
   addDoc,
   serverTimestamp,
   increment,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 import {
   User,
@@ -211,7 +213,7 @@ export async function deleteVideoFromDb(videoId: string): Promise<void> {
   }
 }
 
-export async function toggleLikeVideoInDb(videoId: string, userId: string): Promise<void> {
+export async function toggleLikeVideoInDb(videoId: string, userId: string): Promise<boolean> {
   try {
     const docRef = doc(db, 'videos', videoId);
     const snap = await getDoc(docRef);
@@ -219,15 +221,26 @@ export async function toggleLikeVideoInDb(videoId: string, userId: string): Prom
       const data = snap.data();
       const likedBy: string[] = data.likedBy || [];
       const isLiked = likedBy.includes(userId);
-      const nextLikedBy = isLiked ? likedBy.filter((u) => u !== userId) : [...likedBy, userId];
-      const nextLikes = Math.max(0, (data.likes || 0) + (isLiked ? -1 : 1));
-      await updateDoc(docRef, {
-        likes: nextLikes,
-        likedBy: nextLikedBy,
-      });
+      if (!isLiked) {
+        await updateDoc(docRef, {
+          likedBy: arrayUnion(userId),
+          likes: increment(1),
+          likesCount: increment(1),
+        });
+        return true;
+      } else {
+        await updateDoc(docRef, {
+          likedBy: arrayRemove(userId),
+          likes: increment(-1),
+          likesCount: increment(-1),
+        });
+        return false;
+      }
     }
+    return false;
   } catch (err) {
     console.warn('toggleLikeVideoInDb fallback:', err);
+    return false;
   }
 }
 
@@ -296,6 +309,12 @@ export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => vo
               ? (typeof data.createdAt?.toMillis === 'function' ? data.createdAt.toMillis() : data.createdAt)
               : (data.created_at ? (data.created_at instanceof Date ? data.created_at.getTime() : (typeof data.created_at?.toMillis === 'function' ? data.created_at.toMillis() : Date.now())) : Date.now());
 
+            const likedByList: string[] = Array.isArray(data.likedBy) ? data.likedBy : [];
+            const realLikesCount =
+              data.likesCount !== undefined
+                ? data.likesCount
+                : (likedByList.length > 0 ? likedByList.length : (data.likes || 0));
+
             return {
               id: docSnap.id,
               authorName: data.authorName || data.user || 'Member',
@@ -307,8 +326,9 @@ export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => vo
               createdAt: createdTime,
               content: data.content || data.text || '',
               verified: data.verified !== undefined ? !!data.verified : true,
-              likes: data.likes || 0,
-              likedBy: data.likedBy || [],
+              likes: realLikesCount,
+              likesCount: realLikesCount,
+              likedBy: likedByList,
               hidden: !!data.hidden,
               hasFanBadge: !!data.hasFanBadge,
               replies: data.replies || [],
@@ -391,23 +411,37 @@ export async function deleteFeedbackFromDb(feedbackId: string): Promise<void> {
   }
 }
 
-export async function toggleLikeFeedbackInDb(feedbackId: string, userId: string): Promise<void> {
+export async function toggleLikeFeedbackInDb(feedbackId: string, userId: string): Promise<boolean> {
   try {
     const docRef = doc(db, 'feedbacks', feedbackId);
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const data = snap.data();
-      const likedBy: string[] = data.likedBy || [];
-      const isLiked = likedBy.includes(userId);
-      const nextLikedBy = isLiked ? likedBy.filter((u) => u !== userId) : [...likedBy, userId];
-      const nextLikes = Math.max(0, (data.likes || 0) + (isLiked ? -1 : 1));
-      await updateDoc(docRef, {
-        likes: nextLikes,
-        likedBy: nextLikedBy,
-      });
+      const likedBy: string[] = Array.isArray(data.likedBy) ? data.likedBy : [];
+      const isAlreadyLiked = likedBy.includes(userId);
+
+      if (!isAlreadyLiked) {
+        // User is not in likedBy: push user ID using arrayUnion and increment likes/likesCount by +1
+        await updateDoc(docRef, {
+          likedBy: arrayUnion(userId),
+          likesCount: increment(1),
+          likes: increment(1),
+        });
+        return true;
+      } else {
+        // Toggle decrement using arrayRemove and decrement by -1
+        await updateDoc(docRef, {
+          likedBy: arrayRemove(userId),
+          likesCount: increment(-1),
+          likes: increment(-1),
+        });
+        return false;
+      }
     }
+    return false;
   } catch (err) {
-    console.warn('toggleLikeFeedbackInDb fallback:', err);
+    console.warn('toggleLikeFeedbackInDb atomic update fallback:', err);
+    return false;
   }
 }
 

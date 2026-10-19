@@ -662,18 +662,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md md:max-w-4xl bg-slate-950 rounded-3xl shadow-[0_0_60px_rgba(249,115,22,0.35)] border border-orange-500/40 overflow-hidden relative my-auto animate-in zoom-in-95 duration-200 grid grid-cols-1 md:grid-cols-12"
+        className="w-full max-w-md lg:max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto bg-slate-950 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(249,115,22,0.35)] border border-orange-500/40 relative my-auto animate-in zoom-in-95 duration-200 grid grid-cols-1 lg:grid-cols-12 custom-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ========================================================================= */}
         {/* LEFT SIDE: DYNAMIC VISUAL AREA WITH FLOATING PROFILE & AMBIENT NEON GLOW  */}
-        {/* HIDDEN ON MOBILE (up to md breakpoint), VISIBLE ON MD+ SCREENS           */}
+        {/* HIDDEN ON MOBILE & TABLET (up to lg breakpoint), VISIBLE ON LG+ SCREENS  */}
         {/* ========================================================================= */}
-        <div className="hidden md:flex md:col-span-5 bg-gradient-to-b from-slate-950 via-slate-900 to-black p-6 sm:p-8 md:p-10 flex-col items-center justify-between relative overflow-hidden text-center border-b md:border-b-0 md:border-r border-slate-800/80">
+        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-b from-slate-950 via-slate-900 to-black p-6 lg:p-8 flex-col items-center justify-between relative overflow-hidden text-center border-b lg:border-b-0 lg:border-r border-slate-800/80">
           {/* Ambient High-End Neon-Orange Radial Glow & Cyber Grid */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(249,115,22,0.4)_0%,rgba(0,0,0,0)_75%)] pointer-events-none animate-pulse" />
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#f9731612_1px,transparent_1px),linear-gradient(to_bottom,#f9731612_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
@@ -689,12 +689,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {/* Floating Profile Picture: Smooth infinite gliding animation with neon radial ring */}
-          <div className="relative z-10 my-auto py-6 sm:py-8 flex flex-col items-center">
+          <div className="relative z-10 my-auto py-4 flex flex-col items-center">
             {/* Ambient Radial Backlight Glow */}
             <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 opacity-50 blur-2xl animate-pulse pointer-events-none" />
 
             {/* Floating Image with Smooth CSS Translation Loop */}
-            <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-tr from-orange-500 via-amber-400 to-orange-600 shadow-[0_0_45px_rgba(249,115,22,0.7)] animate-bounce [animation-duration:3.6s] ease-in-out">
+            <div className="relative w-32 h-32 lg:w-40 lg:h-40 rounded-full p-1.5 bg-gradient-to-tr from-orange-500 via-amber-400 to-orange-600 shadow-[0_0_40px_rgba(249,115,22,0.7)] animate-bounce [animation-duration:3.6s] ease-in-out">
               <div className="w-full h-full rounded-full overflow-hidden bg-slate-950 p-1 border-2 border-white/30">
                 <img
                   src={TOPSON_PROFILE_IMAGE}
@@ -709,15 +709,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             {/* Text description under floating image */}
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-5">
+            <h3 className="text-xl font-black text-white tracking-tight mt-4">
               topson media
             </h3>
-            <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-[260px] mt-2 leading-relaxed">
+            <p className="text-xs text-slate-300 font-medium max-w-[240px] mt-1.5 leading-relaxed">
               Empowering you with Phone & PC tutorials, daily tech hacks, and 24/7 direct support.
             </p>
 
             {/* Feature Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
               <span className="px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] font-bold shadow-[0_0_10px_rgba(249,115,22,0.25)]">
                 YouTube Partner
               </span>
@@ -731,71 +731,70 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {/* Bottom quote / footer in left side */}
-          <div className="relative z-10 text-[11px] text-slate-400 font-medium">
+          <div className="relative z-10 text-[10.5px] text-slate-400 font-medium">
             &ldquo;Making tech feel easy for curious minds everywhere&rdquo;
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* RIGHT SIDE: CLEAN COMPACT CREDENTIALS SECTION & GOOGLE BUTTON             */}
-        {/* COMPACT WIDTH WRAPPER (max-w-md lg:max-w-lg mx-auto) ON PC SCREENS         */}
+        {/* RIGHT SIDE: ZERO-SCROLL TIGHTENED CREDENTIALS SECTION & GOOGLE BUTTON     */}
         {/* ========================================================================= */}
-        <div className="col-span-12 md:col-span-7 bg-white text-neutral-900 p-5 sm:p-6 md:p-8 flex flex-col justify-between relative overflow-y-auto max-h-[90vh] md:max-h-none">
+        <div className="col-span-12 lg:col-span-7 bg-white text-neutral-900 p-3 sm:p-4 md:p-5 flex flex-col justify-between relative overflow-y-auto max-h-[95vh] md:max-h-[90vh] custom-scrollbar">
           <div className="w-full max-w-md lg:max-w-lg mx-auto flex flex-col justify-between h-full">
             {/* Top Form Header with Close Button */}
-            <div className="pb-4 border-b border-neutral-100 flex items-start justify-between">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-black text-neutral-950 tracking-tight leading-tight">
-                {isResetMode
-                  ? language === 'kn'
-                    ? 'Guhindura Ijambobanga'
-                    : 'Reset Password'
-                  : isSignUp
-                  ? language === 'kn'
-                    ? 'Join Topson Media'
-                    : 'Join Topson Media'
-                  : language === 'kn'
-                  ? 'Injira muli Topson Media'
-                  : 'Sign In to Topson Media'}
-              </h2>
-              <p className="text-xs text-neutral-500 font-medium mt-1">
-                {isResetMode
-                  ? language === 'kn'
-                    ? 'Twandikire email yawe tukoherereze link yo guhindura ijambobanga'
-                    : 'Enter your email to receive a password reset link'
-                  : isSignUp
-                  ? language === 'kn'
-                    ? 'Kora konti yawe nonaha ngo ubone tutorials na live chat yihuse'
-                    : 'Create your account to access tutorials and instant live chat'
-                  : language === 'kn'
-                  ? 'Injira muri konti yawe ya Topson Media'
-                  : 'Welcome back! Please enter your details'}
-              </p>
+            <div className="pb-2 sm:pb-2.5 border-b border-neutral-100 flex items-start justify-between">
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-neutral-950 tracking-tight leading-tight">
+                  {isResetMode
+                    ? language === 'kn'
+                      ? 'Guhindura Ijambobanga'
+                      : 'Reset Password'
+                    : isSignUp
+                    ? language === 'kn'
+                      ? 'Join Topson Media'
+                      : 'Join Topson Media'
+                    : language === 'kn'
+                    ? 'Injira muli Topson Media'
+                    : 'Sign In to Topson Media'}
+                </h2>
+                <p className="text-[10px] sm:text-[11px] text-neutral-500 font-medium mt-0.5">
+                  {isResetMode
+                    ? language === 'kn'
+                      ? 'Twandikire email tukoherereze link yo guhindura ijambobanga'
+                      : 'Enter email to receive password reset link'
+                    : isSignUp
+                    ? language === 'kn'
+                      ? 'Kora konti yawe ngo ubone tutorials na live chat yihuse'
+                      : 'Create your account to access tutorials and instant live chat'
+                    : language === 'kn'
+                    ? 'Injira muri konti yawe ya Topson Media'
+                    : 'Welcome back! Please enter your details'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+                aria-label="Close authentication modal"
+              >
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-3"
-              aria-label="Close authentication modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Form Content */}
-          <div className="py-4 space-y-4">
+            {/* Form Content */}
+            <div className="py-1.5 sm:py-2 space-y-1.5 sm:space-y-2">
           {/* Neon-Orange Success Alert (Sign-Up Email Verification / Reset Password Link) */}
           {successMessage && (
-            <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-600/15 border-2 border-orange-500 text-neutral-950 shadow-[0_0_25px_rgba(249,115,22,0.35)] flex items-start gap-2.5 sm:gap-3 animate-in fade-in slide-in-from-top-2">
-              <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                <CheckCircle2 className="w-4 h-4 text-white" />
+            <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-600/15 border-2 border-orange-500 text-neutral-950 shadow-[0_0_20px_rgba(249,115,22,0.3)] flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+              <div className="w-5 h-5 rounded-md bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-bold text-neutral-950 leading-relaxed">
+                <p className="text-xs font-bold text-neutral-950 leading-relaxed">
                   {successMessage}
                 </p>
-                <div className="mt-2 text-[10px] sm:text-[11px] font-semibold text-orange-800 flex items-center gap-1">
+                <div className="mt-1 text-[10px] font-semibold text-orange-800 flex items-center gap-1">
                   <span>📩</span>
                   <span>
                     {language === 'kn'
@@ -809,12 +808,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Neon-Orange Error Alert (Unverified Account or Auth Failures) */}
           {error && (
-            <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-600/15 border-2 border-orange-500 text-neutral-950 shadow-[0_0_25px_rgba(249,115,22,0.35)] flex items-start gap-2.5 sm:gap-3 animate-in fade-in slide-in-from-top-2">
-              <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                <AlertCircle className="w-4 h-4 text-white" />
+            <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-600/15 border-2 border-orange-500 text-neutral-950 shadow-[0_0_20px_rgba(249,115,22,0.3)] flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+              <div className="w-5 h-5 rounded-md bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                <AlertCircle className="w-3.5 h-3.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-bold text-neutral-950 leading-relaxed">
+                <p className="text-xs font-bold text-neutral-950 leading-relaxed">
                   {error}
                 </p>
 
@@ -986,7 +985,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="submit"
                   disabled={isResetSubmitting}
-                  className="w-full h-11 sm:h-12 px-4 rounded-xl sm:rounded-2xl bg-orange-600 hover:bg-orange-500 active:scale-[0.99] text-white font-black text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full h-10 px-4 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-[0.99] text-white font-black text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isResetSubmitting ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1030,14 +1029,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   disabled={isGoogleSubmitting || isSubmitting}
                   onClick={handleGoogleSignIn}
-                  className="w-full h-11 sm:h-12 px-4 rounded-xl sm:rounded-2xl bg-white hover:bg-neutral-50 active:scale-[0.99] border-2 border-neutral-200 hover:border-neutral-300 transition-all flex items-center justify-center gap-3 cursor-pointer shadow-xs font-bold text-xs sm:text-sm text-neutral-800 disabled:opacity-50"
+                  className="w-full h-10 px-3 rounded-xl bg-white hover:bg-neutral-50 active:scale-[0.99] border-2 border-neutral-200 hover:border-neutral-300 transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xs font-bold text-xs sm:text-sm text-neutral-800 disabled:opacity-50"
                 >
                   {isGoogleSubmitting ? (
                     <span className="w-4 h-4 border-2 border-neutral-300 border-t-orange-500 rounded-full animate-spin" />
                   ) : (
                     <>
                       {/* Official Google Vector Logo */}
-                      <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" viewBox="0 0 24 24">
                         <path
                           fill="#4285F4"
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -1063,7 +1062,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </>
                   )}
                 </button>
-                <p className="text-[10px] text-neutral-400 text-center mt-1.5 font-medium">
+                <p className="text-[9.5px] sm:text-[10px] text-neutral-400 text-center mt-1 font-medium">
                   {language === 'kn'
                     ? '⚡ Banza winjire nta gusaba kwemeza email'
                     : '⚡ Instant access · No manual verification email needed'}
@@ -1071,9 +1070,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {/* Sharp Divider */}
-              <div className="flex items-center my-3">
+              <div className="flex items-center my-1.5 sm:my-2">
                 <div className="flex-1 border-t border-neutral-200" />
-                <span className="px-3 text-[10px] sm:text-xs uppercase tracking-wider text-neutral-400 font-bold">
+                <span className="px-2.5 text-[9.5px] sm:text-[10px] uppercase tracking-wider text-neutral-400 font-bold">
                   {language === 'kn' ? 'CYANGWA' : 'OR'}
                 </span>
                 <div className="flex-1 border-t border-neutral-200" />
@@ -1082,20 +1081,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* --------------------------------------------------------------- */}
               {/* PATHWAY B: TRADITIONAL EMAIL / PASSWORD INPUTS                  */}
               {/* --------------------------------------------------------------- */}
-              <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+              <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-2.5" noValidate>
                 {/* Profile Image Picker (Asked when creating account) */}
                 {isSignUp && (
-                  <div className="p-3 sm:p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2">
+                  <div className="p-2 sm:p-2.5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="block text-[11px] sm:text-xs font-bold text-neutral-800">
-                        {language === 'kn' ? 'Ifoto ya Profile (Profile Image)' : 'Profile Image'} <span className="text-orange-600 font-semibold text-[10px]">({language === 'kn' ? 'Hitamo ifoto' : 'Choose photo'})</span>
+                      <label className="block text-[10.5px] sm:text-xs font-bold text-neutral-800">
+                        {language === 'kn' ? 'Ifoto ya Profile' : 'Profile Image'} <span className="text-orange-600 font-semibold text-[9.5px]">({language === 'kn' ? 'Hitamo' : 'Choose'})</span>
                       </label>
-                      <span className="text-[10px] text-neutral-400 font-medium">PNG, JPG, WebP</span>
+                      <span className="text-[9.5px] text-neutral-400 font-medium">PNG, JPG, WebP</span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       {/* Active Avatar Circular Preview */}
-                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-orange-500 shadow-sm shrink-0 bg-white">
+                      <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-orange-500 shadow-xs shrink-0 bg-white">
                         <img
                           src={avatarUrl || DEFAULT_MEMBER_AVATAR}
                           alt="Profile Preview"
@@ -1107,7 +1106,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         />
                       </div>
 
-                      <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex-1 min-w-0 space-y-1">
                         <input
                           ref={avatarInputRef}
                           type="file"
@@ -1118,17 +1117,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         <button
                           type="button"
                           onClick={() => avatarInputRef.current?.click()}
-                          className="w-full py-1.5 px-3 rounded-xl border border-dashed border-neutral-300 hover:border-orange-500 bg-white text-[11px] sm:text-xs font-bold text-neutral-700 hover:text-orange-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          className="w-full h-7 py-0.5 px-2.5 rounded-lg border border-dashed border-neutral-300 hover:border-orange-500 bg-white text-[10px] sm:text-[11px] font-bold text-neutral-700 hover:text-orange-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                         >
-                          <Camera className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                          <Camera className="w-3 h-3 text-orange-500 shrink-0" />
                           <span className="truncate">
-                            {avatarFileName ? avatarFileName : (language === 'kn' ? 'Shyiraho Ifoto yawe (Upload)' : 'Upload from Device')}
+                            {avatarFileName ? avatarFileName : (language === 'kn' ? 'Shyiraho Ifoto (Upload)' : 'Upload from Device')}
                           </span>
                         </button>
 
-                        {/* Quick Avatar Presets (Member-only avatars, no admin picture) */}
-                        <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto">
-                          <span className="text-[10px] text-neutral-400 font-semibold shrink-0">
+                        {/* Quick Avatar Presets (Member-only avatars, very compact) */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto">
+                          <span className="text-[9.5px] text-neutral-400 font-semibold shrink-0">
                             {language === 'kn' ? 'Cyangwa:' : 'Presets:'}
                           </span>
                           {[
@@ -1145,7 +1144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                                 setAvatarUrl(preset.url);
                                 setAvatarFileName('');
                               }}
-                              className={`w-6 h-6 rounded-full overflow-hidden border transition-transform cursor-pointer shrink-0 ${
+                              className={`w-5 h-5 rounded-full overflow-hidden border transition-transform cursor-pointer shrink-0 ${
                                 avatarUrl === preset.url
                                   ? 'border-orange-500 ring-2 ring-orange-500/40 scale-110'
                                   : 'border-neutral-200 hover:border-neutral-400 opacity-80 hover:opacity-100'
@@ -1164,12 +1163,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {/* Username Input (Only on Sign-Up) */}
                 {isSignUp && (
                   <div>
-                    <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1">
+                    <label className="block text-[10.5px] sm:text-xs font-bold text-neutral-800 mb-0.5">
                       {language === 'kn' ? 'Amazina yawe' : 'Your Username'}
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
-                        <UserIcon className="w-4 h-4" />
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-neutral-400">
+                        <UserIcon className="w-3.5 h-3.5" />
                       </div>
                       <input
                         type="text"
@@ -1177,7 +1176,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="e.g. Eric Mugisha"
-                        className="w-full h-10 sm:h-11 pl-9 pr-3 text-xs sm:text-sm rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs"
+                        className="w-full h-10 pl-8 pr-3 text-xs sm:text-sm rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs"
                       />
                     </div>
                   </div>
@@ -1185,7 +1184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 {/* Email Field */}
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1">
+                  <label className="block text-[10.5px] sm:text-xs font-bold text-neutral-800 mb-0.5">
                     {isSignUp
                       ? language === 'kn'
                         ? 'Aderesi ya Email'
@@ -1195,8 +1194,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       : 'Email Address or Username'}
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
-                      <Mail className="w-4 h-4" />
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-neutral-400">
+                      <Mail className="w-3.5 h-3.5" />
                     </div>
                     <input
                       id="auth-email-input"
@@ -1211,19 +1210,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       placeholder={
                         isSignUp ? 'you@gmail.com' : 'you@gmail.com or username'
                       }
-                      className="w-full h-10 sm:h-11 pl-9 pr-3 text-xs sm:text-sm rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs"
+                      className="w-full h-10 pl-8 pr-3 text-xs sm:text-sm rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs"
                     />
                   </div>
                 </div>
 
                 {/* Password Field */}
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1">
+                  <label className="block text-[10.5px] sm:text-xs font-bold text-neutral-800 mb-0.5">
                     {language === 'kn' ? 'Ijambobanga (Password)' : 'Password'}
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
-                      <Lock className="w-4 h-4" />
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-neutral-400">
+                      <Lock className="w-3.5 h-3.5" />
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
@@ -1231,26 +1230,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-10 sm:h-11 pl-9 pr-10 text-xs sm:text-sm rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs"
+                      className="w-full h-10 pl-8 pr-9 text-xs sm:text-sm rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-400 hover:text-neutral-700 cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-neutral-400 hover:text-neutral-700 cursor-pointer"
                       aria-label="Toggle password visibility"
                     >
                       {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
+                        <EyeOff className="w-3.5 h-3.5" />
                       ) : (
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-3.5 h-3.5" />
                       )}
                     </button>
                   </div>
 
                   {/* 4. RESET PASSWORD UNDER PASSWORD FIELD */}
                   {!isSignUp && (
-                    <div className="flex items-center justify-between pt-1.5 px-0.5">
-                      <span className="text-[10px] text-neutral-400">
+                    <div className="flex items-center justify-between pt-1 px-0.5">
+                      <span className="text-[9.5px] text-neutral-400">
                         {language === 'kn' ? 'Wibagiwe ijambobanga?' : 'Trouble logging in?'}
                       </span>
                       <button
@@ -1263,17 +1262,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             setEmail(identifier.trim());
                           }
                         }}
-                        className="text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer transition-colors"
+                        className="text-[10.5px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer transition-colors"
                       >
                         {language === 'kn'
-                          ? 'Hindura ijambobanga (Reset Password)'
+                          ? 'Hindura ijambobanga (Reset)'
                           : 'Forgot / Reset password?'}
                       </button>
                     </div>
                   )}
 
                   {isSignUp && (
-                    <p className="text-[10px] text-neutral-400 mt-1 font-medium">
+                    <p className="text-[9.5px] text-neutral-400 mt-0.5 font-medium">
                       {language === 'kn'
                         ? 'Byibuze inyuguti 6 · Link yo kwemeza izoherezwa kuri iyi email'
                         : 'At least 6 characters · Verification link sent to this email'}
@@ -1282,11 +1281,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 {/* Action Submit Button */}
-                <div className="pt-1">
+                <div className="pt-0.5">
                   <button
                     type="submit"
                     disabled={isSubmitting || isGoogleSubmitting}
-                    className="w-full h-11 sm:h-12 px-4 rounded-xl sm:rounded-2xl bg-neutral-950 hover:bg-neutral-900 active:scale-[0.99] text-white font-black text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full h-10 px-4 rounded-xl bg-neutral-950 hover:bg-neutral-900 active:scale-[0.99] text-white font-black text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1306,7 +1305,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </form>
 
               {/* Mode Switcher Footer */}
-              <div className="pt-2 border-t border-neutral-100 text-center">
+              <div className="pt-1.5 border-t border-neutral-100 text-center">
                 <button
                   type="button"
                   onClick={() => {
@@ -1314,7 +1313,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     setError(null);
                     setSuccessMessage(null);
                   }}
-                  className="text-xs font-semibold text-neutral-600 hover:text-orange-600 transition-colors cursor-pointer"
+                  className="text-[11px] sm:text-xs font-semibold text-neutral-600 hover:text-orange-600 transition-colors cursor-pointer"
                 >
                   {isSignUp ? (
                     <>
