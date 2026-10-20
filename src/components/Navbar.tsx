@@ -4,6 +4,7 @@ import { Search, X, Menu, Sun, Moon, LogOut, ShieldCheck, Home, Film, Users, Mes
 import { User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
+import { TopFanBadge } from './TopFanBadge';
 
 export type NavSection = 'home' | 'tutorials' | 'community' | 'chat' | 'contact' | 'admin';
 
@@ -305,16 +306,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                   />
                 </div>
-                <div className="hidden xl:flex flex-col text-left max-w-[120px]">
-                  <span className={`text-xs font-bold truncate flex items-center gap-1 ${integratedDark ? 'text-white' : 'text-neutral-900'}`}>
-                    <span>{currentUser.username}</span>
-                    {currentUser.fanBadge && <span title={t.nav.topFan}>⭐</span>}
+                <div className="hidden xl:flex flex-col text-left max-w-[130px]">
+                  <span className={`text-xs font-bold truncate flex items-center gap-1.5 ${integratedDark ? 'text-white' : 'text-neutral-900'}`}>
+                    <span className="truncate">{currentUser.username}</span>
+                    {(currentUser.isTopFan || currentUser.fanBadge) && (
+                      <TopFanBadge size="xs" />
+                    )}
                   </span>
                   {currentUser.role === 'admin' ? (
                     <span className="text-[9px] uppercase tracking-wider font-extrabold text-orange-400 -mt-0.5">
                       {t.nav.admin}
                     </span>
-                  ) : currentUser.fanBadge ? (
+                  ) : (currentUser.isTopFan || currentUser.fanBadge) ? (
                     <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-400 -mt-0.5">
                       {t.nav.topFan}
                     </span>
@@ -502,13 +505,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Sign in / Sign out button at the bottom of drawer */}
             <div className="p-5 border-t border-neutral-200/50 flex flex-col gap-3">
               {currentUser && (
-                <div className="text-xs font-semibold text-neutral-600 truncate flex items-center gap-1.5 flex-wrap">
+                <div className="text-xs font-semibold text-neutral-600 truncate flex items-center gap-2 flex-wrap">
                   <span>Signed in as</span>
                   <span className="font-bold text-neutral-900">{currentUser.username}</span>
-                  {currentUser.fanBadge && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[8px] font-black uppercase shadow-xs tracking-wide">
-                      ⭐ Top Fan
-                    </span>
+                  {(currentUser.isTopFan || currentUser.fanBadge) && (
+                    <TopFanBadge size="xs" />
                   )}
                 </div>
               )}

@@ -32,6 +32,20 @@ function getTransporter(): Transporter {
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
 
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  if (sendgridApiKey) {
+    transporter = nodemailer.createTransport({
+      host: 'smtp.sendgrid.net',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'apikey',
+        pass: sendgridApiKey,
+      },
+    });
+    return transporter;
+  }
+
   if (smtpHost && smtpUser && smtpPass) {
     transporter = nodemailer.createTransport({
       host: smtpHost,

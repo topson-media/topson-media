@@ -7,6 +7,7 @@ import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { AdminChatDashboard } from './AdminChatDashboard';
 import { useLanguage } from '../context/LanguageContext';
+import { TopFanBadge } from './TopFanBadge';
 
 interface LiveChatProps {
   currentUser: User | null;
@@ -232,6 +233,8 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       avatarUrl: isAdmin ? TOPSON_PROFILE_IMAGE : currentUser.avatarUrl,
       isRead: false,
+      isTopFan: !isAdmin && !!(currentUser.isTopFan || currentUser.fanBadge),
+      hasFanBadge: !isAdmin && !!(currentUser.isTopFan || currentUser.fanBadge),
     };
 
     // Clear input text area cleanly
@@ -531,11 +534,14 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                     <div className={`flex flex-col w-fit max-w-full md:max-w-md min-w-0 relative group ${
                       isTopson ? 'items-start' : 'items-end'
                     }`}>
-                      {/* Top: Sender Name and Host Tag */}
-                      <div className={`flex items-center gap-1.5 mb-0.5 px-0.5 ${isTopson ? 'justify-start' : 'justify-end'}`}>
+                      {/* Top: Sender Name, Host Tag, and Top Fan Badge */}
+                      <div className={`flex items-center gap-1.5 mb-0.5 px-0.5 flex-wrap ${isTopson ? 'justify-start' : 'justify-end'}`}>
                         <span className="text-[10px] font-bold text-neutral-900">
                           {msg.senderName}
                         </span>
+                        {!isTopson && (msg.isTopFan || msg.hasFanBadge || (currentUser?.username === msg.senderName && (currentUser?.isTopFan || currentUser?.fanBadge))) && (
+                          <TopFanBadge size="xs" />
+                        )}
                         {isTopson && (
                           <span className="text-[8px] font-bold text-orange-700 bg-orange-100 px-1 py-0.2 rounded">
                             Host

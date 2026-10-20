@@ -8,6 +8,8 @@ export interface User {
   joinedDate: string;
   visitsCount?: number;
   fanBadge?: boolean;
+  isTopFan?: boolean;
+  hasFanBadge?: boolean;
   fanBadgeOffered?: boolean;
   suspended?: boolean;
   isEmailVerified?: boolean;
@@ -31,6 +33,8 @@ export interface ChatMessage {
   isRead?: boolean;
   deletedForEveryone?: boolean;
   deletedForUser?: boolean;
+  isTopFan?: boolean;
+  hasFanBadge?: boolean;
   createdAt?: any;
   created_at?: any;
 }
@@ -61,6 +65,7 @@ export interface FeedbackItem {
   likedBy?: string[];
   hidden?: boolean;
   hasFanBadge?: boolean;
+  isTopFan?: boolean;
   replies?: FeedbackReply[];
   text?: string;
   user?: string;
@@ -76,6 +81,7 @@ export interface VideoComment {
   timestamp: string;
   createdAt?: number | string;
   hasFanBadge?: boolean;
+  isTopFan?: boolean;
 }
 
 export interface VideoItem {

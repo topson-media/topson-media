@@ -25,6 +25,7 @@ import { db } from '../services/firebase';
 import { FeedbackItem, FeedbackReply, User } from '../types';
 import { formatFeedbackTimeAgo } from '../utils/timeAgo';
 import { useLanguage } from '../context/LanguageContext';
+import { TopFanBadge } from './TopFanBadge';
 
 interface CommunitySectionProps {
   feedbacks: FeedbackItem[];
@@ -82,8 +83,9 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
   const currentReplyText = replyTextMap[fb.id] || '';
   const hasFanBadge =
     fb.hasFanBadge ||
+    fb.isTopFan ||
     (currentUser?.username?.toLowerCase() === (fb.authorName || fb.user || '').toLowerCase() &&
-      currentUser?.fanBadge);
+      (currentUser?.isTopFan || currentUser?.fanBadge));
 
   const handleLike = () => {
     if (!currentUser) {
@@ -141,10 +143,7 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
                   {fb.authorName || fb.user}
                 </h4>
                 {hasFanBadge && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-600 border border-amber-500/40 font-bold flex items-center gap-0.5">
-                    <Award className="w-2.5 h-2.5" />
-                    <span>Top Fan</span>
-                  </span>
+                  <TopFanBadge size="xs" />
                 )}
               </div>
               <p className="text-[11px] text-neutral-500 font-medium">
@@ -420,7 +419,8 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
         likesCount: 0,
         likedBy: [],
         hidden: false,
-        hasFanBadge: !!currentUser.fanBadge,
+        hasFanBadge: !!(currentUser.isTopFan || currentUser.fanBadge),
+        isTopFan: !!(currentUser.isTopFan || currentUser.fanBadge),
         replies: [],
       };
 
@@ -464,7 +464,8 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
         likesCount: 0,
         likedBy: [],
         hidden: false,
-        hasFanBadge: !!currentUser.fanBadge,
+        hasFanBadge: !!(currentUser.isTopFan || currentUser.fanBadge),
+        isTopFan: !!(currentUser.isTopFan || currentUser.fanBadge),
         replies: [],
       };
       onSubmitFeedback(fallbackItem);
@@ -610,11 +611,8 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                 <div>
                   <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
                     <span>{currentUser?.username || 'Topson Learner'}</span>
-                    {currentUser?.fanBadge && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 font-bold flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.3)]">
-                        <Award className="w-3 h-3 text-amber-400" />
-                        <span>Top Fan</span>
-                      </span>
+                    {(currentUser?.isTopFan || currentUser?.fanBadge) && (
+                      <TopFanBadge size="xs" />
                     )}
                   </h3>
                   <p className="text-[11px] text-orange-400 font-bold">

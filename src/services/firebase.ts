@@ -794,8 +794,11 @@ export async function fetchUsersListFromDb(): Promise<User[]> {
           role: data.role || 'member',
           joinedDate: data.joinedDate || 'Recently',
           visitsCount: data.visitsCount || 1,
-          fanBadge: !!data.fanBadge,
+          fanBadge: !!data.fanBadge || !!data.isTopFan,
+          isTopFan: !!data.isTopFan || !!data.fanBadge,
+          hasFanBadge: !!data.hasFanBadge || !!data.fanBadge || !!data.isTopFan,
           fanBadgeOffered: !!data.fanBadgeOffered,
+          suspended: !!data.suspended,
         };
       });
     }
@@ -822,11 +825,13 @@ export async function deleteUserFromDb(userId: string): Promise<void> {
   }
 }
 
-export async function awardFanBadgeInDb(userId: string): Promise<void> {
+export async function awardFanBadgeInDb(userId: string, isTopFan: boolean = true): Promise<void> {
   try {
     await updateDoc(doc(db, 'users', userId), {
-      fanBadgeOffered: true,
-      fanBadge: false,
+      isTopFan: isTopFan,
+      fanBadge: isTopFan,
+      hasFanBadge: isTopFan,
+      fanBadgeOffered: false,
     });
   } catch (err) {
     console.warn('awardFanBadgeInDb fallback:', err);
@@ -836,12 +841,105 @@ export async function awardFanBadgeInDb(userId: string): Promise<void> {
 export async function acceptFanBadgeInDb(userId: string): Promise<void> {
   try {
     await updateDoc(doc(db, 'users', userId), {
+      isTopFan: true,
       fanBadge: true,
+      hasFanBadge: true,
       fanBadgeOffered: false,
     });
   } catch (err) {
     console.warn('acceptFanBadgeInDb fallback:', err);
   }
+}
+
+/**
+ * Fetch dynamic full history of submitted feedbacks and chat messages for a user
+ */
+export async function fetchUserActivityHistoryInDb(
+  userId: string,
+  username: string,
+  email?: string
+): Promise<{ feedbacks: FeedbackItem[]; chatMessages: ChatMessage[] }> {
+  const result: { feedbacks: FeedbackItem[]; chatMessages: ChatMessage[] } = {
+    feedbacks: [],
+    chatMessages: [],
+  };
+
+  try {
+    // 1. Fetch user feedbacks
+    const feedbackSnap = await getDocs(collection(db, 'feedbacks'));
+    if (!feedbackSnap.empty) {
+      result.feedbacks = feedbackSnap.docs
+        .map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            authorName: data.authorName || data.user || 'Member',
+            authorHandle: data.authorHandle || `@${(data.authorName || data.user || 'member').toLowerCase().replace(/\s+/g, '')}`,
+            authorRole: data.authorRole || 'Community Member',
+            avatarUrl: data.avatarUrl || '',
+            rating: data.rating || 5,
+            date: data.date || 'Recent',
+            content: data.content || data.text || '',
+            verified: !!data.verified,
+            likes: data.likes || 0,
+            likesCount: data.likesCount || 0,
+            likedBy: data.likedBy || [],
+            hidden: !!data.hidden,
+            hasFanBadge: !!data.hasFanBadge || !!data.isTopFan,
+            isTopFan: !!data.isTopFan || !!data.hasFanBadge,
+            text: data.text || data.content,
+            user: data.user || data.authorName,
+          } as FeedbackItem;
+        })
+        .filter((fb) => {
+          const uLower = (username || '').toLowerCase();
+          const eLower = (email || '').toLowerCase();
+          return (
+            (fb.user && fb.user.toLowerCase() === uLower) ||
+            (fb.authorName && fb.authorName.toLowerCase() === uLower) ||
+            fb.id === userId
+          );
+        });
+    }
+  } catch (err) {
+    console.warn('fetchUserActivityHistoryInDb feedbacks error:', err);
+  }
+
+  try {
+    // 2. Fetch user chat messages
+    const chatSnap = await getDocs(collection(db, 'chat_messages'));
+    if (!chatSnap.empty) {
+      result.chatMessages = chatSnap.docs
+        .map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            sender: data.sender || 'user',
+            senderName: data.senderName || username,
+            userId: data.userId || data.user_id || '',
+            user_id: data.user_id || data.userId || '',
+            userEmail: data.userEmail || '',
+            text: data.text || '',
+            timestamp: data.timestamp || 'Recent',
+            avatarUrl: data.avatarUrl || '',
+            isRead: !!data.isRead,
+          } as ChatMessage;
+        })
+        .filter((msg) => {
+          const uLower = (username || '').toLowerCase();
+          const eLower = (email || '').toLowerCase();
+          return (
+            (msg.userId && msg.userId === userId) ||
+            (msg.userEmail && msg.userEmail.toLowerCase() === eLower) ||
+            (msg.senderName && msg.senderName.toLowerCase() === uLower)
+          );
+        });
+    }
+  } catch (err) {
+    console.warn('fetchUserActivityHistoryInDb chatMessages error:', err);
+  }
+
+  return result;
 }
 
 export async function recordUserVisitInDb(userId: string): Promise<number> {

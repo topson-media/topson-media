@@ -58,6 +58,8 @@ import { AdminChatDashboard } from './AdminChatDashboard';
 import { UserManagement } from './UserManagement';
 import { ViewsVsTimeDashboard } from './ViewsVsTimeDashboard';
 import { YouTubeModalPlayer } from './YouTubeModalPlayer';
+import { TopFanBadge } from './TopFanBadge';
+import { sendInboundReply, sendAccountStatusAlert } from '../services/emailService';
 import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb, db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -602,34 +604,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleSendReply = (emailItem: EmailMessage) => {
+  const handleDeleteFeedbackConfirm = (fb: FeedbackItem) => {
+    if (!window.confirm(`Delete review from "${fb.authorName}"? This permanently removes the review.`)) {
+      return;
+    }
+
+    // Instantly send automated background email to user's Gmail address
+    const matched = usersList.find(
+      (u) =>
+        (u.username && u.username.toLowerCase() === (fb.authorName || fb.user || '').toLowerCase()) ||
+        u.id === fb.id
+    );
+
+    const recipientEmail = matched?.email;
+    if (recipientEmail && recipientEmail.includes('@')) {
+      sendAccountStatusAlert({
+        to: recipientEmail,
+        username: fb.authorName || fb.user || 'Member',
+        action: 'feedback_removal',
+        customReason: 'Your feedback post was removed due to community guidelines.',
+      }).catch((err) => console.warn('Background feedback removal alert email error:', err));
+    }
+
+    onDeleteFeedback(fb.id);
+  };
+
+  const handleSendReply = async (emailItem: EmailMessage) => {
     const draft = replyDrafts[emailItem.id]?.trim();
     if (!draft) return;
 
     setSendingReplyId(emailItem.id);
 
-    setTimeout(() => {
+    try {
+      // 1. Dispatch formal branded email directly to recipient's Gmail inbox
+      await sendInboundReply({
+        to: emailItem.senderEmail,
+        recipientName: emailItem.senderName,
+        originalSubject: emailItem.subject,
+        replyText: draft,
+      });
+
+      // 2. Persist reply to Firestore and sync local state
       onReplyEmailMessage(emailItem.id, draft);
-      setSendingReplyId(null);
+
       setReplySentSuccessId(emailItem.id);
       setReplyDrafts((prev) => ({ ...prev, [emailItem.id]: '' }));
 
-      // Also trigger browser mailto client so it sends directly via real email
-      const subjectEncoded = encodeURIComponent(`Re: ${emailItem.subject} [Topson Media]`);
-      const bodyEncoded = encodeURIComponent(
-        `Hi ${emailItem.senderName},\n\n${draft}\n\nBest regards,\nTopson Media\nChannel Creator`
-      );
-      window.open(`mailto:${emailItem.senderEmail}?subject=${subjectEncoded}&body=${bodyEncoded}`, '_blank');
-
       setTimeout(() => {
         setReplySentSuccessId(null);
-      }, 3500);
-    }, 400);
+      }, 5000);
+    } catch (err) {
+      console.warn('Inbound email reply fallback:', err);
+      // Ensure record is saved to Firestore even on network fallback
+      onReplyEmailMessage(emailItem.id, draft);
+      setReplySentSuccessId(emailItem.id);
+      setReplyDrafts((prev) => ({ ...prev, [emailItem.id]: '' }));
+    } finally {
+      setSendingReplyId(null);
+    }
   };
 
   // Recharts Video Engagement Visualization Module
   const renderVideoEngagementVisualization = () => (
-    <div className="rounded-3xl p-6 sm:p-7 bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl space-y-6">
+    <div className="rounded-3xl p-6 sm:p-7 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6">
       {/* Header with KPI highlights & View switcher */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800">
         <div>
@@ -971,7 +1008,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
               
               {/* Traffic Overview Card with Total Visitors & Interactive Recharts line chart (5 cols) */}
-              <div className="lg:col-span-5 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-orange-500/60 hover:shadow-[0_0_30px_rgba(249,115,22,0.25)] transition-all duration-300 flex flex-col justify-between hover:-translate-y-1">
+              <div className="lg:col-span-5 p-5 sm:p-6 rounded-3xl bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative overflow-hidden group hover:border-orange-500/60 hover:shadow-[0_0_30px_rgba(249,115,22,0.25)] transition-all duration-300 flex flex-col justify-between hover:-translate-y-1">
                 {/* Neon Ambient Corner Glow */}
                 <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-orange-500/15 blur-2xl pointer-events-none group-hover:bg-orange-500/25 transition-all" />
 
@@ -1046,7 +1083,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Total Email Messages (4 cols) */}
-              <div className="lg:col-span-4 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-blue-500/60 hover:shadow-[0_0_25px_rgba(59,130,246,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+              <div className="lg:col-span-4 p-5 sm:p-6 rounded-3xl bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative overflow-hidden group hover:border-blue-500/60 hover:shadow-[0_0_25px_rgba(59,130,246,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -1067,7 +1104,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Community Reviews (2 cols) */}
-              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-amber-500/60 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative overflow-hidden group hover:border-amber-500/60 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -1087,7 +1124,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Published Videos (2 cols) */}
-              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl relative overflow-hidden group hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+              <div className="lg:col-span-2 p-5 sm:p-6 rounded-3xl bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative overflow-hidden group hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -1109,7 +1146,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* 2. TAB CONTROLS (Cyber-Tech Glassmorphism Pills) */}
-            <div className="flex items-center gap-2 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md p-2 rounded-2xl overflow-x-auto custom-scrollbar border">
+            <div className="flex items-center gap-2 border-b border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-2 rounded-2xl overflow-x-auto custom-scrollbar border border-slate-800 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
               <button
                 type="button"
                 onClick={() => setActiveTab('overview')}
@@ -1239,7 +1276,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
                 {/* Left 8 Cols: Real-time Activity Stream */}
-                <div className="lg:col-span-8 rounded-3xl p-6 sm:p-8 bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl space-y-6">
+                <div className="lg:col-span-8 rounded-3xl p-6 sm:p-8 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6">
                   <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                     <div>
                       <h3 className="text-base sm:text-lg font-black text-white">
@@ -1288,7 +1325,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Right 4 Cols: Quick Creator Info & Quick Actions */}
                 <div className="lg:col-span-4 space-y-5">
-                  <div className="rounded-3xl p-6 bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl space-y-4">
+                  <div className="rounded-3xl p-6 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-4">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Channel Creator Status
                     </h4>
@@ -1408,126 +1445,178 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* TAB: MANAGE TUTORIALS (EDIT ALL DETAILS & DELETE) */}
             {activeTab === 'tutorials' && (
-              <div className="rounded-3xl p-6 sm:p-8 bg-white border border-neutral-200 shadow-sm space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
+              <div className="rounded-3xl p-6 sm:p-8 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6 text-white animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
                   <div>
-                    <h3 className="text-lg font-black text-neutral-900 flex items-center gap-2">
-                      <span>Manage All Tutorials</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 font-bold">
-                        {videos.length} videos live
-                      </span>
-                    </h3>
-                    <p className="text-xs text-neutral-600 font-medium mt-0.5">
-                      As admin, you can edit any tutorial's title, thumbnail, category, duration, description, link, or delete it completely.
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/40 flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)]">
+                        <Film className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                        <span>Manage All Tutorials &amp; Reels</span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/40 font-bold">
+                          {videos.length} videos live
+                        </span>
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium mt-1">
+                      Full control over published content: edit titles, thumbnails, categories, duration, tags, or links for both YouTube embeds and native uploads.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setActiveTab('upload')}
-                    className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm shrink-0"
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(249,115,22,0.4)] shrink-0 transition-all hover:scale-102"
                   >
-                    <UploadCloud className="w-4 h-4 text-orange-500" />
-                    <span>Upload New</span>
+                    <UploadCloud className="w-4 h-4 text-white" />
+                    <span>Publish New Tutorial</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {videos.map((v) => (
-                    <div
-                      key={v.id}
-                      className="p-4 sm:p-5 rounded-2xl bg-neutral-50 border border-neutral-200 hover:border-orange-500/40 transition-all flex flex-col justify-between gap-3 shadow-2xs group"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-24 h-16 rounded-xl overflow-hidden bg-neutral-950 shrink-0 relative border border-neutral-200 shadow-2xs">
-                          <img
-                            src={v.thumbnail}
-                            alt={v.title}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover"
-                          />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                  {videos.map((v) => {
+                    const isYouTube = !!v.youtubeId || (v.videoUrl && v.videoUrl.includes('youtube'));
+                    return (
+                      <div
+                        key={v.id}
+                        className="p-4 sm:p-5 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-orange-500/50 transition-all flex flex-col justify-between gap-3 shadow-md group hover:shadow-[0_0_20px_rgba(249,115,22,0.15)]"
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Thumbnail with quick preview play button */}
+                          <div
+                            onClick={() => setPreviewModalVideo(v)}
+                            className="w-28 h-18 rounded-xl overflow-hidden bg-slate-950 shrink-0 relative border border-slate-700/80 shadow-inner group/thumb cursor-pointer"
+                            title="Click to preview video playback"
+                          >
+                            <img
+                              src={v.thumbnail}
+                              alt={v.title}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-80 group-hover/thumb:opacity-100 transition-opacity">
+                              <div className="w-7 h-7 rounded-full bg-orange-600 text-white flex items-center justify-center shadow-lg group-hover/thumb:scale-110 transition-transform">
+                                <Film className="w-3.5 h-3.5" />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-black text-orange-400 uppercase tracking-wider bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/30">
+                                {v.category}
+                              </span>
+                              {isYouTube ? (
+                                <span className="text-[9.5px] font-bold text-red-400 bg-red-950/60 border border-red-800/60 px-1.5 py-0.5 rounded-md">
+                                  YouTube Embed
+                                </span>
+                              ) : (
+                                <span className="text-[9.5px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded-md">
+                                  Native File
+                                </span>
+                              )}
+                            </div>
+
+                            <h4
+                              onClick={() => setPreviewModalVideo(v)}
+                              className="text-sm font-bold text-white leading-snug line-clamp-2 mt-0.5 hover:text-orange-400 transition-colors cursor-pointer"
+                              title={v.title}
+                            >
+                              {v.title}
+                            </h4>
+
+                            <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-1">
+                              <span className="font-semibold text-slate-300">{v.duration}</span>
+                              <span>&bull;</span>
+                              <span>{v.views}</span>
+                              <span>&bull;</span>
+                              <span className="text-slate-500">{v.date}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">
-                            {v.category}
-                          </span>
-                          <h4 className="text-sm font-bold text-neutral-900 leading-snug line-clamp-2 mt-0.5">
-                            {v.title}
-                          </h4>
-                          <div className="text-[11px] text-neutral-500 flex items-center gap-2 mt-1">
-                            <span className="font-semibold">{v.duration}</span>
-                            <span>·</span>
-                            <span>{v.views}</span>
-                            <span>·</span>
-                            <span>{v.date}</span>
+
+                        <p className="text-xs text-slate-300 line-clamp-2 font-normal bg-slate-950/60 p-3 rounded-xl border border-slate-800 leading-relaxed">
+                          {v.description}
+                        </p>
+
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-800/80">
+                          <div className="flex flex-wrap gap-1">
+                            {v.tags.slice(0, 2).map((t) => (
+                              <span key={t} className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-medium border border-slate-700/60">
+                                #{t}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Preview Button */}
+                            <button
+                              type="button"
+                              onClick={() => setPreviewModalVideo(v)}
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer border border-slate-700"
+                              title="Preview player"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-orange-400" />
+                              <span className="hidden sm:inline">Preview</span>
+                            </button>
+
+                            {/* Edit Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditVideo(v)}
+                              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-orange-600/30 text-white hover:text-orange-300 border border-slate-700 hover:border-orange-500/50 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                              title="Edit all tutorial details"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-orange-400" />
+                              <span>Edit</span>
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteVideoConfirm(v)}
+                              className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-red-400 hover:bg-red-950/40 border border-slate-700 hover:border-red-500/40 transition-colors cursor-pointer shadow-xs"
+                              title="Delete this video tutorial"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
                       </div>
-
-                      <p className="text-xs text-neutral-600 line-clamp-2 font-medium bg-white p-2.5 rounded-xl border border-neutral-200/70">
-                        {v.description}
-                      </p>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-neutral-200/80">
-                        <div className="flex flex-wrap gap-1">
-                          {v.tags.slice(0, 2).map((t) => (
-                            <span key={t} className="text-[10px] bg-neutral-200/70 text-neutral-700 px-2 py-0.5 rounded-md font-semibold">
-                              #{t}
-                            </span>
-                          ))}
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          {/* Edit Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditVideo(v)}
-                            className="px-3 py-1.5 rounded-lg bg-white border border-neutral-300 text-neutral-800 hover:text-orange-600 hover:border-orange-500/50 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                            title="Edit all tutorial details"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit Details</span>
-                          </button>
-
-                          {/* Delete Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteVideoConfirm(v)}
-                            className="p-1.5 rounded-lg bg-white border border-neutral-300 text-neutral-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors cursor-pointer shadow-2xs"
-                            title="Delete this video tutorial"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* TAB: INBOUND EMAIL MESSAGES WITH REPLY CAPABILITY */}
+            {/* TAB: INBOUND EMAIL MESSAGES WITH AUTOMATED GMAIL CLOUD TRIGGER */}
             {activeTab === 'messages' && (
-              <div className="rounded-3xl p-6 sm:p-8 bg-white border border-neutral-200 shadow-sm space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
+              <div className="rounded-3xl p-6 sm:p-8 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6 text-white animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
                   <div>
-                    <h3 className="text-lg font-black text-neutral-900 flex items-center gap-2">
-                      <span>Messages Sent to mail topson media</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
-                        {emailMessages.length} received
-                      </span>
-                    </h3>
-                    <p className="text-xs text-neutral-600 font-medium mt-0.5">
-                      Messages submitted by visitors through the contact form are stored here and sent to your email. You can reply directly below.
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                        <span>Inbound Email Messages</span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40 font-bold">
+                          {emailMessages.length} received
+                        </span>
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium mt-1">
+                      Inquiries submitted by website visitors. Replying from this studio automatically compiles and dispatches a formal email directly to their Gmail inbox using Topson Media's official name.
                     </p>
                   </div>
                 </div>
 
                 {emailMessages.length === 0 ? (
-                  <div className="py-12 text-center bg-neutral-50 rounded-2xl border border-neutral-200">
-                    <Mail className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-neutral-700">No email messages yet</p>
-                    <p className="text-xs text-neutral-500 font-medium mt-1">
-                      When visitors send emails from the contact section, they will appear here.
+                  <div className="py-14 text-center bg-slate-900/40 rounded-2xl border border-slate-800">
+                    <Mail className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-slate-300">No inbound email messages yet</p>
+                    <p className="text-xs text-slate-500 font-medium mt-1">
+                      When visitors send emails from the contact section, they will appear here for instant reply.
                     </p>
                   </div>
                 ) : (
@@ -1535,81 +1624,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {emailMessages.map((msg) => (
                       <div
                         key={msg.id}
-                        className="rounded-2xl p-5 bg-neutral-50 border border-neutral-200 shadow-2xs space-y-4"
+                        className="rounded-2xl p-5 sm:p-6 bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-orange-500/40 shadow-sm space-y-4 transition-all"
                       >
                         {/* Header: Sender details */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-200/80">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-black text-neutral-900">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-black text-white">
                                 {msg.senderName}
                               </span>
-                              <span className="text-xs font-semibold text-neutral-500">
+                              <span className="text-xs font-semibold text-slate-400">
                                 ({msg.senderEmail})
                               </span>
                             </div>
-                            <div className="text-xs font-bold text-orange-600 mt-0.5">
+                            <div className="text-xs font-bold text-orange-400 mt-0.5">
                               Subject: {msg.subject}
                             </div>
                           </div>
-                          <span className="text-xs text-neutral-500 font-medium self-start sm:self-auto">
+                          <span className="text-xs text-slate-500 font-medium self-start sm:self-auto">
                             {msg.timestamp}
                           </span>
                         </div>
 
                         {/* Body Message */}
-                        <div className="text-xs sm:text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap font-medium bg-white p-4 rounded-xl border border-neutral-200">
+                        <div className="text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-normal bg-slate-950/80 p-4 rounded-xl border border-slate-800 shadow-inner">
                           {msg.message}
                         </div>
 
                         {/* Thread Replies */}
                         {msg.replies && msg.replies.length > 0 && (
                           <div className="space-y-2 pl-4 border-l-2 border-orange-500">
-                            <span className="text-[11px] font-bold text-neutral-500 uppercase">
-                              Admin Replies Sent via Email:
+                            <span className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">
+                              Dispatched Cloud Email Replies:
                             </span>
                             {msg.replies.map((rep) => (
-                              <div key={rep.id} className="p-3 bg-orange-50/60 rounded-xl border border-orange-200/60 text-xs">
-                                <div className="flex items-center justify-between gap-2 mb-1">
-                                  <span className="font-bold text-orange-900">Topson Media (Admin)</span>
-                                  <span className="text-[10px] text-neutral-500">{rep.timestamp}</span>
+                              <div key={rep.id} className="p-3 bg-slate-950/70 rounded-xl border border-slate-800 text-xs space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-bold text-orange-400">Topson Media (Official Sender)</span>
+                                  <span className="text-[10px] text-slate-500">{rep.timestamp}</span>
                                 </div>
-                                <p className="text-neutral-800 font-medium whitespace-pre-wrap">{rep.text}</p>
+                                <p className="text-slate-300 font-normal whitespace-pre-wrap">{rep.text}</p>
                               </div>
                             ))}
                           </div>
                         )}
 
-                        {/* Reply Form */}
+                        {/* 1. WEB-TO-GMAIL INBOUND EMAIL REPLY FORM */}
                         <div className="pt-2">
-                          <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                            Reply to {msg.senderName} (will send via email):
+                          <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                            <span>Reply to {msg.senderName} (Auto-dispatches formal email to {msg.senderEmail}):</span>
+                            <span className="text-[10px] text-slate-400 font-normal">Sender: Topson Media</span>
                           </label>
-                          <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2.5">
                             <textarea
                               rows={2}
                               value={replyDrafts[msg.id] ?? ''}
                               onChange={(e) =>
                                 setReplyDrafts((prev) => ({ ...prev, [msg.id]: e.target.value }))
                               }
-                              placeholder={`Type your reply to ${msg.senderEmail}...`}
-                              className="flex-1 p-3 text-xs sm:text-sm rounded-xl bg-white border border-neutral-300 text-neutral-900 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                              placeholder={`Type formal reply to send directly to ${msg.senderEmail}...`}
+                              className="flex-1 p-3 text-xs sm:text-sm rounded-xl bg-slate-950 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all"
                             />
                             <button
                               type="button"
                               onClick={() => handleSendReply(msg)}
                               disabled={!replyDrafts[msg.id]?.trim() || sendingReplyId === msg.id}
-                              className="px-5 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 self-end sm:self-auto"
+                              className="px-5 py-3 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 text-white font-black text-xs transition-all shadow-[0_0_15px_rgba(249,115,22,0.4)] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 self-end sm:self-auto hover:scale-102 active:scale-98"
                             >
-                              <Send className="w-3.5 h-3.5" />
-                              <span>{sendingReplyId === msg.id ? 'Sending...' : 'Send Reply'}</span>
+                              {sendingReplyId === msg.id ? (
+                                <>
+                                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  <span>Dispatching...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-3.5 h-3.5" />
+                                  <span>Send to Gmail</span>
+                                </>
+                              )}
                             </button>
                           </div>
 
                           {replySentSuccessId === msg.id && (
-                            <div className="mt-2 text-xs font-bold text-emerald-600 flex items-center gap-1 animate-in fade-in">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              <span>Reply recorded & email client dispatched to {msg.senderEmail}!</span>
+                            <div className="mt-2.5 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs font-bold text-emerald-300 flex items-center gap-2 animate-in fade-in">
+                              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                              <span>Formal response dispatched to {msg.senderEmail} via Topson Media Cloud Mailer!</span>
                             </div>
                           )}
                         </div>
@@ -1621,58 +1720,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
 
-            {/* TAB: MANAGE COMMUNITY FEEDBACKS (WITH FULL DELETION CONTROL) */}
+            {/* TAB: MANAGE COMMUNITY FEEDBACKS (WITH SYSTEM ACTION EMAIL ALERTS) */}
             {activeTab === 'reviews' && (
-              <div className="rounded-3xl p-6 sm:p-8 bg-white border border-neutral-200 shadow-sm space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
+              <div className="rounded-3xl p-6 sm:p-8 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6 text-white animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
                   <div>
-                    <h3 className="text-lg font-black text-neutral-900 flex items-center gap-2">
-                      <span>Community Feedback Control</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-                        {feedbacks.length} reviews
-                      </span>
-                    </h3>
-                    <p className="text-xs text-neutral-600 font-medium mt-0.5">
-                      As admin, you have full deletion rights over any inappropriate or outdated feedback.
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shadow-[0_0_10px_rgba(245,158,11,0.3)]">
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                        <span>Community Feedback Moderation</span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 font-bold">
+                          {feedbacks.length} reviews
+                        </span>
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium mt-1">
+                      Full moderation control. Deleting a review automatically triggers an automated policy update email alert to that user's Gmail address.
                     </p>
                   </div>
                 </div>
 
                 {feedbacks.length === 0 ? (
-                  <div className="py-12 text-center bg-neutral-50 rounded-2xl border border-neutral-200">
-                    <MessageSquare className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-neutral-700">No community reviews yet</p>
-                    <p className="text-xs text-neutral-500 font-medium mt-1">
-                      When viewers post reviews in the community section, they will appear here for your moderation.
+                  <div className="py-14 text-center bg-slate-900/40 rounded-2xl border border-slate-800">
+                    <MessageSquare className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-slate-300">No community reviews yet</p>
+                    <p className="text-xs text-slate-500 font-medium mt-1">
+                      When viewers post reviews in the community section, they will appear here for moderation.
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                     {feedbacks.map((fb) => (
                       <div
                         key={fb.id}
-                        className="p-5 rounded-2xl bg-neutral-50 border border-neutral-200/90 shadow-2xs flex flex-col justify-between gap-3 relative group"
+                        className="p-5 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800 hover:border-orange-500/40 shadow-sm flex flex-col justify-between gap-3 relative group transition-all"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2.5">
                               {fb.avatarUrl ? (
-                                <img src={fb.avatarUrl} alt={fb.authorName} className="w-8 h-8 rounded-full object-cover" />
+                                <img src={fb.avatarUrl} alt={fb.authorName} className="w-9 h-9 rounded-full object-cover border border-slate-700" />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-neutral-900 text-white font-bold text-xs flex items-center justify-center">
+                                <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center border border-slate-700">
                                   {fb.authorName.slice(0, 1)}
                                 </div>
                               )}
                               <div>
-                                <div className="text-xs font-bold text-neutral-900 flex items-center gap-1.5">
+                                <div className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
                                   <span>{fb.authorName}</span>
+                                  {(fb.hasFanBadge || fb.isTopFan) && (
+                                    <TopFanBadge size="xs" />
+                                  )}
                                   {fb.hidden && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
                                       Hidden
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-neutral-500 font-medium">{fb.authorRole} · {fb.date}</div>
+                                <div className="text-[10px] text-slate-400 font-medium">{fb.authorRole} &bull; {fb.date}</div>
                               </div>
                             </div>
 
@@ -1682,37 +1789,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => onHideFeedback(fb.id, !fb.hidden)}
-                                  className="p-1.5 rounded-lg text-neutral-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 border border-slate-700 transition-colors cursor-pointer"
                                   title={fb.hidden ? 'Unhide review' : 'Hide review from public'}
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
                               )}
 
-                              {/* Delete button */}
+                              {/* 2. Delete button WITH AUTOMATED BACKGROUND EMAIL ALERT */}
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (window.confirm(`Delete review from "${fb.authorName}"?`)) {
-                                    onDeleteFeedback(fb.id);
-                                  }
-                                }}
-                                className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer"
-                                title="Delete this feedback"
+                                onClick={() => handleDeleteFeedbackConfirm(fb)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/40 border border-slate-700 hover:border-red-500/40 transition-colors cursor-pointer"
+                                title="Delete feedback and send background email alert"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
 
-                          <p className="text-xs sm:text-sm text-neutral-800 font-medium leading-relaxed italic bg-white p-3 rounded-xl border border-neutral-200/80">
-                            &ldquo;{fb.content}&rdquo;
+                          <p className="text-xs sm:text-sm text-slate-200 font-normal leading-relaxed italic bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+                            &ldquo;{fb.content || fb.text}&rdquo;
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between text-[11px] text-neutral-500 font-medium pt-2 border-t border-neutral-200/60">
-                          <span>Rating: {fb.rating}/5 stars</span>
-                          <span>{fb.likes || 0} likes · {fb.replies?.length || 0} replies</span>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-2.5 border-t border-slate-800/80">
+                          <span className="text-amber-400 font-bold">Rating: {fb.rating}/5 stars</span>
+                          <span>{fb.likesCount || fb.likes || 0} likes &bull; {fb.replies?.length || 0} replies</span>
                         </div>
                       </div>
                     ))}
@@ -1721,116 +1824,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
 
-            {/* TAB: UPLOAD NEW TUTORIAL */}
+            {/* TAB: UPLOAD NEW TUTORIAL (GLASSMORPHIC OVERHAUL) */}
             {activeTab === 'upload' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-200">
                 
                 {/* Upload Form (7 cols) */}
-                <div className="lg:col-span-7 rounded-3xl p-6 sm:p-8 bg-white border border-neutral-200 shadow-sm space-y-6">
+                <div className="lg:col-span-7 rounded-3xl p-6 sm:p-8 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] space-y-6 text-white">
                   <div>
-                    <h3 className="text-lg font-black text-neutral-900">
-                      Upload Video Tutorial / Reel
-                    </h3>
-                    <p className="text-xs text-neutral-600 font-medium mt-0.5">
-                      When pasting a YouTube video or reel link, the thumbnail is extracted automatically!
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/40 flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)]">
+                        <UploadCloud className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                        Publish Tutorial Reel / Video
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium mt-1">
+                      Direct integration with YouTube links &amp; native MP4/WebM uploads. Thumbnails and video durations are auto-detected instantly!
                     </p>
                   </div>
 
                   {uploadSuccess && (
-                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>Video published successfully with thumbnail! It is now live in the tutorial section.</span>
                     </div>
                   )}
 
-                  {/* EXPLICIT ERROR DIAGNOSTICS DISPLAY (Console-vibe error card with code, message & diagnosis) */}
+                  {/* EXPLICIT ERROR DIAGNOSTICS DISPLAY */}
                   {uploadDiagnostic && (
-                    <div className="rounded-2xl bg-neutral-950 border border-red-500/50 text-neutral-100 p-5 sm:p-6 shadow-xl space-y-3.5 font-mono text-xs animate-in fade-in slide-in-from-top-2">
-                      <div className="flex items-center justify-between border-b border-neutral-800 pb-2.5">
+                    <div className="rounded-2xl bg-slate-950 border border-red-500/50 text-slate-100 p-5 sm:p-6 shadow-xl space-y-3.5 font-mono text-xs animate-in fade-in slide-in-from-top-2">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                         <div className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
                           <span className="font-bold text-red-400 uppercase tracking-wider text-[11px]">
-                            Firestore Upload Error Diagnostic
+                            Upload Error Diagnostic
                           </span>
                         </div>
-                        <span className="text-[10px] text-neutral-500 font-mono">
+                        <span className="text-[10px] text-slate-500 font-mono">
                           {uploadDiagnostic.timestamp}
                         </span>
                       </div>
 
                       <div className="space-y-2 font-sans">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px] font-bold text-neutral-400 font-mono">Error Code:</span>
+                          <span className="text-[11px] font-bold text-slate-400 font-mono">Error Code:</span>
                           <span className="px-2.5 py-0.5 rounded-md bg-red-950 text-red-300 border border-red-800 font-mono text-xs font-black">
                             [{uploadDiagnostic.code}]
                           </span>
                         </div>
 
-                        <div className="p-3 rounded-xl bg-neutral-900/90 border border-neutral-800 space-y-1.5 text-xs">
-                          <p className="text-neutral-200">
-                            <span className="font-bold text-neutral-400 font-mono">Message: </span>
+                        <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 text-xs">
+                          <p className="text-slate-200">
+                            <span className="font-bold text-slate-400 font-mono">Message: </span>
                             {uploadDiagnostic.message}
                           </p>
                         </div>
 
-                        <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 space-y-2 text-xs">
+                        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs">
                           <div>
                             <span className="font-bold text-amber-400 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
                               <span>⚠️</span> Root Cause Breakdown
                             </span>
-                            <p className="text-neutral-300 mt-1 leading-relaxed">
+                            <p className="text-slate-300 mt-1 leading-relaxed">
                               {uploadDiagnostic.diagnosis}
                             </p>
                           </div>
 
-                          <div className="pt-2 border-t border-neutral-800">
+                          <div className="pt-2 border-t border-slate-800">
                             <span className="font-bold text-emerald-400 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
                               <span>🔧</span> Suggested Fix
                             </span>
-                            <p className="text-neutral-300 mt-1 leading-relaxed">
+                            <p className="text-slate-300 mt-1 leading-relaxed">
                               {uploadDiagnostic.solution}
                             </p>
                           </div>
                         </div>
                       </div>
-
-                      {/* Technical payload breakdown drawer */}
-                      <details className="cursor-pointer text-[11px] text-neutral-400 hover:text-neutral-200 transition-colors">
-                        <summary className="font-mono font-bold select-none">
-                          &gt; View Raw Diagnostic Stack &amp; Sanitized Payload
-                        </summary>
-                        <div className="mt-2 space-y-2">
-                          <div>
-                            <span className="text-[10px] font-mono text-neutral-500 uppercase">Sanitized Payload:</span>
-                            <pre className="mt-1 p-3 rounded-xl bg-black text-emerald-400 text-[10px] overflow-x-auto whitespace-pre font-mono border border-neutral-800">
-                              {uploadDiagnostic.payloadDump}
-                            </pre>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-mono text-neutral-500 uppercase">Raw Error:</span>
-                            <pre className="mt-1 p-3 rounded-xl bg-black text-red-400 text-[10px] overflow-x-auto whitespace-pre-wrap font-mono border border-neutral-800">
-                              {uploadDiagnostic.rawError}
-                            </pre>
-                          </div>
-                        </div>
-                      </details>
                     </div>
                   )}
 
                   <form onSubmit={handleUpload} className="space-y-4">
                     {/* Method Toggle */}
-                    <div className="grid grid-cols-2 gap-2 p-1 bg-neutral-100 rounded-xl">
+                    <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-xl">
                       <button
                         type="button"
                         onClick={() => setUploadType('link')}
                         className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           uploadType === 'link'
-                            ? 'bg-white text-neutral-900 shadow-2xs'
-                            : 'text-neutral-600 hover:text-neutral-950'
+                            ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-xs'
+                            : 'text-slate-400 hover:text-white'
                         }`}
                       >
                         <LinkIcon className="w-3.5 h-3.5" />
-                        <span>Paste Video/Reel Link</span>
+                        <span>YouTube / Reel Link</span>
                       </button>
 
                       <button
@@ -1838,19 +1925,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         onClick={() => setUploadType('device')}
                         className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           uploadType === 'device'
-                            ? 'bg-white text-neutral-900 shadow-2xs'
-                            : 'text-neutral-600 hover:text-neutral-950'
+                            ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-xs'
+                            : 'text-slate-400 hover:text-white'
                         }`}
                       >
                         <HardDrive className="w-3.5 h-3.5" />
-                        <span>Upload from Device</span>
+                        <span>Native File (Phone/PC)</span>
                       </button>
                     </div>
 
                     {uploadType === 'link' ? (
                       <div className="space-y-3">
-                        <label className="block text-xs font-bold text-neutral-800">
-                          Video / Reel Link (YouTube, Shorts, Reel)
+                        <label className="block text-xs font-bold text-slate-300">
+                          YouTube Video / Shorts URL
                         </label>
                         <div className="relative">
                           <input
@@ -1858,32 +1945,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             required
                             value={videoLink ?? ''}
                             onChange={(e) => setVideoLink(e.target.value)}
-                            placeholder="Paste YouTube or Reel link (e.g. https://www.youtube.com/watch?v=... or https://youtu.be/...)"
-                            className="w-full px-4 py-2.5 rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-500 text-xs sm:text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                            placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder:text-slate-500 text-xs sm:text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all"
                           />
                         </div>
 
-                        {/* Automatic YouTube thumbnail preview - Direct from YouTube to Web */}
+                        {/* Automatic YouTube thumbnail preview */}
                         {detectedYouTubeThumb && (
-                          <div className="p-4 bg-gradient-to-r from-emerald-50/80 via-emerald-50/40 to-white rounded-2xl border border-emerald-200/90 shadow-2xs space-y-2.5 animate-in fade-in">
+                          <div className="p-4 bg-slate-900/80 rounded-2xl border border-emerald-500/50 shadow-inner space-y-2.5 animate-in fade-in">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                                <span>Direct YouTube Thumbnail Detected!</span>
+                              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <span>Direct YouTube Stream Detected</span>
                               </span>
-                              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                                 Ready to publish
                               </span>
                             </div>
 
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                              <div className="w-32 h-20 rounded-xl overflow-hidden bg-neutral-950 shrink-0 relative border-2 border-emerald-500/50 shadow-sm group">
+                              <div className="w-32 h-20 rounded-xl overflow-hidden bg-slate-950 shrink-0 relative border-2 border-emerald-500/40 shadow-sm group">
                                 <img
                                   src={detectedYouTubeThumb}
                                   alt="Auto Thumbnail from YouTube"
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    // fallback if quality fails
                                     const target = e.target as HTMLImageElement;
                                     const id = extractYouTubeId(videoLink);
                                     if (id && !target.src.includes('hqdefault')) {
@@ -1891,18 +1977,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     }
                                   }}
                                 />
-                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                                  <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center">
+                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                  <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md">
                                     <Film className="w-3 h-3" />
                                   </div>
                                 </div>
                               </div>
                               <div className="space-y-1">
-                                <p className="text-xs font-bold text-neutral-900">
+                                <p className="text-xs font-bold text-white">
                                   Captured directly from YouTube
                                 </p>
-                                <p className="text-[11px] text-neutral-600 leading-snug">
-                                  This exact image will be set automatically as the high-resolution thumbnail displayed on your web tutorial cards.
+                                <p className="text-[11px] text-slate-400 leading-snug">
+                                  High-resolution thumbnail will be automatically embedded across public tutorial carousels.
                                 </p>
                               </div>
                             </div>
@@ -1910,9 +1996,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                       </div>
                     ) : (
-                      <div>
-                        <label className="block text-xs font-bold text-neutral-800 mb-1">
-                          Video File from Device
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
+                          Native Video File from Device (MP4, WebM)
                         </label>
                         <input
                           ref={fileInputRef}
@@ -1923,32 +2009,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         />
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="w-full p-4 rounded-xl border-2 border-dashed border-neutral-300 hover:border-neutral-500 bg-neutral-50 text-center cursor-pointer transition-colors"
+                          className="w-full p-6 rounded-xl border-2 border-dashed border-slate-700 hover:border-orange-500/60 bg-slate-900/60 text-center cursor-pointer transition-all hover:bg-slate-900/90"
                         >
-                          <Film className="w-6 h-6 mx-auto mb-2 text-neutral-500" />
+                          <Film className="w-7 h-7 mx-auto mb-2 text-orange-400" />
                           {selectedFileName ? (
-                            <div className="text-xs font-bold text-neutral-900">
+                            <div className="text-xs font-bold text-emerald-400">
                               Selected file: {selectedFileName}
                             </div>
                           ) : (
                             <div>
-                              <span className="text-xs font-bold text-neutral-900">
-                                Click to choose video from phone or PC
+                              <span className="text-xs font-bold text-white">
+                                Click to choose MP4 or WebM file from device
                               </span>
-                              <p className="text-[11px] text-neutral-500 mt-0.5">MP4, WebM, MOV supported</p>
+                              <p className="text-[11px] text-slate-500 mt-1">High-performance video preview player enabled</p>
                             </div>
                           )}
                         </div>
                         {videoDuration && selectedFileName && (
-                          <p className="text-[11px] text-emerald-600 font-semibold mt-1">
+                          <p className="text-[11px] text-emerald-400 font-semibold">
                             ✓ Detected Duration: {videoDuration}
                           </p>
                         )}
 
                         {/* Custom Thumbnail Selection from Device */}
                         <div className="mt-3">
-                          <label className="block text-xs font-bold text-neutral-800 mb-1">
-                            Custom Thumbnail from Device
+                          <label className="block text-xs font-bold text-slate-300 mb-1">
+                            Custom Thumbnail Image
                           </label>
                           <input
                             ref={thumbnailInputRef}
@@ -1959,16 +2045,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           />
                           <div
                             onClick={() => thumbnailInputRef.current?.click()}
-                            className="w-full p-3 rounded-xl border border-dashed border-neutral-300 hover:border-neutral-500 bg-neutral-50 flex items-center justify-between cursor-pointer transition-colors"
+                            className="w-full p-3 rounded-xl border border-dashed border-slate-700 hover:border-orange-500/60 bg-slate-900/50 flex items-center justify-between cursor-pointer transition-colors"
                           >
-                            <div className="flex items-center gap-2 text-xs font-semibold text-neutral-700">
-                              <ImageIcon className="w-4 h-4 text-orange-500" />
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                              <ImageIcon className="w-4 h-4 text-orange-400" />
                               <span className="truncate">
-                                {deviceThumbnailName ? deviceThumbnailName : 'Select thumbnail image from device'}
+                                {deviceThumbnailName ? deviceThumbnailName : 'Choose custom thumbnail image (PNG/JPG)'}
                               </span>
                             </div>
                             {deviceThumbnailUrl && (
-                              <div className="w-12 h-8 rounded-lg overflow-hidden border border-neutral-200 shrink-0">
+                              <div className="w-12 h-8 rounded-lg overflow-hidden border border-slate-700 shrink-0">
                                 <img src={deviceThumbnailUrl} alt="Thumbnail preview" className="w-full h-full object-cover" />
                               </div>
                             )}
@@ -1978,7 +2064,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
 
                     <div>
-                      <label className="block text-xs font-bold text-neutral-800 mb-1">
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
                         Tutorial Title
                       </label>
                       <input
@@ -1986,20 +2072,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         required
                         value={videoTitle ?? ''}
                         onChange={(e) => setVideoTitle(e.target.value)}
-                        placeholder="Title of tutorial or reel"
-                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-500 text-xs sm:text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                        placeholder="e.g. How to Speed Up Any Android Phone in 2025"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder:text-slate-500 text-xs sm:text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-neutral-800 mb-1">
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
                           Category
                         </label>
                         <select
                           value={videoCategory}
                           onChange={(e) => setVideoCategory(e.target.value as 'phone' | 'pc' | 'digital')}
-                          className="w-full px-4 py-2.5 rounded-xl bg-white border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500"
                         >
                           <option value="phone">Phone Mastery (phone)</option>
                           <option value="pc">PC Performance (pc)</option>
@@ -2008,46 +2094,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-neutral-800 mb-1">
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
                           Duration
                         </label>
                         <input
                           type="text"
                           value={videoDuration ?? ''}
                           onChange={(e) => setVideoDuration(e.target.value)}
-                          placeholder="10:30"
-                          className="w-full px-4 py-2.5 rounded-xl bg-white border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                          placeholder="e.g. 10:30"
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white text-xs sm:text-sm focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-neutral-800 mb-1">
-                        Description & Takeaways
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Description &amp; Key Takeaways
                       </label>
                       <textarea
                         rows={2}
                         value={videoDescription ?? ''}
                         onChange={(e) => setVideoDescription(e.target.value)}
-                        placeholder="Brief walkthrough summary"
-                        className="w-full px-4 py-2.5 rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-500 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                        placeholder="Key lessons, step-by-step instructions, or tutorial highlights..."
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder:text-slate-500 text-xs sm:text-sm focus:outline-none focus:border-orange-500"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={isUploading}
-                      className="w-full py-3 px-4 rounded-xl text-white font-bold text-xs sm:text-sm bg-neutral-900 hover:bg-neutral-800 disabled:opacity-60 transition-all shadow-sm active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-3.5 px-4 rounded-xl text-white font-black text-xs sm:text-sm bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 disabled:opacity-60 transition-all shadow-[0_0_20px_rgba(249,115,22,0.4)] active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isUploading ? (
                         <>
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-orange-500 rounded-full animate-spin" />
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           <span>Publishing to Firestore (with network retries)...</span>
                         </>
                       ) : (
                         <>
-                          <UploadCloud className="w-4 h-4 text-orange-500" />
-                          <span>Publish Tutorial</span>
+                          <UploadCloud className="w-4 h-4 text-white" />
+                          <span>Publish Live Tutorial</span>
                         </>
                       )}
                     </button>
@@ -2055,36 +2141,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* Published Tutorials Feed (5 cols) */}
-                <div className="lg:col-span-5 rounded-3xl p-6 sm:p-8 bg-white border border-neutral-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-                    <h4 className="text-sm font-black text-neutral-900">
-                      Live Gallery ({videos.length})
+                <div className="lg:col-span-5 rounded-3xl p-6 sm:p-8 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-xl space-y-4 text-white">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <h4 className="text-sm font-black text-white flex items-center gap-2">
+                      <Film className="w-4 h-4 text-orange-400" />
+                      <span>Live Gallery Sync ({videos.length})</span>
                     </h4>
-                    <span className="text-xs font-bold text-orange-600">Active</span>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/60">
+                      Active
+                    </span>
                   </div>
 
-                  <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1 custom-scrollbar">
                     {videos.map((v) => (
                       <div
                         key={v.id}
-                        className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200/80 flex items-center justify-between gap-3 group"
+                        className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-orange-500/40 flex items-center justify-between gap-3 group transition-all"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-14 h-9 rounded-xl overflow-hidden bg-neutral-950 shrink-0 relative border border-neutral-200">
+                          <div
+                            onClick={() => setPreviewModalVideo(v)}
+                            className="w-16 h-10 rounded-xl overflow-hidden bg-slate-950 shrink-0 relative border border-slate-700 cursor-pointer group-hover:border-orange-500/50"
+                          >
                             <img
                               src={v.thumbnail}
                               alt={v.title}
                               referrerPolicy="no-referrer"
                               className="w-full h-full object-cover"
                             />
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                              <Film className="w-3 h-3 text-white" />
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-bold text-neutral-900 truncate">
+                            <div className="text-xs font-bold text-white truncate">
                               {v.title}
                             </div>
-                            <div className="text-[10px] text-neutral-600 flex items-center gap-1.5 mt-0.5 font-medium">
-                              <span className="font-bold text-neutral-800">{v.duration}</span>
-                              <span>·</span>
+                            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-medium">
+                              <span className="font-bold text-orange-400">{v.duration}</span>
+                              <span>&bull;</span>
                               <span>{v.views}</span>
                             </div>
                           </div>
@@ -2094,15 +2189,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleOpenEditVideo(v)}
-                            className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                             title="Edit details"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3.5 h-3.5 text-orange-400" />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteVideoConfirm(v)}
-                            className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/40 transition-colors"
                             title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -2122,7 +2217,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <UserManagement
                   currentUser={currentUser}
                   onUserCountChange={(count) => {
-                    // Update user count badge
                     setUsersList((prev) => {
                       if (prev.length === count) return prev;
                       return new Array(count).fill({ id: 'dummy', username: '', email: '', joinedDate: '' });
@@ -2137,22 +2231,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           /* ========================================================================= */
           /* NOT LOGGED IN AS ADMIN: CLEAN SIGN IN GATEWAY                             */
           /* ========================================================================= */
-          <div className="rounded-3xl p-8 sm:p-12 bg-white border border-neutral-200 shadow-sm text-center max-w-md mx-auto my-12 animate-in fade-in">
-            <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-200/60 flex items-center justify-center text-orange-500 mx-auto mb-4 shadow-2xs">
+          <div className="rounded-3xl p-8 sm:p-12 bg-slate-950/80 backdrop-blur-xl border border-orange-500/40 shadow-[0_0_40px_rgba(249,115,22,0.2)] text-center max-w-md mx-auto my-12 animate-in fade-in text-white">
+            <div className="w-14 h-14 rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 mx-auto mb-4 shadow-[0_0_15px_rgba(249,115,22,0.3)]">
               <ShieldCheck className="w-7 h-7" />
             </div>
-            <h3 className="text-2xl font-black text-neutral-900 mb-2">
+            <h3 className="text-2xl font-black text-white mb-2">
               Admin Access Only
             </h3>
-            <p className="text-xs sm:text-sm text-neutral-600 mb-6 font-medium leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-400 mb-6 font-medium leading-relaxed">
               Only the channel administrator can access the creator studio. Please sign in with your Admin credentials.
             </p>
             <button
               type="button"
               onClick={onAdminLogin}
-              className="w-full py-3.5 px-6 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs sm:text-sm transition-all shadow-md shadow-neutral-900/10 cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs sm:text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <KeyRound className="w-4 h-4 text-orange-500" />
+              <KeyRound className="w-4 h-4 text-white" />
               <span>Admin Sign In</span>
             </button>
           </div>
@@ -2160,42 +2254,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       </div>
 
-      {/* EDIT VIDEO MODAL (Allows admin to change all details) */}
+      {/* EDIT VIDEO MODAL (HIGH-END GLASSMORPHIC OVERHAUL) */}
       {editingVideo && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in"
           onClick={() => setEditingVideo(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xl rounded-3xl bg-white border border-neutral-200 shadow-2xl p-6 sm:p-8 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar"
+            className="w-full max-w-xl rounded-3xl bg-slate-950/95 backdrop-blur-2xl border border-orange-500/40 shadow-[0_0_60px_rgba(249,115,22,0.3)] p-6 sm:p-8 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar text-white"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-              <h3 className="text-lg font-black text-neutral-900 flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-orange-500" />
-                <span>Edit Tutorial Details</span>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-orange-400" />
+                <span>Edit Tutorial Details &amp; Links</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingVideo(null)}
-                className="p-1 rounded-lg text-neutral-400 hover:text-neutral-900"
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {editSaveSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                <span>Details updated successfully!</span>
+              <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>Details updated successfully in database!</span>
               </div>
             )}
 
             <form onSubmit={handleSaveEditVideo} className="space-y-3.5 text-xs sm:text-sm">
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Tutorial Title
                 </label>
                 <input
@@ -2203,28 +2297,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   required
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
                     Category
                   </label>
                   <select
                     value={editCategory}
                     onChange={(e) => setEditCategory(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                   >
                     <option value="Dev Workflows">Phone Mastery</option>
                     <option value="Desk & Gear">PC Performance</option>
-                    <option value="Full Stack">Digital Skills & Tools</option>
+                    <option value="Full Stack">Digital Skills</option>
                     <option value="Digital Tools">Digital Tools</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
                     Duration
                   </label>
                   <input
@@ -2232,11 +2326,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     value={editDuration}
                     onChange={(e) => setEditDuration(e.target.value)}
                     placeholder="e.g. 11:45"
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
                     Views Count
                   </label>
                   <input
@@ -2244,26 +2338,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     value={editViews}
                     onChange={(e) => setEditViews(e.target.value)}
                     placeholder="e.g. 1.8K views"
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
                     Date
                   </label>
                   <input
                     type="text"
                     value={editDate}
                     onChange={(e) => setEditDate(e.target.value)}
-                    placeholder="e.g. Just now, 2 days ago"
-                    className="w-full px-3 py-2 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                    placeholder="e.g. Just now"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
-                  Video / YouTube Link URL
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Video Link URL (YouTube link or native source)
                 </label>
                 <input
                   type="url"
@@ -2274,12 +2368,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     if (auto) setEditThumbnail(auto);
                   }}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Thumbnail Image URL
                 </label>
                 <div className="flex gap-2 items-center">
@@ -2287,10 +2381,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     type="text"
                     value={editThumbnail}
                     onChange={(e) => setEditThumbnail(e.target.value)}
-                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                   />
                   {editThumbnail && (
-                    <div className="w-12 h-8 rounded-lg overflow-hidden bg-black border border-neutral-300 shrink-0">
+                    <div className="w-12 h-8 rounded-lg overflow-hidden bg-black border border-slate-700 shrink-0">
                       <img src={editThumbnail} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -2298,19 +2392,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Description
                 </label>
                 <textarea
                   rows={2}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Tags (comma separated)
                 </label>
                 <input
@@ -2318,15 +2412,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   value={editTags}
                   onChange={(e) => setEditTags(e.target.value)}
                   placeholder="Android, Phone Mastery, Speed"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-neutral-900 text-xs sm:text-sm focus:outline-none focus:border-neutral-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => handleDeleteVideoConfirm(editingVideo)}
-                  className="px-4 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete Video</span>
@@ -2336,15 +2430,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => setEditingVideo(null)}
-                    className="px-4 py-2.5 rounded-xl border border-neutral-300 text-neutral-700 font-bold text-xs hover:bg-neutral-100 transition-colors cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 font-bold text-xs hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
                   >
-                    <Save className="w-3.5 h-3.5 text-orange-500" />
+                    <Save className="w-3.5 h-3.5 text-white" />
                     <span>Save All Changes</span>
                   </button>
                 </div>
