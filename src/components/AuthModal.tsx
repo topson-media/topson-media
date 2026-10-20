@@ -28,7 +28,7 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
-import { auth, db, loginUserFromDb } from '../services/firebase';
+import { auth, db, loginUserFromDb, isAccountPurgedInDb } from '../services/firebase';
 import { User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
@@ -162,6 +162,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         userEmail === 'topsonkenedy@gmail.com' ||
         userEmail === 'admin@topsonmedia.com' ||
         userEmail === 'jabsco59@gmail.com';
+
+      // Check if this account was permanently purged/banned by Topson Media
+      const isPurged = await isAccountPurgedInDb(userEmail, uid);
+      if (isPurged) {
+        await signOut(auth);
+        setError(
+          language === 'kn'
+            ? 'Konti yawe yasibwe burundu n\'ubuyobozi bwa Topson Media. Ntushobora kwinjira, fungura indi konti nshya.'
+            : 'This account was permanently purged and deleted by Topson Media administration. Entry blocked. Please create an entirely new account with fresh email validation parameters.'
+        );
+        setIsGoogleSubmitting(false);
+        return;
+      }
 
       // Check if this account was suspended by Topson Media in Firestore
       try {
@@ -522,6 +535,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           joinedDate: isAdmin ? 'Channel Creator & Admin' : 'Joined member',
           avatarUrl: firebaseUser.photoURL || TOPSON_PROFILE_IMAGE,
         };
+
+        // Check if user account was permanently purged/deleted
+        const isPurged = await isAccountPurgedInDb(verifiedEmail, uid);
+        if (isPurged) {
+          await signOut(auth);
+          setError(
+            language === 'kn'
+              ? 'Konti yawe yasibwe burundu n\'ubuyobozi bwa Topson Media. Ntushobora kwinjira, fungura indi konti nshya.'
+              : 'This account was permanently purged and deleted by Topson Media administration. Entry blocked. Please create an entirely new account with fresh email validation parameters.'
+          );
+          setIsSubmitting(false);
+          return;
+        }
 
         // Check if user is suspended in Firestore
         try {

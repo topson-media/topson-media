@@ -328,9 +328,10 @@ export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => vo
               verified: data.verified !== undefined ? !!data.verified : true,
               likes: realLikesCount,
               likesCount: realLikesCount,
-              likedBy: likedByList,
               hidden: !!data.hidden,
               hasFanBadge: !!data.hasFanBadge,
+              isTopFan: !!data.isTopFan,
+              isPinned: !!data.isPinned,
               replies: data.replies || [],
             };
           });
@@ -451,6 +452,15 @@ export async function hideFeedbackInDb(feedbackId: string, hidden: boolean): Pro
     await updateDoc(docRef, { hidden });
   } catch (err) {
     console.warn('hideFeedbackInDb fallback:', err);
+  }
+}
+
+export async function togglePinFeedbackInDb(feedbackId: string, isPinned: boolean): Promise<void> {
+  try {
+    const docRef = doc(db, 'feedbacks', feedbackId);
+    await updateDoc(docRef, { isPinned });
+  } catch (err) {
+    console.warn('togglePinFeedbackInDb fallback:', err);
   }
 }
 
@@ -817,12 +827,87 @@ export async function fetchUsersListFromDb(): Promise<User[]> {
   return [];
 }
 
-export async function deleteUserFromDb(userId: string): Promise<void> {
+export async function isAccountPurgedInDb(email?: string, userId?: string): Promise<boolean> {
   try {
-    await deleteDoc(doc(db, 'users', userId));
+    const cleanEmail = (email || '').toLowerCase().trim();
+    // 1. Check local storage cache of purged accounts
+    try {
+      const cached = localStorage.getItem('topson_purged_accounts');
+      if (cached) {
+        const list: string[] = JSON.parse(cached);
+        if (cleanEmail && list.includes(cleanEmail)) return true;
+        if (userId && list.includes(userId)) return true;
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Query Firestore collection 'purged_accounts'
+    if (cleanEmail) {
+      const safeKey = cleanEmail.replace(/[.#$[\]]/g, '_');
+      const docSnap = await getDoc(doc(db, 'purged_accounts', safeKey));
+      if (docSnap.exists()) return true;
+
+      const q = query(collection(db, 'purged_accounts'), where('email', '==', cleanEmail));
+      const querySnap = await getDocs(q);
+      if (!querySnap.empty) return true;
+    }
+
+    if (userId) {
+      const docSnap = await getDoc(doc(db, 'purged_accounts', userId));
+      if (docSnap.exists()) return true;
+    }
   } catch (err) {
-    console.warn('deleteUserFromDb fallback:', err);
+    console.warn('isAccountPurgedInDb check error:', err);
   }
+  return false;
+}
+
+export async function purgeUserPermanentlyInDb(userId: string, email?: string): Promise<void> {
+  try {
+    // 1. Delete user record completely from Firestore 'users' collection
+    await deleteDoc(doc(db, 'users', userId));
+
+    // 2. Register permanent ban & purged state in 'purged_accounts'
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const timestamp = Date.now();
+
+    if (cleanEmail) {
+      const safeKey = cleanEmail.replace(/[.#$[\]]/g, '_');
+      await setDoc(doc(db, 'purged_accounts', safeKey), {
+        userId,
+        email: cleanEmail,
+        purgedAt: timestamp,
+        banned: true,
+        reason: 'Hard Account Ban by Topson Media Administrator',
+      });
+    }
+
+    await setDoc(doc(db, 'purged_accounts', userId), {
+      userId,
+      email: cleanEmail,
+      purgedAt: timestamp,
+      banned: true,
+      reason: 'Hard Account Ban by Topson Media Administrator',
+    });
+
+    // 3. Cache locally for instant blocking
+    try {
+      const cached = localStorage.getItem('topson_purged_accounts');
+      const list: string[] = cached ? JSON.parse(cached) : [];
+      if (cleanEmail && !list.includes(cleanEmail)) list.push(cleanEmail);
+      if (!list.includes(userId)) list.push(userId);
+      localStorage.setItem('topson_purged_accounts', JSON.stringify(list));
+    } catch {
+      // ignore
+    }
+  } catch (err) {
+    console.warn('purgeUserPermanentlyInDb error:', err);
+  }
+}
+
+export async function deleteUserFromDb(userId: string, email?: string): Promise<void> {
+  await purgeUserPermanentlyInDb(userId, email);
 }
 
 export async function awardFanBadgeInDb(userId: string, isTopFan: boolean = true): Promise<void> {

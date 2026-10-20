@@ -148,7 +148,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         }).catch((err) => console.warn('Background deletion email error:', err));
       }
 
-      await deleteUserFromDb(userId);
+      await deleteUserFromDb(userId, targetUser?.email);
       setUsersList((prev) => prev.filter((u) => u.id !== userId));
       if (onUserCountChange) {
         onUserCountChange(Math.max(0, usersList.length - 1));
@@ -299,110 +299,110 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         </button>
       </div>
 
-      {/* Glassmorphic KPI Cards */}
+      {/* Light White Mode KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
         <div
           onClick={() => setSelectedFilter('all')}
-          className={`p-4 rounded-2xl bg-slate-950/40 backdrop-blur-xl border transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl bg-white border transition-all cursor-pointer ${
             selectedFilter === 'all'
-              ? 'border-orange-500/80 shadow-[0_0_20px_rgba(249,115,22,0.25)] ring-1 ring-orange-500/40'
-              : 'border-slate-800 hover:border-slate-700 shadow-sm'
+              ? 'border-orange-500 shadow-sm ring-1 ring-orange-500/40'
+              : 'border-slate-200 hover:border-slate-300 shadow-xs'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
               Total Users
             </span>
-            <Users className="w-4 h-4 text-slate-500" />
+            <Users className="w-4 h-4 text-slate-400" />
           </div>
-          <span className="text-2xl font-black text-white mt-1 block">{totalUsers}</span>
+          <span className="text-2xl font-black text-slate-900 mt-1 block">{totalUsers}</span>
           <span className="text-[10px] text-slate-500 font-medium">All accounts</span>
         </div>
 
         <div
           onClick={() => setSelectedFilter('top_fans')}
-          className={`p-4 rounded-2xl bg-slate-950/40 backdrop-blur-xl border transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl bg-white border transition-all cursor-pointer ${
             selectedFilter === 'top_fans'
-              ? 'border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
-              : 'border-slate-800 hover:border-amber-500/40 shadow-sm'
+              ? 'border-amber-500 shadow-sm ring-1 ring-amber-500/40'
+              : 'border-slate-200 hover:border-amber-400 shadow-xs'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
               Active Top Fans
             </span>
-            <span className="text-amber-400">⭐</span>
+            <span className="text-amber-500">⭐</span>
           </div>
-          <span className="text-2xl font-black text-amber-400 mt-1 block">{topFansCount}</span>
-          <span className="text-[10px] text-amber-400/70 font-medium">Live badge assigned</span>
+          <span className="text-2xl font-black text-amber-600 mt-1 block">{topFansCount}</span>
+          <span className="text-[10px] text-amber-700/70 font-medium">Star assigned</span>
         </div>
 
         <div
           onClick={() => setSelectedFilter('pending')}
-          className={`p-4 rounded-2xl bg-slate-950/40 backdrop-blur-xl border transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl bg-white border transition-all cursor-pointer ${
             selectedFilter === 'pending'
-              ? 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.3)] ring-1 ring-orange-500/40'
-              : 'border-slate-800 hover:border-orange-500/40 shadow-sm'
+              ? 'border-orange-500 shadow-sm ring-1 ring-orange-500/40'
+              : 'border-slate-200 hover:border-orange-400 shadow-xs'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">
               Pending
             </span>
-            <Clock className="w-4 h-4 text-orange-400" />
+            <Clock className="w-4 h-4 text-orange-500" />
           </div>
-          <span className="text-2xl font-black text-orange-400 mt-1 block">{pendingBadgesCount}</span>
-          <span className="text-[10px] text-orange-400/70 font-medium">Awaiting acceptance</span>
+          <span className="text-2xl font-black text-orange-600 mt-1 block">{pendingBadgesCount}</span>
+          <span className="text-[10px] text-orange-700/70 font-medium">Awaiting acceptance</span>
         </div>
 
         <div
           onClick={() => setSelectedFilter('loyal')}
-          className={`p-4 rounded-2xl bg-slate-950/40 backdrop-blur-xl border transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl bg-white border transition-all cursor-pointer ${
             selectedFilter === 'loyal'
-              ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)] ring-1 ring-emerald-500/40'
-              : 'border-slate-800 hover:border-emerald-500/40 shadow-sm'
+              ? 'border-emerald-500 shadow-sm ring-1 ring-emerald-500/40'
+              : 'border-slate-200 hover:border-emerald-400 shadow-xs'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
               Loyal (3+ Visits)
             </span>
-            <span className="text-emerald-400">🔥</span>
+            <span className="text-emerald-500">🔥</span>
           </div>
-          <span className="text-2xl font-black text-emerald-400 mt-1 block">{loyalUsersCount}</span>
-          <span className="text-[10px] text-emerald-400/70 font-medium">Active retention</span>
+          <span className="text-2xl font-black text-emerald-600 mt-1 block">{loyalUsersCount}</span>
+          <span className="text-[10px] text-emerald-700/70 font-medium">Active retention</span>
         </div>
 
         <div
           onClick={() => setSelectedFilter('suspended')}
-          className={`p-4 rounded-2xl bg-slate-950/40 backdrop-blur-xl border transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl bg-white border transition-all cursor-pointer ${
             selectedFilter === 'suspended'
-              ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)] ring-1 ring-red-500/40'
-              : 'border-slate-800 hover:border-red-500/40 shadow-sm'
+              ? 'border-red-500 shadow-sm ring-1 ring-red-500/40'
+              : 'border-slate-200 hover:border-red-400 shadow-xs'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
               Suspended
             </span>
-            <span className="text-red-400">🛑</span>
+            <span className="text-red-500">🛑</span>
           </div>
-          <span className="text-2xl font-black text-red-400 mt-1 block">{suspendedCount}</span>
-          <span className="text-[10px] text-red-400/70 font-medium">Restricted access</span>
+          <span className="text-2xl font-black text-red-600 mt-1 block">{suspendedCount}</span>
+          <span className="text-[10px] text-red-600/70 font-medium">Restricted access</span>
         </div>
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 bg-slate-950/40 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div className="relative flex-1">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search users by name, email, or User ID..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all font-medium"
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all font-medium"
           />
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5 pointer-events-none" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
@@ -413,8 +413,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               onClick={() => setSelectedFilter(filterKey)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer capitalize ${
                 selectedFilter === filterKey
-                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-[0_0_12px_rgba(249,115,22,0.4)]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {filterKey === 'all'
@@ -431,17 +431,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         </div>
       </div>
 
-      {/* Users List Container (Glassmorphic Table) */}
-      <div className="rounded-3xl bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-2xl overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+      {/* Users List Container (Clean White Surface Table) */}
+      <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden text-slate-900">
+        <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-orange-400" />
-            <span className="text-xs sm:text-sm font-bold text-white">
+            <Users className="w-4 h-4 text-orange-600" />
+            <span className="text-xs sm:text-sm font-bold text-slate-900">
               User Accounts Directory ({filteredUsers.length})
             </span>
           </div>
-          <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
-            Click user name for full details modal &bull; Assign Top Fan &bull; Send automated Gmail alerts
+          <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
+            Click user name for full details modal &bull; Assign Star &bull; Send automated Gmail alerts
           </span>
         </div>
 
@@ -457,7 +457,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               : 'No registered user accounts found for this filter.'}
           </div>
         ) : (
-          <div className="divide-y divide-slate-800/80">
+          <div className="divide-y divide-slate-200">
             {filteredUsers.map((u) => {
               const visits = u.visitsCount || 1;
               const isLoyal = visits >= 3;
@@ -469,12 +469,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                 <div
                   key={u.id}
                   className={`p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-colors ${
-                    isSuspended ? 'bg-red-950/10 opacity-75' : 'hover:bg-slate-900/50'
+                    isSuspended ? 'bg-red-50/60' : 'hover:bg-slate-50/80'
                   }`}
                 >
                   {/* Left: User Identity Info with Clickable Name */}
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center shrink-0 border border-slate-700 shadow-2xs relative overflow-hidden">
+                    <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs relative overflow-hidden">
                       <img
                         src={u.avatarUrl || (isThisAdmin ? TOPSON_PROFILE_IMAGE : `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80`)}
                         alt={u.username}
@@ -487,7 +487,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                       {isTopFan && (
                         <span
                           className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-[10px] font-black shadow-2xs"
-                          title="Top Fan"
+                          title="Top Fan Star"
                         >
                           ⭐
                         </span>
@@ -500,64 +500,64 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                         <button
                           type="button"
                           onClick={() => setSelectedUserForDetails(u)}
-                          className="text-sm font-bold text-white hover:text-orange-400 transition-colors flex items-center gap-1 cursor-pointer group text-left truncate"
+                          className="text-sm font-bold text-slate-900 hover:text-orange-600 transition-colors flex items-center gap-1 cursor-pointer group text-left truncate"
                           title={`Click to view complete Firestore profile & activity breakdown for ${u.username}`}
                         >
                           <span className="group-hover:underline underline-offset-2">{u.username}</span>
-                          <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-orange-400 opacity-60 group-hover:opacity-100 shrink-0" />
+                          <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-orange-600 opacity-60 group-hover:opacity-100 shrink-0" />
                         </button>
 
                         {/* Role Badge */}
                         {isThisAdmin ? (
-                          <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-black uppercase tracking-wide border border-orange-500/40">
+                          <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-black uppercase tracking-wide border border-orange-300">
                             Admin
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-semibold border border-slate-700">
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold border border-slate-200">
                             Member
                           </span>
                         )}
 
-                        {/* 3. PREMIUM TOP FAN BADGE COMPONENT */}
+                        {/* 3. PREMIUM TOP FAN STAR COMPONENT (NO STRING WORD) */}
                         {isTopFan && (
                           <TopFanBadge size="xs" />
                         )}
 
                         {/* Top Fan Pending Acceptance */}
                         {u.fanBadgeOffered && !isTopFan && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-300 text-[10px] font-bold">
                             <span>⏳</span> Offered
                           </span>
                         )}
 
                         {/* Account Status Badge */}
                         {isSuspended ? (
-                          <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/40">
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold border border-red-300">
                             Suspended
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/40">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-300">
                             Active
                           </span>
                         )}
                       </div>
 
-                      <div className="text-xs text-slate-400 truncate flex items-center gap-2 mt-1">
+                      <div className="text-xs text-slate-500 truncate flex items-center gap-2 mt-1">
                         <span className="truncate">{u.email || 'No email registered'}</span>
                         <span>&bull;</span>
-                        <span className="text-[11px] text-slate-500">{u.joinedDate || 'Recently joined'}</span>
+                        <span className="text-[11px] text-slate-400">{u.joinedDate || 'Recently joined'}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Right: Engagement Stats & Admin Action Buttons */}
-                  <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
+                  <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-200">
                     {/* Visits Badge */}
                     <span
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
                         isLoyal
-                          ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40'
-                          : 'bg-slate-900 text-slate-300 border border-slate-800'
+                          ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
                       }`}
                       title={`${visits} site visits recorded`}
                     >
@@ -570,20 +570,21 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                     {/* Admin Actions (Disabled for admin self-account) */}
                     {!isThisAdmin ? (
                       <div className="flex items-center gap-2">
-                        {/* 3. ASSIGN TOP FAN BADGE BUTTON & AUTOMATED GMAIL DISPATCH */}
+                        {/* 3. ASSIGN TOP FAN STAR BUTTON & AUTOMATED GMAIL DISPATCH */}
                         {!isTopFan ? (
                           <button
                             type="button"
                             onClick={() => handleAwardFanBadge(u.id, u.username)}
-                            className="h-8 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-bold transition-all shadow-[0_0_12px_rgba(245,158,11,0.35)] flex items-center gap-1.5 cursor-pointer active:scale-95"
-                            title="Award official Top Fan badge and dispatch branded celebration email"
+                            className="h-8 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                            title="Award official Top Fan star and dispatch branded notification email"
                           >
                             <Award className="w-3.5 h-3.5" />
-                            <span>Award Top Fan</span>
+                            <span>Award Star</span>
                           </button>
                         ) : (
-                          <span className="h-8 px-2.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1 shadow-2xs">
-                            <span>⭐ Top Fan Active</span>
+                          <span className="h-8 px-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                            <TopFanBadge size="xs" />
+                            <span>Star Active</span>
                           </span>
                         )}
 
@@ -593,19 +594,19 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                           onClick={() => handleToggleAccountStatus(u.id, u.username)}
                           className={`h-8 px-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
                             isSuspended
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                              : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                           }`}
                           title={isSuspended ? 'Reactivate user account' : 'Suspend user account and send email alert'}
                         >
                           {isSuspended ? (
                             <>
-                              <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
                               <span>Activate</span>
                             </>
                           ) : (
                             <>
-                              <UserX className="w-3.5 h-3.5 text-slate-400" />
+                              <UserX className="w-3.5 h-3.5 text-slate-500" />
                               <span>Suspend</span>
                             </>
                           )}
@@ -615,15 +616,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteUser(u.id, u.username)}
-                          className="h-8 px-2.5 rounded-xl text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 border border-red-500/30 hover:border-red-600 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
-                          title="Permanently delete user account and dispatch status update email"
+                          className="h-8 px-2.5 rounded-xl text-red-600 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 hover:border-red-600 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                          title="Permanently purge user account and credentials"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           <span className="hidden sm:inline">Delete</span>
                         </button>
                       </div>
                     ) : (
-                      <span className="text-xs text-slate-500 italic font-medium px-2">
+                      <span className="text-xs text-slate-400 italic font-medium px-2">
                         Host Account
                       </span>
                     )}

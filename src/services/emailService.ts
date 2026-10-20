@@ -109,13 +109,13 @@ export async function sendTopFanBadgeEmail(options: {
   to: string;
   username: string;
 }) {
-  const { to, username } = options;
+  const { to } = options;
 
   return dispatchAutomatedEmail({
     to,
     subject: 'Top Fan Badge Awarded! - Topson Media',
     type: 'top_fan_badge',
-    actionMessage: `Hello ${username}, Congratulation you got Top fan badge from Topson Media keep going.`,
+    actionMessage: 'wakiriye topfan badge ivuye kuri admin Topson Media komereza aho',
     senderName: 'Topson Media',
   });
 }

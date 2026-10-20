@@ -221,8 +221,8 @@ app.post('/api/send-email', async (req: Request, res: Response) => {
 
     // 3. INSTANT TOP FAN BADGE ASSIGNMENT EMAIL
     else if (type === 'top_fan_badge') {
-      const greeting = 'Congratulation you got Top fan badge from Topson Media keep going';
-      finalText = `${greeting}\n\nThank you for being an active and valued member of the Topson Media community!`;
+      const greeting = 'wakiriye topfan badge ivuye kuri admin Topson Media komereza aho';
+      finalText = `${greeting}\n\nTopson Media Official Support`;
       finalHtml =
         html ||
         compileBrandedEmailHtml({
@@ -234,14 +234,14 @@ app.post('/api/send-email', async (req: Request, res: Response) => {
                 ⭐ Official Top Fan Award ⭐
               </span>
             </div>
-            <h2 style="text-align: center; color: #ffffff; font-size: 22px; font-weight: 900; line-height: 1.4;">
-              Congratulation you got Top fan badge from Topson Media keep going
+            <h2 style="text-align: center; color: #ffffff; font-size: 20px; font-weight: 800; line-height: 1.5;">
+              wakiriye topfan badge ivuye kuri admin Topson Media komereza aho
             </h2>
-            <div class="message-box" style="border-left-color: #f59e0b; text-align: center; font-size: 15px;">
-              Your loyalty, active viewership, and continuous support have earned you the coveted <strong>TOP FAN</strong> badge!
+            <div class="message-box" style="border-left-color: #f59e0b; text-align: center; font-size: 14.5px;">
+              wakiriye topfan badge ivuye kuri admin Topson Media komereza aho
             </div>
-            <p style="text-align: center; color: #cbd5e1; font-size: 14px;">
-              Your exclusive gold Top Fan badge is now active across all videos, live chats, and community feedback discussions. Keep exploring, sharing, and mastering new tech skills with us!
+            <p style="text-align: center; color: #cbd5e1; font-size: 13px;">
+              Your exclusive gold star badge (⭐) is now active across all videos, live chats, and community feedback discussions. Keep exploring, sharing, and mastering new tech skills with us!
             </p>
           `,
           includeAvatarHeader: true,

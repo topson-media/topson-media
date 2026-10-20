@@ -66,6 +66,7 @@ export interface FeedbackItem {
   hidden?: boolean;
   hasFanBadge?: boolean;
   isTopFan?: boolean;
+  isPinned?: boolean;
   replies?: FeedbackReply[];
   text?: string;
   user?: string;
