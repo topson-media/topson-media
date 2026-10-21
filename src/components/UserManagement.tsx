@@ -187,12 +187,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({
           username: targetUser?.username || username,
         });
         showToast(
-          `Official TOP FAN badge active for "${username}"! Branded celebration email dispatched to ${recipientEmail}.`,
+          `Official Star badge (⭐) active for "${username}"! Branded celebration email dispatched to ${recipientEmail}.`,
           'success'
         );
       } else {
         showToast(
-          `Official TOP FAN badge graphics component is now active for "${username}" across the whole website!`,
+          `Official Star badge (⭐) is now active for "${username}" across the whole website!`,
           'success'
         );
       }

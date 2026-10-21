@@ -36,6 +36,7 @@ interface CommunitySectionProps {
   onAddReplyFeedback?: (feedbackId: string, reply: FeedbackReply) => void;
   onDeleteFeedback?: (feedbackId: string) => void;
   onHideFeedback?: (feedbackId: string, hidden: boolean) => void;
+  onTogglePinFeedback?: (feedbackId: string, isPinned: boolean) => void;
   isStandalonePage?: boolean;
 }
 
@@ -47,6 +48,7 @@ interface FeedbackCardProps {
   onAddReplyFeedback?: (feedbackId: string, reply: FeedbackReply) => void;
   onDeleteFeedback?: (feedbackId: string) => void;
   onHideFeedback?: (feedbackId: string, hidden: boolean) => void;
+  onTogglePinFeedback?: (feedbackId: string, isPinned: boolean) => void;
   activeReplyId: string | null;
   setActiveReplyId: (id: string | null) => void;
   replyTextMap: Record<string, string>;
@@ -63,6 +65,7 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
   onAddReplyFeedback,
   onDeleteFeedback,
   onHideFeedback,
+  onTogglePinFeedback,
   activeReplyId,
   setActiveReplyId,
   replyTextMap,
@@ -144,6 +147,12 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
                 </h4>
                 {hasFanBadge && (
                   <TopFanBadge size="xs" />
+                )}
+                {fb.isPinned && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold shadow-2xs">
+                    <span>📌</span>
+                    <span>Pinned</span>
+                  </span>
                 )}
               </div>
               <p className="text-[11px] text-neutral-500 font-medium">
@@ -259,6 +268,20 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
           {/* Admin moderation */}
           {currentUser?.role === 'admin' && (
             <div className="flex items-center gap-1">
+              {onTogglePinFeedback && (
+                <button
+                  type="button"
+                  onClick={() => onTogglePinFeedback(fb.id, !fb.isPinned)}
+                  className={`p-1 rounded-md transition-colors cursor-pointer ${
+                    fb.isPinned
+                      ? 'text-amber-700 bg-amber-100 hover:bg-amber-200'
+                      : 'text-neutral-500 hover:text-amber-600 hover:bg-neutral-100'
+                  }`}
+                  title={fb.isPinned ? 'Unpin feedback' : 'Pin feedback to top'}
+                >
+                  <span className="text-xs">📌</span>
+                </button>
+              )}
               {onHideFeedback && (
                 <button
                   type="button"
@@ -300,12 +323,16 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
   onAddReplyFeedback,
   onDeleteFeedback,
   onHideFeedback,
+  onTogglePinFeedback,
   isStandalonePage = false,
 }) => {
   const { t, language } = useLanguage();
 
   // View mode: 'carousel' or 'grid'
   const [viewMode, setViewMode] = useState<'carousel' | 'grid'>(isStandalonePage ? 'grid' : 'carousel');
+
+  // Sorting mode: 'top' (highest likes & rating) vs 'new' (most recent)
+  const [sortMode, setSortMode] = useState<'top' | 'new'>('top');
 
   // State handling logic as required:
   // Toggle (const [showInput, setShowInput] = useState(false))
@@ -326,6 +353,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
 
   // Filter out hidden reviews for regular visitors; Admin sees all
   // Deduplicate by unique Firestore document ID as key component mapper to stop ghost duplicate displays
+  // Prioritize pinned feedbacks to always float to the very top position
   const visibleFeedbacks = React.useMemo(() => {
     const list: FeedbackItem[] = feedbacks;
     const seen = new Set<string>();
@@ -336,9 +364,26 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
         deduplicated.push(fb);
       }
     }
-    if (currentUser?.role === 'admin') return deduplicated;
-    return deduplicated.filter((fb) => !fb.hidden);
-  }, [feedbacks, currentUser]);
+    const filtered = currentUser?.role === 'admin' ? deduplicated : deduplicated.filter((fb) => !fb.hidden);
+
+    return [...filtered].sort((a, b) => {
+      // Force pinned feedbacks to always float directly to the very top position
+      const aPinned = a.isPinned ? 1 : 0;
+      const bPinned = b.isPinned ? 1 : 0;
+      if (aPinned !== bPinned) {
+        return bPinned - aPinned;
+      }
+      if (sortMode === 'top') {
+        const aScore = (a.likesCount ?? a.likes ?? 0) * 2 + (a.rating ?? 5);
+        const bScore = (b.likesCount ?? b.likes ?? 0) * 2 + (b.rating ?? 5);
+        return bScore - aScore;
+      } else {
+        const aTime = typeof a.createdAt === 'number' ? a.createdAt : (a.timestamp ? new Date(a.timestamp).getTime() : 0);
+        const bTime = typeof b.createdAt === 'number' ? b.createdAt : (b.timestamp ? new Date(b.timestamp).getTime() : 0);
+        return bTime - aTime;
+      }
+    });
+  }, [feedbacks, currentUser, sortMode]);
 
   // Keep currentIndex within bounds
   React.useEffect(() => {
@@ -568,6 +613,34 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
               </button>
             </div>
 
+            {/* 6. Sorting Filters: "Top" and "New" */}
+            <div className="flex items-center p-1 rounded-xl bg-neutral-100 border border-neutral-200 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setSortMode('top')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  sortMode === 'top'
+                    ? 'bg-white text-orange-600 shadow-xs'
+                    : 'text-neutral-500 hover:text-neutral-900'
+                }`}
+                title="Sort by top rated and liked"
+              >
+                Top
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortMode('new')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  sortMode === 'new'
+                    ? 'bg-white text-orange-600 shadow-xs'
+                    : 'text-neutral-500 hover:text-neutral-900'
+                }`}
+                title="Sort by newly posted"
+              >
+                New
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={handleToggleInput}
@@ -786,6 +859,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                   onAddReplyFeedback={onAddReplyFeedback}
                   onDeleteFeedback={onDeleteFeedback}
                   onHideFeedback={onHideFeedback}
+                  onTogglePinFeedback={onTogglePinFeedback}
                   activeReplyId={activeReplyId}
                   setActiveReplyId={setActiveReplyId}
                   replyTextMap={replyTextMap}
@@ -846,6 +920,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                       onAddReplyFeedback={onAddReplyFeedback}
                       onDeleteFeedback={onDeleteFeedback}
                       onHideFeedback={onHideFeedback}
+                      onTogglePinFeedback={onTogglePinFeedback}
                       activeReplyId={activeReplyId}
                       setActiveReplyId={setActiveReplyId}
                       replyTextMap={replyTextMap}

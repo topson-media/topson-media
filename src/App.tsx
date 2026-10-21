@@ -36,6 +36,7 @@ import {
   deleteFeedbackFromDb,
   toggleLikeFeedbackInDb,
   hideFeedbackInDb,
+  togglePinFeedbackInDb,
   subscribeToMessages,
   sendMessageToDb,
   deleteMessageFromDb,
@@ -437,6 +438,18 @@ export default function App() {
       await hideFeedbackInDb(feedbackId, hidden);
     } catch (err) {
       console.warn('Firestore hideFeedback fallback:', err);
+    }
+  };
+
+  // Pin or unpin feedback (Admin control, sets isPinned)
+  const handleTogglePinFeedback = async (feedbackId: string, isPinned: boolean) => {
+    try {
+      await togglePinFeedbackInDb(feedbackId, isPinned);
+      setFeedbacks((prev) =>
+        prev.map((fb) => (fb.id === feedbackId ? { ...fb, isPinned } : fb))
+      );
+    } catch (err) {
+      console.warn('handleTogglePinFeedback error:', err);
     }
   };
 
@@ -850,7 +863,7 @@ export default function App() {
                   No empty layout spacers or huge margins; pulls About Me directly upward into the viewport. */}
               <div
                 id="hero-container"
-                className="w-full min-h-[85vh] h-auto flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#0e0e12] to-[#050507] relative pb-6 sm:pb-8 md:pb-10"
+                className="w-full min-h-[85vh] h-auto flex flex-col justify-between overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/90 text-slate-900 border-b border-slate-200/90 relative pb-6 sm:pb-8 md:pb-10"
               >
                 {/* Position the Navbar at the very top relative with clean layout padding */}
                 <div className="w-full relative z-40 pt-1.5 sm:pt-2 md:pt-3 px-2 sm:px-4 md:px-6 lg:px-8">
@@ -863,7 +876,7 @@ export default function App() {
                     matchingCount={matchingCount}
                     activeNav={activeNav}
                     onNavClick={handleNavClick}
-                    integratedDark={true}
+                    integratedDark={false}
                   />
                 </div>
 
@@ -910,6 +923,7 @@ export default function App() {
                 onAddReplyFeedback={handleAddReplyFeedback}
                 onDeleteFeedback={handleDeleteFeedback}
                 onHideFeedback={handleHideFeedback}
+                onTogglePinFeedback={handleTogglePinFeedback}
               />
 
               {/* Live Chat Section */}

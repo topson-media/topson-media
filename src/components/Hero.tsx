@@ -25,28 +25,28 @@ export const Hero: React.FC<HeroProps> = ({
       id="hero"
       className={
         isFullScreenIntegrated
-          ? 'relative overflow-hidden w-full h-auto flex flex-col justify-center items-center text-white my-auto py-4 sm:py-6 md:py-8'
-          : 'relative overflow-hidden py-8 md:py-12 bg-gradient-to-b from-[#070709] via-[#0c0d12] to-[#07070a] text-white border-b border-neutral-800/80 scroll-mt-20'
+          ? 'relative overflow-hidden w-full h-auto flex flex-col justify-center items-center text-slate-900 my-auto py-4 sm:py-6 md:py-8'
+          : 'relative overflow-hidden py-8 md:py-12 bg-gradient-to-b from-slate-50 via-white to-slate-100/90 text-slate-900 border-b border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] scroll-mt-20'
       }
     >
       {/* FLOATING TECH PARTICLES & AMBIENT GLOWING SPARKS */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         {/* Subtle high-tech grid mesh */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-70" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-80" />
 
         {/* Ambient floating tech sparks */}
         <span className="absolute top-1/4 left-[12%] w-1.5 h-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_#f97316] animate-particle-1" />
         <span className="absolute top-2/3 left-[22%] w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_12px_#fbbf24] animate-particle-2" />
-        <span className="absolute top-1/3 left-[45%] w-1 h-1 rounded-full bg-orange-300 shadow-[0_0_8px_#f97316] animate-particle-3" />
+        <span className="absolute top-1/3 left-[45%] w-1 h-1 rounded-full bg-orange-400 shadow-[0_0_8px_#f97316] animate-particle-3" />
         <span className="absolute bottom-1/4 left-[32%] w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316] animate-particle-4" />
         <span className="absolute top-1/5 right-[18%] w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_12px_#f97316] animate-particle-2" />
-        <span className="absolute bottom-1/3 right-[28%] w-1 h-1 rounded-full bg-amber-300 shadow-[0_0_8px_#f59e0b] animate-particle-1" />
+        <span className="absolute bottom-1/3 right-[28%] w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-particle-1" />
         <span className="absolute top-1/2 right-[42%] w-1.5 h-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_#f97316] animate-particle-3" />
       </div>
 
       {/* SOFT GLOWING ORANGE/NEON RADIAL GRADIENT BACKDROP */}
       <div
-        className="absolute right-0 lg:right-4 top-1/2 -translate-y-1/2 w-[260px] sm:w-[380px] md:w-[480px] lg:w-[620px] h-[260px] sm:h-[380px] md:h-[480px] lg:h-[620px] bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.22)_0%,rgba(249,115,22,0.08)_40%,transparent_70%)] blur-3xl pointer-events-none"
+        className="absolute right-0 lg:right-4 top-1/2 -translate-y-1/2 w-[260px] sm:w-[380px] md:w-[480px] lg:w-[620px] h-[260px] sm:h-[380px] md:h-[480px] lg:h-[620px] bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.14)_0%,rgba(249,115,22,0.05)_40%,transparent_70%)] blur-3xl pointer-events-none"
         aria-hidden="true"
       />
 
@@ -65,30 +65,30 @@ export const Hero: React.FC<HeroProps> = ({
               : 'space-y-2.5 sm:space-y-3.5 md:space-y-4 lg:space-y-6'
           }`}>
 
-            {/* Top tag with smooth fade-in reveal animation and neon pill badge */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] sm:text-[11px] md:text-xs font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(249,115,22,0.2)] animate-in fade-in slide-in-from-top-2 duration-700">
+            {/* Top tag with smooth fade-in reveal animation and light pill badge */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-[10px] sm:text-[11px] md:text-xs font-semibold tracking-wider uppercase shadow-xs animate-in fade-in slide-in-from-top-2 duration-700">
               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500 animate-pulse" />
               <span>{t.hero.kicker}</span>
             </div>
 
-            {/* Main Headline: PREMIUM DYNAMIC GEOMETRIC TYPOGRAPHY OVERHAUL */}
-            <h1 className="font-sans font-black tracking-tight uppercase text-4xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-white to-orange-500 transition-all duration-300 leading-tight">
-              I&apos;M TOPSON MEDIA
+            {/* Main Headline: CLEAN LIGHT VIBRANT TYPOGRAPHY WITH BALANCED SIZING */}
+            <h1 className="font-sans font-extrabold tracking-tight uppercase text-3xl sm:text-4xl md:text-5xl text-slate-900 transition-all duration-300 leading-tight">
+              I&apos;M <span className="text-orange-600 bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600">TOPSON MEDIA</span>
             </h1>
 
             {/* 1. MOBILE VIEWPORT OPTIMIZATION: COMPLETELY HIDE description text on mobile using hidden md:block */}
-            <p className="hidden md:block text-xs sm:text-sm md:text-base lg:text-lg text-neutral-300 max-w-lg leading-relaxed font-normal">
+            <p className="hidden md:block text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 max-w-lg leading-relaxed font-normal">
               {t.hero.subtext}
             </p>
 
             {/* 2. GLOBAL BRANDED BUTTONS: Watch Tutorials, Subscribe, and Live Chat */}
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-2.5 md:gap-3 w-full sm:w-auto pt-0.5 sm:pt-1">
               
-              {/* "Watch tutorials" button with official YouTube play icon vector & striking neon-orange pulse glowing shadow */}
+              {/* "Watch tutorials" button */}
               <button
                 type="button"
                 onClick={onWatchTutorials}
-                className="h-10 sm:h-11 md:h-12 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-black text-white bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 rounded-xl shadow-[0_0_15px_rgba(249,115,22,0.5)] hover:shadow-[0_0_35px_rgba(249,115,22,0.7)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer inline-flex items-center justify-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial shrink-0"
+                className="h-10 sm:h-11 md:h-12 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 rounded-xl shadow-md shadow-orange-500/25 hover:shadow-lg hover:shadow-orange-500/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer inline-flex items-center justify-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial shrink-0"
               >
                 {/* Official YouTube Play Icon Vector */}
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white shrink-0" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@ export const Hero: React.FC<HeroProps> = ({
               <button
                 type="button"
                 onClick={() => window.open('https://youtube.com', '_blank')}
-                className="h-10 sm:h-11 md:h-12 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-black text-white bg-[#FF0000] hover:bg-[#e60000] rounded-xl shadow-[0_0_15px_rgba(255,0,0,0.55)] hover:shadow-[0_0_28px_rgba(255,0,0,0.85)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer inline-flex items-center justify-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial shrink-0"
+                className="h-10 sm:h-11 md:h-12 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-bold text-white bg-[#FF0000] hover:bg-[#e60000] rounded-xl shadow-md shadow-red-500/25 hover:shadow-lg hover:shadow-red-500/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer inline-flex items-center justify-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial shrink-0"
                 title="Subscribe to official channel on YouTube"
               >
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white shrink-0" viewBox="0 0 24 24">
@@ -110,24 +110,24 @@ export const Hero: React.FC<HeroProps> = ({
                 <span>Subscribe</span>
               </button>
 
-              {/* "Live Chat" button with futuristic transparent cyber-border style turning neon-orange on hover */}
+              {/* "Live Chat" button with high-contrast light theme style */}
               <button
                 type="button"
                 onClick={onLiveChat}
-                className="h-10 sm:h-11 md:h-12 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-bold text-white bg-neutral-900/80 backdrop-blur-md border border-neutral-700/80 hover:border-orange-500 hover:bg-orange-500/15 hover:shadow-[0_0_20px_rgba(249,115,22,0.45)] hover:text-orange-400 active:scale-[0.98] rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer inline-flex items-center justify-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial shrink-0"
+                className="h-10 sm:h-11 md:h-12 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:border-orange-500 hover:bg-orange-50/70 hover:text-orange-600 active:scale-[0.98] rounded-xl shadow-xs transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer inline-flex items-center justify-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial shrink-0"
               >
                 <span>{t.hero.liveChat}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                <ArrowRight className="w-3.5 h-3.5 text-orange-500 shrink-0" />
               </button>
             </div>
 
             {/* Bottom-left Micro Profile Badge & Scroll Prompt - Compact layout */}
-            <div className={`border-t border-neutral-800/80 w-full flex flex-row items-center justify-between gap-2 sm:gap-4 ${
+            <div className={`border-t border-slate-200/80 w-full flex flex-row items-center justify-between gap-2 sm:gap-4 ${
               isFullScreenIntegrated ? 'pt-2 sm:pt-2.5 md:pt-3' : 'pt-2.5 sm:pt-3 md:pt-4'
             }`}>
               <div className="flex items-center gap-2 sm:gap-2.5">
                 <div className="relative shrink-0">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-neutral-900 shadow-sm shadow-orange-500/30">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-white shadow-xs">
                     <img
                       src={TOPSON_PROFILE_IMAGE}
                       alt="Topson Media Profile"
@@ -147,7 +147,7 @@ export const Hero: React.FC<HeroProps> = ({
                     href="https://www.youtube.com/@topson-media1"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-neutral-900/90 border border-neutral-700/80 hover:border-orange-500/80 hover:bg-orange-500/15 text-neutral-300 hover:text-orange-400 hover:shadow-[0_0_12px_rgba(249,115,22,0.5)] transition-all duration-300 flex items-center justify-center group active:scale-95"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white border border-slate-200 hover:border-orange-500 hover:bg-orange-50 text-slate-600 hover:text-orange-600 shadow-xs transition-all duration-300 flex items-center justify-center group active:scale-95"
                     title="YouTube channel"
                     aria-label="Topson Media on YouTube"
                   >
@@ -161,7 +161,7 @@ export const Hero: React.FC<HeroProps> = ({
                     href="https://tiktok.com/@topsonmedia"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-neutral-900/90 border border-neutral-700/80 hover:border-orange-500/80 hover:bg-orange-500/15 text-neutral-300 hover:text-orange-400 hover:shadow-[0_0_12px_rgba(249,115,22,0.5)] transition-all duration-300 flex items-center justify-center group active:scale-95"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white border border-slate-200 hover:border-orange-500 hover:bg-orange-50 text-slate-600 hover:text-orange-600 shadow-xs transition-all duration-300 flex items-center justify-center group active:scale-95"
                     title="TikTok profile"
                     aria-label="Topson Media on TikTok"
                   >
@@ -175,7 +175,7 @@ export const Hero: React.FC<HeroProps> = ({
                     href="https://instagram.com/topson.media"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-neutral-900/90 border border-neutral-700/80 hover:border-orange-500/80 hover:bg-orange-500/15 text-neutral-300 hover:text-orange-400 hover:shadow-[0_0_12px_rgba(249,115,22,0.5)] transition-all duration-300 flex items-center justify-center group active:scale-95"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white border border-slate-200 hover:border-orange-500 hover:bg-orange-50 text-slate-600 hover:text-orange-600 shadow-xs transition-all duration-300 flex items-center justify-center group active:scale-95"
                     title="Instagram profile"
                     aria-label="Topson Media on Instagram"
                   >
@@ -189,7 +189,7 @@ export const Hero: React.FC<HeroProps> = ({
                     href="https://www.facebook.com/etienne.topson.kenedy"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-neutral-900/90 border border-neutral-700/80 hover:border-orange-500/80 hover:bg-orange-500/15 text-neutral-300 hover:text-orange-400 hover:shadow-[0_0_12px_rgba(249,115,22,0.5)] transition-all duration-300 flex items-center justify-center group active:scale-95"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white border border-slate-200 hover:border-orange-500 hover:bg-orange-50 text-slate-600 hover:text-orange-600 shadow-xs transition-all duration-300 flex items-center justify-center group active:scale-95"
                     title="Facebook page"
                     aria-label="Topson Media on Facebook"
                   >
@@ -203,11 +203,11 @@ export const Hero: React.FC<HeroProps> = ({
               <button
                 type="button"
                 onClick={onExploreScroll}
-                className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-neutral-400 hover:text-orange-400 transition-colors cursor-pointer shrink-0"
+                className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase text-slate-500 hover:text-orange-600 transition-colors cursor-pointer shrink-0"
               >
                 <span className="hidden xs:inline">SCROLL</span>
                 <span className="xs:hidden">MORE</span>
-                <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-400 animate-bounce" />
+                <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-500 animate-bounce" />
               </button>
             </div>
 
@@ -221,11 +221,11 @@ export const Hero: React.FC<HeroProps> = ({
                 : 'w-36 h-36 sm:w-44 sm:h-44 md:w-60 md:h-60 lg:w-[420px] lg:h-[420px]'
             }`}>
 
-              {/* Circular Neon Glow Aura */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-orange-500/35 via-amber-500/20 to-orange-600/30 blur-xl sm:blur-2xl scale-110 pointer-events-none animate-pulse" />
+              {/* Circular Warm Glow Aura */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-orange-500/25 via-amber-500/15 to-orange-600/20 blur-xl sm:blur-2xl scale-105 pointer-events-none animate-pulse" />
 
               {/* Exact Circular Frame with Neon Glow and Smooth Floating Animation */}
-              <div className="animate-float-visibility w-full h-full aspect-square rounded-full overflow-hidden bg-neutral-900 border-[3px] sm:border-4 border-orange-500 shadow-[0_0_35px_rgba(249,115,22,0.55)] ring-2 sm:ring-4 ring-orange-500/30 relative group transition-all duration-500">
+              <div className="animate-float-visibility w-full h-full aspect-square rounded-full overflow-hidden bg-white border-[3px] sm:border-4 border-orange-500 shadow-xl shadow-orange-500/20 ring-2 sm:ring-4 ring-orange-200/50 relative group transition-all duration-500">
                 {/* Official Creator Portrait */}
                 <img
                   src="/welcome.png"

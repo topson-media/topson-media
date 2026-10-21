@@ -96,7 +96,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   const [commentAuthor, setCommentAuthor] = useState('');
 
   // Upload modal state
-  const [uploadType, setUploadType] = useState<'link' | 'device'>('device');
+  const [uploadType, setUploadType] = useState<'link' | 'device'>('link');
   const [videoLink, setVideoLink] = useState('');
   const [selectedFileName, setSelectedFileName] = useState('');
   const [deviceFilePreviewUrl, setDeviceFilePreviewUrl] = useState<string | null>(null);
@@ -104,6 +104,15 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   const [deviceThumbnailName, setDeviceThumbnailName] = useState<string>('');
   const [detectedYouTubeViews, setDetectedYouTubeViews] = useState<string>('');
   const [isDetectingYt, setIsDetectingYt] = useState(false);
+  const [isExpandedGallery, setIsExpandedGallery] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
@@ -375,6 +384,19 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   const displayedVideos = useMemo(() => {
     return filteredVideos;
   }, [filteredVideos]);
+
+  // 4. TWO-ROW VIDEO GRID WITH DYNAMIC "SEE MORE" GATEWAY (All Devices):
+  // Force initial viewport display to strictly render a maximum of TWO ROWS at a time
+  // Mobile (2 cols): 4 cards = 2 rows; Tablet/Desktop (3 cols): 6 cards = 2 rows
+  const initialLimit = isDesktop ? 6 : 4;
+  const visibleVideos = useMemo(() => {
+    if (isExpandedGallery || searchQuery.trim()) {
+      return displayedVideos;
+    }
+    return displayedVideos.slice(0, initialLimit);
+  }, [displayedVideos, isExpandedGallery, searchQuery, initialLimit]);
+
+  const hasMoreVideos = !searchQuery.trim() && displayedVideos.length > initialLimit;
 
   // Video file change from device -> auto-detect duration & name
   const handleDeviceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -749,7 +771,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 w-full">
-            {displayedVideos.map((video) => {
+            {visibleVideos.map((video) => {
               const isExpanded = !!expandedCards[video.id];
               const isLink = isVideoLink(video);
               const isPlaying = activePlayingId === video.id;
@@ -1025,6 +1047,24 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* 4. TWO-ROW VIDEO GRID WITH DYNAMIC "SEE MORE" GATEWAY: Primary action button directly underneath 2nd row */}
+        {hasMoreVideos && (
+          <div className="mt-8 flex justify-center w-full">
+            <button
+              type="button"
+              onClick={() => setIsExpandedGallery(!isExpandedGallery)}
+              className="inline-flex items-center gap-2 px-7 sm:px-9 py-3 rounded-xl font-extrabold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-md shadow-orange-500/25 hover:shadow-lg hover:shadow-orange-500/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+            >
+              <span>{isExpandedGallery ? 'See Less' : 'See More'}</span>
+              {isExpandedGallery ? (
+                <ChevronUp className="w-4 h-4 text-white" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-white" />
+              )}
+            </button>
           </div>
         )}
 

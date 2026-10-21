@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /favicon.ico
+Allow: /welcome.png
+Allow: /sitemap.xml
+Sitemap: https://topson-media.web.app/sitemap.xml

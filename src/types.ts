@@ -70,6 +70,7 @@ export interface FeedbackItem {
   replies?: FeedbackReply[];
   text?: string;
   user?: string;
+  timestamp?: string;
   created_at?: any;
 }
 
