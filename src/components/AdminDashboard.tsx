@@ -32,7 +32,8 @@ import {
   PieChart,
   Heart,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  Radio
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -60,6 +61,8 @@ import { UserManagement } from './UserManagement';
 import { ViewsVsTimeDashboard } from './ViewsVsTimeDashboard';
 import { YouTubeModalPlayer } from './YouTubeModalPlayer';
 import { TopFanBadge } from './TopFanBadge';
+import { LiveStudioCore } from './LiveStudioCore';
+import { SafeAvatar } from './SafeAvatar';
 import { sendInboundReply, sendAccountStatusAlert } from '../services/emailService';
 import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb, db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -106,7 +109,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigateHome,
 }) => {
   // Navigation tabs within Admin Studio
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'chat' | 'messages' | 'reviews' | 'upload' | 'tutorials' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'analytics' | 'chat' | 'messages' | 'reviews' | 'upload' | 'tutorials' | 'users' | 'live'
+  >('overview');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState(false);
   const tabDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -1157,6 +1162,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shrink-0 shadow-xs">
                     {activeTab === 'overview' && <Activity className="w-5 h-5 text-orange-500" />}
                     {activeTab === 'analytics' && <BarChart3 className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'live' && <Radio className="w-5 h-5 text-rose-600 animate-pulse" />}
                     {activeTab === 'chat' && <MessageSquare className="w-5 h-5 text-orange-500" />}
                     {activeTab === 'tutorials' && <Film className="w-5 h-5 text-orange-500" />}
                     {activeTab === 'messages' && <Mail className="w-5 h-5 text-orange-500" />}
@@ -1169,6 +1175,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
                         Admin Workspace
                       </span>
+                      {activeTab === 'live' && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-600 text-white shadow-xs animate-pulse">
+                          STREAM STUDIO
+                        </span>
+                      )}
                       {activeTab === 'messages' && emailMessages.length > 0 && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500 text-white shadow-xs">
                           {emailMessages.length} New
@@ -1193,6 +1204,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight truncate mt-0.5">
                       {activeTab === 'overview' && 'Live Activity & Visitors'}
                       {activeTab === 'analytics' && 'Video Engagement Analytics'}
+                      {activeTab === 'live' && 'Live Studio Core (WebRTC Broadcast)'}
                       {activeTab === 'chat' && 'Live Chat Studio'}
                       {activeTab === 'tutorials' && `Manage Tutorials (${videos.length})`}
                       {activeTab === 'messages' && `Inbound Email Messages (${emailMessages.length})`}
@@ -1219,6 +1231,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span className="truncate">
                           {activeTab === 'overview' && 'Live Activity & Visitors'}
                           {activeTab === 'analytics' && 'Video Engagement'}
+                          {activeTab === 'live' && 'Live Studio Core'}
                           {activeTab === 'chat' && 'Live Chat'}
                           {activeTab === 'tutorials' && 'Manage Tutorials'}
                           {activeTab === 'messages' && 'Inbound Emails'}
@@ -1247,6 +1260,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               label: 'Live Activity & Visitors',
                               desc: 'Real-time telemetry, visitor stream & charts',
                               icon: Activity,
+                            },
+                            {
+                              id: 'live',
+                              label: 'Live Studio Core',
+                              desc: 'WebRTC face-to-face live stream & viewer hub',
+                              icon: Radio,
+                              badge: 'LIVE',
                             },
                             {
                               id: 'analytics',
@@ -1329,7 +1349,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                       {opt.label}
                                     </span>
                                     {opt.badge && (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-slate-100 text-slate-700">
+                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                                        opt.id === 'live' ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-100 text-slate-700'
+                                      }`}>
                                         {opt.badge}
                                       </span>
                                     )}
@@ -1857,13 +1879,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2.5">
-                              {fb.avatarUrl ? (
-                                <img src={fb.avatarUrl} alt={fb.authorName} className="w-9 h-9 rounded-full object-cover border border-slate-200" />
-                              ) : (
-                                <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center border border-slate-200">
-                                  {fb.authorName.slice(0, 1)}
-                                </div>
-                              )}
+                              <SafeAvatar
+                                src={fb.avatarUrl}
+                                name={fb.authorName}
+                                size="sm"
+                              />
                               <div>
                                 <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
                                   <span>{fb.authorName}</span>
@@ -2224,6 +2244,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     });
                   }}
                 />
+              </div>
+            )}
+
+            {/* TAB: LIVE STUDIO CORE (Admin WebRTC Face-to-Face Broadcast) */}
+            {activeTab === 'live' && (
+              <div className="animate-in fade-in duration-200">
+                <LiveStudioCore currentUser={currentUser} mode="admin" />
               </div>
             )}
 

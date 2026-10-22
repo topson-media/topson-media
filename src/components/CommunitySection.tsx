@@ -26,6 +26,7 @@ import { FeedbackItem, FeedbackReply, User } from '../types';
 import { formatFeedbackTimeAgo } from '../utils/timeAgo';
 import { useLanguage } from '../context/LanguageContext';
 import { TopFanBadge } from './TopFanBadge';
+import { SafeAvatar } from './SafeAvatar';
 
 interface CommunitySectionProps {
   feedbacks: FeedbackItem[];
@@ -133,11 +134,12 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
         {/* Top Author Bar */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-neutral-100 shrink-0 shadow-xs">
-              <img
-                src={fb.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'}
-                alt={fb.authorName || fb.user || 'Member'}
-                className="w-full h-full object-cover rounded-full"
+            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-neutral-100 shrink-0 shadow-xs flex items-center justify-center">
+              <SafeAvatar
+                src={fb.avatarUrl}
+                name={fb.authorName || fb.user || 'Member'}
+                size="md"
+                className="w-full h-full"
               />
             </div>
             <div>

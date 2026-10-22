@@ -170,3 +170,28 @@ export interface WatchPartyRoom {
   reactions?: { id: string; emoji: string; sender: string; timestamp: number }[];
   messages?: WatchPartyMessage[];
 }
+
+export interface LiveSession {
+  id: string;
+  isLive: boolean;
+  title: string;
+  adminName: string;
+  adminAvatar?: string;
+  startedAt?: any;
+  endedAt?: any;
+  likesCount: number;
+  viewersCount: number;
+  activeTopic?: string;
+  streamUrl?: string;
+}
+
+export interface LiveStreamChatMessage {
+  id: string;
+  senderName: string;
+  senderAvatar?: string;
+  text: string;
+  timestamp: string;
+  createdAt?: any;
+  isAdmin?: boolean;
+}
+

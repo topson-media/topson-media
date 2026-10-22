@@ -68,5 +68,15 @@ service cloud.firestore {
     match /support_donations/{donationId} {
       allow read, create, update, delete: if true;
     }
+
+    // Live Streaming Studio & Real-time Viewer Interactions
+    match /live_sessions/{sessionId} {
+      allow read, create, update, delete: if true;
+      
+      match /chat/{messageId} {
+        allow read, create, update, delete: if true;
+      }
+    }
   }
 }
+

@@ -28,6 +28,8 @@ import {
   ChatMessage,
   EmailMessage,
   VideoComment,
+  LiveSession,
+  LiveStreamChatMessage,
 } from '../types';
 
 // The live Firebase configuration strictly provided for topson-media-64bc9
@@ -1244,3 +1246,161 @@ export async function loginUserFromDb(
 
   return { success: false, error: 'user_not_found' };
 }
+
+/**
+ * =========================================================================
+ * ADMINISTRATIVE FACE-TO-FACE LIVE STREAMING GATEWAY (Firestore Services)
+ * =========================================================================
+ */
+
+// Subscribe to real-time status of the current live streaming session
+export function subscribeToLiveSession(callback: (session: LiveSession | null) => void) {
+  const sessionRef = doc(db, 'live_sessions', 'current');
+  return onSnapshot(
+    sessionRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        callback({
+          id: 'current',
+          isLive: !!data.isLive,
+          title: data.title || 'Topson Media Live Studio Broadcast',
+          adminName: data.adminName || 'Topson Kenedy',
+          adminAvatar: data.adminAvatar || 'https://i.postimg.cc/Hsb9TQcX/profile.png',
+          startedAt: data.startedAt,
+          endedAt: data.endedAt,
+          likesCount: Number(data.likesCount || 0),
+          viewersCount: Math.max(1, Number(data.viewersCount || 1)),
+          activeTopic: data.activeTopic || 'Tech Mastery & Live Q&A',
+          streamUrl: data.streamUrl,
+        });
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.warn('subscribeToLiveSession listener warning:', error);
+      callback(null);
+    }
+  );
+}
+
+// Start Live Broadcast session (Admin Only)
+export async function startLiveStreamInDb(params: {
+  title: string;
+  adminName: string;
+  adminAvatar?: string;
+  activeTopic?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sessionRef = doc(db, 'live_sessions', 'current');
+    await setDoc(sessionRef, {
+      isLive: true,
+      title: params.title.trim() || 'Topson Media Live Masterclass',
+      adminName: params.adminName || 'Topson Kenedy',
+      adminAvatar: params.adminAvatar || 'https://i.postimg.cc/Hsb9TQcX/profile.png',
+      startedAt: serverTimestamp(),
+      endedAt: null,
+      likesCount: 0,
+      viewersCount: 1,
+      activeTopic: params.activeTopic || 'Live Tech Broadcast',
+    });
+    return { success: true };
+  } catch (err: any) {
+    console.error('startLiveStreamInDb error:', err);
+    return { success: false, error: err?.message || 'Failed to start live session' };
+  }
+}
+
+// End Live Broadcast session (Admin Only)
+export async function endLiveStreamInDb(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sessionRef = doc(db, 'live_sessions', 'current');
+    await updateDoc(sessionRef, {
+      isLive: false,
+      endedAt: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (err: any) {
+    console.error('endLiveStreamInDb error:', err);
+    return { success: false, error: err?.message || 'Failed to end live session' };
+  }
+}
+
+// Real-time atomic increment for live stream likes
+export async function incrementLiveStreamLikes(delta: number = 1): Promise<void> {
+  try {
+    const sessionRef = doc(db, 'live_sessions', 'current');
+    await updateDoc(sessionRef, {
+      likesCount: increment(delta),
+    });
+  } catch (err) {
+    console.warn('incrementLiveStreamLikes fallback error:', err);
+  }
+}
+
+// Update live stream viewers count
+export async function updateLiveStreamViewers(delta: number): Promise<void> {
+  try {
+    const sessionRef = doc(db, 'live_sessions', 'current');
+    await updateDoc(sessionRef, {
+      viewersCount: increment(delta),
+    });
+  } catch (err) {
+    console.warn('updateLiveStreamViewers fallback error:', err);
+  }
+}
+
+// Subscribe to real-time live chat messages during stream
+export function subscribeToLiveStreamMessages(callback: (messages: LiveStreamChatMessage[]) => void) {
+  const messagesCol = collection(db, 'live_sessions', 'current', 'chat');
+  const q = query(messagesCol, orderBy('createdAt', 'desc'), limit(50));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const msgs: LiveStreamChatMessage[] = snapshot.docs
+        .map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            senderName: data.senderName || 'Viewer',
+            senderAvatar: data.senderAvatar,
+            text: data.text || '',
+            timestamp: data.timestamp || 'Just now',
+            createdAt: data.createdAt,
+            isAdmin: !!data.isAdmin,
+          };
+        })
+        .reverse();
+      callback(msgs);
+    },
+    (err) => {
+      console.warn('subscribeToLiveStreamMessages error:', err);
+      callback([]);
+    }
+  );
+}
+
+// Send a message in live stream chat
+export async function sendLiveStreamMessage(msg: {
+  senderName: string;
+  senderAvatar?: string;
+  text: string;
+  isAdmin?: boolean;
+}): Promise<void> {
+  try {
+    const messagesCol = collection(db, 'live_sessions', 'current', 'chat');
+    await addDoc(messagesCol, {
+      senderName: msg.senderName,
+      senderAvatar: msg.senderAvatar || null,
+      text: msg.text.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: serverTimestamp(),
+      isAdmin: !!msg.isAdmin,
+    });
+  } catch (err) {
+    console.warn('sendLiveStreamMessage error:', err);
+  }
+}
+

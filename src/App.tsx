@@ -16,13 +16,15 @@ import { ContactSection } from './components/ContactSection';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
+import { LiveScreeningModal } from './components/LiveScreeningModal';
+import { Radio } from 'lucide-react';
 import {
   INITIAL_VIDEOS,
   INITIAL_FEEDBACKS,
   INITIAL_CHAT_MESSAGES,
   TOPSON_PROFILE_IMAGE,
 } from './data/mockData';
-import { User, FeedbackItem, ChatMessage, VideoItem, EmailMessage, VisitorActivity, VideoComment } from './types';
+import { User, FeedbackItem, ChatMessage, VideoItem, EmailMessage, VisitorActivity, VideoComment, LiveSession } from './types';
 import {
   subscribeToVideos,
   addVideoToDb,
@@ -48,6 +50,7 @@ import {
   acceptFanBadgeInDb,
   recordUserVisitInDb,
   subscribeToUserSuspension,
+  subscribeToLiveSession,
   auth,
 } from './services/firebase';
 import { signOut } from 'firebase/auth';
@@ -161,6 +164,10 @@ export default function App() {
   // Interactive Live Chat Messages (Loaded dynamically via Firestore real-time listener)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
+  // Real-time Live Studio Broadcast Session
+  const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
+  const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
+
   // Persistent sticky navbar state when scrolled past the full-screen integrated hero
   const [isScrolledPastHero, setIsScrolledPastHero] = useState<boolean>(false);
 
@@ -176,7 +183,7 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Real-time Firestore Subscriptions for Videos, Feedbacks, Messages, and Contact Submissions
+  // Real-time Firestore Subscriptions for Videos, Feedbacks, Messages, Contacts, and Live Studio
   useEffect(() => {
     const unsubVideos = subscribeToVideos((vids) => {
       setVideoList(vids);
@@ -197,11 +204,16 @@ export default function App() {
       }
     });
 
+    const unsubLive = subscribeToLiveSession((sess) => {
+      setLiveSession(sess);
+    });
+
     return () => {
       unsubVideos();
       unsubFeedbacks();
       unsubMessages();
       unsubContacts();
+      unsubLive();
     };
   }, [currentUser?.id, currentUser?.role]);
 
@@ -1079,6 +1091,53 @@ export default function App() {
         onClose={() => setAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
         initialMode={authMode}
+      />
+
+      {/* Floating Live Broadcast Indicator & Viewer Entry (When Admin is Live) */}
+      {liveSession?.isLive && (
+        <aside
+          aria-label="Live Broadcast Alert"
+          className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300"
+        >
+          <button
+            type="button"
+            onClick={() => setIsLiveModalOpen(true)}
+            className="p-3 sm:px-4 sm:py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-600 text-white shadow-xl shadow-rose-900/30 border border-rose-400/40 flex items-center gap-3 cursor-pointer transition-all hover:scale-105 active:scale-95 group"
+            title="Join Live Screening Room"
+          >
+            <div className="relative flex items-center justify-center">
+              <Radio className="w-5 h-5 text-white animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+            </div>
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded">
+                  LIVE NOW
+                </span>
+                <span className="text-xs font-bold truncate max-w-[130px] sm:max-w-[200px]">
+                  {liveSession.title}
+                </span>
+              </div>
+              <div className="text-[11px] text-rose-100 font-medium flex items-center gap-2 mt-0.5">
+                <span>{liveSession.adminName}</span>
+                <span>&bull;</span>
+                <span>{(liveSession.viewersCount || 1).toLocaleString()} watching</span>
+              </div>
+            </div>
+            <span className="hidden sm:inline-block px-2.5 py-1 rounded-xl bg-white text-rose-700 font-black text-xs shadow-xs ml-1">
+              Join Stream
+            </span>
+          </button>
+        </aside>
+      )}
+
+      {/* Dedicated Interactive Live Screening Room Modal */}
+      <LiveScreeningModal
+        isOpen={isLiveModalOpen}
+        onClose={() => setIsLiveModalOpen(false)}
+        currentUser={currentUser}
+        session={liveSession}
+        onOpenAuth={() => handleOpenAuth('signin')}
       />
     </div>
   );

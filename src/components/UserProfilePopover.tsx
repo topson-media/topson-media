@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { User } from '../types';
 import { TopFanBadge } from './TopFanBadge';
+import { SafeAvatar } from './SafeAvatar';
 import {
   updateUserProfileInDb,
   updateUserPasswordInAuth,
@@ -290,15 +291,13 @@ export const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({
           <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
             <div className="flex items-center gap-4">
               <div className="relative group shrink-0">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-orange-500 p-0.5 bg-white shadow-sm">
-                  <img
+                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-orange-500 p-0.5 bg-white shadow-sm flex items-center justify-center">
+                  <SafeAvatar
                     src={displayAvatar}
-                    alt={currentUser.username}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover rounded-xl"
-                    onError={(e) => {
-                      e.currentTarget.src = defaultAvatar;
-                    }}
+                    name={currentUser.username}
+                    size="xl"
+                    className="w-full h-full"
+                    rounded="rounded-xl"
                   />
                 </div>
                 <button
@@ -557,17 +556,17 @@ export const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({
           </div>
         </div>
 
-        {/* LOGOUT TRIGGER BUTTON (Base Grid Layer) */}
-        <div className="pt-3 border-t border-slate-100">
+        {/* LOGOUT TRIGGER BUTTON (Explicit Solid Red at Base Layer) */}
+        <div className="pt-3.5 border-t border-slate-100">
           <button
             type="button"
             onClick={() => {
               onLogout();
               onClose();
             }}
-            className="w-full py-2.5 px-4 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95"
+            className="w-full py-3 px-4 rounded-2xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-red-600/25 active:scale-95"
           >
-            <LogOut className="w-4 h-4 text-red-600" />
+            <LogOut className="w-4 h-4 text-white" />
             <span>Sign Out / Logout</span>
           </button>
         </div>

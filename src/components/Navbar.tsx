@@ -6,6 +6,7 @@ import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 import { TopFanBadge } from './TopFanBadge';
 import { UserProfilePopover } from './UserProfilePopover';
+import { SafeAvatar } from './SafeAvatar';
 
 export type NavSection = 'home' | 'tutorials' | 'community' | 'chat' | 'contact' | 'admin';
 
@@ -311,14 +312,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                       integratedDark ? 'border-white/30 bg-neutral-900 ring-white/10 group-hover:ring-orange-500/50' : 'border-neutral-300 bg-white ring-neutral-100 group-hover:ring-orange-500/40 shadow-2xs'
                     }`}
                   >
-                    <img
-                      src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.username)}`)}
-                      alt={currentUser.username}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover rounded-full"
-                      onError={(e) => {
-                        e.currentTarget.src = TOPSON_PROFILE_IMAGE;
-                      }}
+                    <SafeAvatar
+                      src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : undefined)}
+                      name={currentUser.username}
+                      size="sm"
+                      className="w-full h-full"
                     />
                   </div>
                   <div className="hidden xl:flex flex-col text-left max-w-[125px]">
@@ -536,14 +534,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-neutral-300 bg-white shrink-0">
-                      <img
-                        src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.username)}`)}
-                        alt={currentUser.username}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover rounded-full"
-                        onError={(e) => {
-                          e.currentTarget.src = TOPSON_PROFILE_IMAGE;
-                        }}
+                      <SafeAvatar
+                        src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : undefined)}
+                        name={currentUser.username}
+                        size="sm"
+                        className="w-full h-full"
                       />
                     </div>
                     <div className="min-w-0">
