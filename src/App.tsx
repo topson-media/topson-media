@@ -573,8 +573,17 @@ export default function App() {
     });
   };
 
-  // Handle upload video (Admin only, persists to Firestore)
+  // Handle update user state across storage and context
+  const handleUpdateUser = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    localStorage.setItem('topson_user', JSON.stringify(updatedUser));
+  };
+
+  // Handle upload video (Admin only, persists to Firestore and updates gallery)
   const handleUploadVideo = async (newVid: VideoItem) => {
+    // Immediate optimistic addition to gallery
+    setVideoList((prev) => [newVid, ...prev.filter((v) => v.id !== newVid.id)]);
+
     try {
       await addVideoToDb(newVid);
     } catch (err) {
@@ -823,6 +832,7 @@ export default function App() {
               currentUser={currentUser}
               onOpenAuth={handleOpenAuth}
               onLogout={handleLogout}
+              onUpdateUser={handleUpdateUser}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               matchingCount={matchingCount}
@@ -871,6 +881,7 @@ export default function App() {
                     currentUser={currentUser}
                     onOpenAuth={handleOpenAuth}
                     onLogout={handleLogout}
+                    onUpdateUser={handleUpdateUser}
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
                     matchingCount={matchingCount}

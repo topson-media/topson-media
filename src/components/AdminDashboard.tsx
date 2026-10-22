@@ -31,7 +31,8 @@ import {
   Flame,
   PieChart,
   Heart,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -106,6 +107,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   // Navigation tabs within Admin Studio
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'chat' | 'messages' | 'reviews' | 'upload' | 'tutorials' | 'users'>('overview');
+  const [isTabDropdownOpen, setIsTabDropdownOpen] = useState(false);
+  const tabDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close tab dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tabDropdownRef.current && !tabDropdownRef.current.contains(event.target as Node)) {
+        setIsTabDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // User management state (Admin power to delete users & award fan badges)
   const [usersList, setUsersList] = useState<User[]>([]);
@@ -390,24 +404,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const cleanYtId = extractYouTubeId(rawUrl);
     const finalVideoUrl = cleanYtId ? `https://www.youtube.com/watch?v=${cleanYtId}` : rawUrl;
 
-    // 2. EXPLICIT DOCUMENT PAYLOAD (Strictly no 'undefined' values)
+    // 2. EXPLICIT DOCUMENT PAYLOAD (Unified across 'videos' and 'video_tutorials')
+    const finalViews = detectedYouTubeViews || '0 views';
     const tutorialDoc: Record<string, any> = {
       title: titleClean,
       category: categoryClean,
       video_url: finalVideoUrl,
+      videoUrl: finalVideoUrl,
       created_at: serverTimestamp(),
       thumbnail: finalThumbnail,
       duration: durationClean,
       description: descriptionClean || `Tutorial on ${titleClean}`,
-      views: '0 views',
+      views: finalViews,
       viewsCount: 0,
       likes: 0,
       likedBy: [],
       comments: [],
+      tags: [categoryClean.toLowerCase(), 'tutorial', 'topson'],
+      sourceType: 'link',
     };
 
     if (cleanYtId) {
       tutorialDoc.youtube_id = cleanYtId;
+      tutorialDoc.youtubeId = cleanYtId;
     }
 
     setIsUploading(true);
@@ -420,8 +439,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     while (attempt < maxRetries) {
       try {
         attempt++;
-        // Direct official Firestore SDK call: addDoc(collection(db, "video_tutorials"), { ... })
-        await addDoc(collection(db, 'video_tutorials'), tutorialDoc);
+        // Write to primary 'videos' collection (the core database collection for streaming gallery)
+        const primaryDocRef = await addDoc(collection(db, 'videos'), tutorialDoc);
+
+        // Also persist to 'video_tutorials' collection for backward compatibility
+        try {
+          await addDoc(collection(db, 'video_tutorials'), tutorialDoc);
+        } catch (_) {}
+
+        // 4. UNIFIED LOCAL STATE SYNC: Immediately register in public streaming gallery
+        if (onUploadVideo) {
+          const unifiedVideo: VideoItem = {
+            id: primaryDocRef.id,
+            title: titleClean,
+            category: categoryClean,
+            videoUrl: finalVideoUrl,
+            youtubeId: cleanYtId || undefined,
+            thumbnail: finalThumbnail,
+            duration: durationClean,
+            description: descriptionClean || `Tutorial on ${titleClean}`,
+            views: finalViews,
+            viewsCount: 0,
+            likes: 0,
+            likedBy: [],
+            comments: [],
+            tags: [categoryClean.toLowerCase(), 'tutorial', 'topson'],
+            sourceType: 'link',
+            date: 'Just now',
+          };
+          onUploadVideo(unifiedVideo);
+        }
 
         // Success! Clear form inputs & notify
         setVideoTitle('');
@@ -1102,124 +1149,207 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             </div>
 
-            {/* 2. TAB CONTROLS */}
-            <div className="flex items-center gap-2 border-b border-slate-200 bg-white p-2 rounded-2xl overflow-x-auto custom-scrollbar border shadow-sm">
-              <button
-                type="button"
-                onClick={() => setActiveTab('overview')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'overview'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <Activity className="w-4 h-4 text-orange-500" />
-                <span>Live Activity & Visitors</span>
-              </button>
+            {/* 2. COMPACT DROPDOWN ARCHITECTURE FOR ADMIN CONTROL PANEL (Match image_LO8zrz.png) */}
+            <div className="relative z-30" ref={tabDropdownRef}>
+              <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Left: Active Workspace Board Indicator */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shrink-0 shadow-xs">
+                    {activeTab === 'overview' && <Activity className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'analytics' && <BarChart3 className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'chat' && <MessageSquare className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'tutorials' && <Film className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'messages' && <Mail className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'reviews' && <MessageSquare className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'upload' && <UploadCloud className="w-5 h-5 text-orange-500" />}
+                    {activeTab === 'users' && <Users className="w-5 h-5 text-orange-500" />}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                        Admin Workspace
+                      </span>
+                      {activeTab === 'messages' && emailMessages.length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500 text-white shadow-xs">
+                          {emailMessages.length} New
+                        </span>
+                      )}
+                      {activeTab === 'tutorials' && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {videos.length} Videos
+                        </span>
+                      )}
+                      {activeTab === 'users' && usersList.length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                          {usersList.length} Accounts
+                        </span>
+                      )}
+                      {activeTab === 'chat' && chatMessages.some((m) => m.sender === 'user' && (!m.isRead || m.status !== 'read')) && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500 text-white animate-pulse">
+                          Unread
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight truncate mt-0.5">
+                      {activeTab === 'overview' && 'Live Activity & Visitors'}
+                      {activeTab === 'analytics' && 'Video Engagement Analytics'}
+                      {activeTab === 'chat' && 'Live Chat Studio'}
+                      {activeTab === 'tutorials' && `Manage Tutorials (${videos.length})`}
+                      {activeTab === 'messages' && `Inbound Email Messages (${emailMessages.length})`}
+                      {activeTab === 'reviews' && 'Manage Community Feedbacks'}
+                      {activeTab === 'upload' && 'Publish Reel / Tutorial'}
+                      {activeTab === 'users' && `Users & Fan Badges (${usersList.length})`}
+                    </h2>
+                  </div>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('analytics')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'analytics'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4 text-orange-500" />
-                <span>Video Engagement Analytics</span>
-              </button>
+                {/* Right: Dropdown Picker Selector with modern ChevronDown */}
+                <div className="relative shrink-0 flex items-center gap-2">
+                  <div className="relative w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setIsTabDropdownOpen(!isTabDropdownOpen)}
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300/80 hover:border-orange-500 text-slate-900 font-bold text-xs sm:text-sm flex items-center justify-between sm:justify-start gap-3 transition-all shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                      aria-haspopup="listbox"
+                      aria-expanded={isTabDropdownOpen}
+                      title="Switch Admin Control Panel Section"
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="text-slate-500 font-medium hidden md:inline">Switch Board:</span>
+                        <span className="truncate">
+                          {activeTab === 'overview' && 'Live Activity & Visitors'}
+                          {activeTab === 'analytics' && 'Video Engagement'}
+                          {activeTab === 'chat' && 'Live Chat'}
+                          {activeTab === 'tutorials' && 'Manage Tutorials'}
+                          {activeTab === 'messages' && 'Inbound Emails'}
+                          {activeTab === 'reviews' && 'Community Reviews'}
+                          {activeTab === 'upload' && 'Publish Tutorial'}
+                          {activeTab === 'users' && 'Users & Badges'}
+                        </span>
+                      </span>
+                      <ChevronDown
+                        className={`w-4 h-4 text-slate-500 transition-transform duration-200 shrink-0 ${
+                          isTabDropdownOpen ? 'rotate-180 text-orange-600' : ''
+                        }`}
+                      />
+                    </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('chat')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'chat'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 text-orange-500" />
-                <span>Live Chat Studio</span>
-                {chatMessages.some((m) => m.sender === 'user' && (!m.isRead || m.status !== 'read')) && (
-                  <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-xs" />
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('tutorials')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'tutorials'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <Film className="w-4 h-4 text-orange-500" />
-                <span>Manage Tutorials ({videos.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('messages')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'messages'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <Mail className="w-4 h-4 text-orange-500" />
-                <span>Inbound Email Messages</span>
-                {emailMessages.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-orange-500 text-white font-bold shadow-xs">
-                    {emailMessages.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('reviews')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'reviews'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 text-orange-500" />
-                <span>Manage Community Feedbacks</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('upload')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'upload'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <UploadCloud className="w-4 h-4 text-orange-500" />
-                <span>Publish Reel / Tutorial</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('users')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === 'users'
-                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 text-white shadow-xs border border-orange-500'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-2xs'
-                }`}
-              >
-                <Users className="w-4 h-4 text-orange-500" />
-                <span>Users & Fan Badges</span>
-                {usersList.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-orange-100 text-orange-700 border border-orange-300 font-bold">
-                    {usersList.length}
-                  </span>
-                )}
-              </button>
+                    {/* Animated Dropdown Menu List with full workspace modules */}
+                    {isTabDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-full sm:w-80 md:w-96 max-h-[460px] overflow-y-auto custom-scrollbar bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 divide-y divide-slate-100">
+                        <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Select Workspace Module
+                        </div>
+                        <div className="pt-1 space-y-1">
+                          {[
+                            {
+                              id: 'overview',
+                              label: 'Live Activity & Visitors',
+                              desc: 'Real-time telemetry, visitor stream & charts',
+                              icon: Activity,
+                            },
+                            {
+                              id: 'analytics',
+                              label: 'Video Engagement Analytics',
+                              desc: 'Views breakdown, like trends & category data',
+                              icon: BarChart3,
+                            },
+                            {
+                              id: 'chat',
+                              label: 'Live Chat Studio',
+                              desc: 'Direct real-time conversations with audience',
+                              icon: MessageSquare,
+                              badge: chatMessages.some((m) => m.sender === 'user' && (!m.isRead || m.status !== 'read'))
+                                ? 'Unread'
+                                : undefined,
+                            },
+                            {
+                              id: 'tutorials',
+                              label: `Manage Tutorials (${videos.length})`,
+                              desc: 'Review, edit video metadata, and delete',
+                              icon: Film,
+                              badge: `${videos.length}`,
+                            },
+                            {
+                              id: 'messages',
+                              label: `Inbound Email Messages (${emailMessages.length})`,
+                              desc: 'Contact messages with inline Gmail reply',
+                              icon: Mail,
+                              badge: emailMessages.length > 0 ? `${emailMessages.length}` : undefined,
+                            },
+                            {
+                              id: 'reviews',
+                              label: 'Manage Community Feedbacks',
+                              desc: 'Pin top reviews, filter & moderate',
+                              icon: MessageSquare,
+                              badge: feedbacks.length > 0 ? `${feedbacks.length}` : undefined,
+                            },
+                            {
+                              id: 'upload',
+                              label: 'Publish Reel / Tutorial',
+                              desc: 'Direct YouTube and video link submission',
+                              icon: UploadCloud,
+                            },
+                            {
+                              id: 'users',
+                              label: `Users & Fan Badges (${usersList.length})`,
+                              desc: 'Permanent account purging & Star badges',
+                              icon: Users,
+                              badge: usersList.length > 0 ? `${usersList.length}` : undefined,
+                            },
+                          ].map((opt) => {
+                            const isSelected = activeTab === opt.id;
+                            const OptIcon = opt.icon;
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab(opt.id as any);
+                                  setIsTabDropdownOpen(false);
+                                }}
+                                className={`w-full p-2.5 rounded-xl text-left flex items-start gap-3 transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-orange-50 border border-orange-200 text-orange-950 shadow-2xs font-bold'
+                                    : 'hover:bg-slate-50 text-slate-700 hover:text-slate-950 border border-transparent'
+                                }`}
+                              >
+                                <div
+                                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                    isSelected
+                                      ? 'bg-orange-500 text-white shadow-xs'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  <OptIcon className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="text-xs sm:text-sm font-bold truncate">
+                                      {opt.label}
+                                    </span>
+                                    {opt.badge && (
+                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-slate-100 text-slate-700">
+                                        {opt.badge}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 font-normal line-clamp-1 mt-0.5">
+                                    {opt.desc}
+                                  </p>
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-orange-600 shrink-0 mt-1" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* 3. TAB CONTENT */}

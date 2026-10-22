@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, Menu, Sun, Moon, LogOut, ShieldCheck, Home, Film, Users, MessageSquare, Mail, ChevronRight, Globe } from 'lucide-react';
+import { Search, X, Menu, Sun, Moon, LogOut, ShieldCheck, Home, Film, Users, MessageSquare, Mail, ChevronRight, ChevronDown, Globe } from 'lucide-react';
 import { User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 import { TopFanBadge } from './TopFanBadge';
+import { UserProfilePopover } from './UserProfilePopover';
 
 export type NavSection = 'home' | 'tutorials' | 'community' | 'chat' | 'contact' | 'admin';
 
@@ -12,6 +13,7 @@ interface NavbarProps {
   currentUser: User | null;
   onOpenAuth: (mode?: 'signin' | 'signup' | 'admin') => void;
   onLogout: () => void;
+  onUpdateUser?: (updated: User) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   isDarkMode?: boolean;
@@ -26,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onOpenAuth,
   onLogout,
+  onUpdateUser,
   searchQuery,
   onSearchChange,
   isDarkMode = false,
@@ -38,6 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { language, setLanguage, t } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isProfilePopoverOpen, setIsProfilePopoverOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Close mobile/tablet menu on resize to desktop
@@ -289,40 +293,57 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Desktop User Auth / Admin Account (Hidden on Mobile & Tablet) */}
           <div className="hidden lg:flex items-center">
             {currentUser ? (
-              <div className={`flex items-center gap-2 pl-2 border-l ${integratedDark ? 'border-white/15' : 'border-neutral-200'}`}>
-                <div
-                  className={`w-8 h-8 rounded-full overflow-hidden border shrink-0 flex items-center justify-center shadow-2xs ${
-                    integratedDark ? 'border-white/30 bg-neutral-900' : 'border-neutral-300 bg-white'
+              <div className={`flex items-center gap-1.5 pl-2 border-l ${integratedDark ? 'border-white/15' : 'border-neutral-200'}`}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfilePopoverOpen(true)}
+                  className={`group flex items-center gap-2 px-2 py-1 rounded-xl transition-all border cursor-pointer text-left ${
+                    integratedDark
+                      ? 'border-white/15 hover:border-orange-500/60 hover:bg-white/10'
+                      : 'border-neutral-200/80 hover:border-orange-500/50 hover:bg-neutral-50 shadow-2xs'
                   }`}
-                  title={currentUser.role === 'admin' ? 'Admin: Topson Media' : currentUser.username}
+                  title="Manage Account Profile & Settings"
+                  aria-haspopup="dialog"
+                  aria-expanded={isProfilePopoverOpen}
                 >
-                  <img
-                    src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.username)}`)}
-                    alt={currentUser.username}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover rounded-full"
-                    onError={(e) => {
-                      e.currentTarget.src = TOPSON_PROFILE_IMAGE;
-                    }}
-                  />
-                </div>
-                <div className="hidden xl:flex flex-col text-left max-w-[130px]">
-                  <span className={`text-xs font-bold truncate flex items-center gap-1.5 ${integratedDark ? 'text-white' : 'text-neutral-900'}`}>
-                    <span className="truncate">{currentUser.username}</span>
-                    {(currentUser.isTopFan || currentUser.fanBadge) && (
-                      <TopFanBadge size="xs" />
+                  <div
+                    className={`w-8 h-8 rounded-full overflow-hidden border shrink-0 flex items-center justify-center ring-2 transition-all ${
+                      integratedDark ? 'border-white/30 bg-neutral-900 ring-white/10 group-hover:ring-orange-500/50' : 'border-neutral-300 bg-white ring-neutral-100 group-hover:ring-orange-500/40 shadow-2xs'
+                    }`}
+                  >
+                    <img
+                      src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.username)}`)}
+                      alt={currentUser.username}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover rounded-full"
+                      onError={(e) => {
+                        e.currentTarget.src = TOPSON_PROFILE_IMAGE;
+                      }}
+                    />
+                  </div>
+                  <div className="hidden xl:flex flex-col text-left max-w-[125px]">
+                    <span className={`text-xs font-bold truncate flex items-center gap-1.5 ${integratedDark ? 'text-white' : 'text-neutral-900'}`}>
+                      <span className="truncate">{currentUser.username}</span>
+                      {(currentUser.isTopFan || currentUser.fanBadge) && (
+                        <TopFanBadge size="xs" />
+                      )}
+                    </span>
+                    {currentUser.role === 'admin' ? (
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-orange-400 -mt-0.5">
+                        {t.nav.admin}
+                      </span>
+                    ) : (currentUser.isTopFan || currentUser.fanBadge) ? (
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-400 -mt-0.5">
+                        {t.nav.topFan}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-slate-400 -mt-0.5">
+                        Account Settings
+                      </span>
                     )}
-                  </span>
-                  {currentUser.role === 'admin' ? (
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-orange-400 -mt-0.5">
-                      {t.nav.admin}
-                    </span>
-                  ) : (currentUser.isTopFan || currentUser.fanBadge) ? (
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-400 -mt-0.5">
-                      {t.nav.topFan}
-                    </span>
-                  ) : null}
-                </div>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-neutral-400 group-hover:text-orange-500 transition-colors ml-0.5" />
+                </button>
                 <button
                   type="button"
                   onClick={onLogout}
@@ -505,13 +526,38 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Sign in / Sign out button at the bottom of drawer */}
             <div className="p-5 border-t border-neutral-200/50 flex flex-col gap-3">
               {currentUser && (
-                <div className="text-xs font-semibold text-neutral-600 truncate flex items-center gap-2 flex-wrap">
-                  <span>Signed in as</span>
-                  <span className="font-bold text-neutral-900">{currentUser.username}</span>
-                  {(currentUser.isTopFan || currentUser.fanBadge) && (
-                    <TopFanBadge size="xs" />
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setIsProfilePopoverOpen(true);
+                  }}
+                  className="w-full p-2.5 rounded-xl bg-neutral-100/90 hover:bg-orange-50 border border-neutral-200/80 flex items-center justify-between gap-2 text-left cursor-pointer transition-all"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-neutral-300 bg-white shrink-0">
+                      <img
+                        src={currentUser.avatarUrl || (currentUser.role === 'admin' ? TOPSON_PROFILE_IMAGE : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.username)}`)}
+                        alt={currentUser.username}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover rounded-full"
+                        onError={(e) => {
+                          e.currentTarget.src = TOPSON_PROFILE_IMAGE;
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-neutral-900 truncate flex items-center gap-1.5">
+                        <span className="truncate">{currentUser.username}</span>
+                        {(currentUser.isTopFan || currentUser.fanBadge) && (
+                          <TopFanBadge size="xs" />
+                        )}
+                      </div>
+                      <div className="text-[10px] text-orange-600 font-semibold">Manage Profile & Password</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
+                </button>
               )}
 
               <div className="flex flex-col gap-2">
@@ -550,6 +596,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         </>,
         document.body
       )}
+
+      {/* Interactive Account Management Popover (Photo, Name, Password & Sign Out) */}
+      <UserProfilePopover
+        currentUser={currentUser}
+        isOpen={isProfilePopoverOpen}
+        onClose={() => setIsProfilePopoverOpen(false)}
+        onLogout={onLogout}
+        onUpdateUser={onUpdateUser}
+      />
     </header>
   );
 };

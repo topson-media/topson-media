@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
-import { getAuth } from 'firebase/auth';
+import { getAuth, updateProfile, updatePassword, signOut } from 'firebase/auth';
 import {
   getFirestore,
   collection,
@@ -83,6 +83,22 @@ export async function seedInitialTutorialsIfEmpty(): Promise<void> {
 // VIDEOS (Tutorials)
 // ============================================================================
 
+export function extractYouTubeId(url?: string): string | null {
+  if (!url) return null;
+  const regExp = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+}
+
+export function getYouTubeThumbnail(urlOrId?: string): string | null {
+  if (!urlOrId) return null;
+  const id = extractYouTubeId(urlOrId) || (urlOrId.length === 11 ? urlOrId : null);
+  if (id) {
+    return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  }
+  return null;
+}
+
 export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () => void {
   try {
     const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'), limit(100));
@@ -92,25 +108,32 @@ export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () =
         if (!snapshot.empty) {
           const vids: VideoItem[] = snapshot.docs.map((docSnap) => {
             const data = docSnap.data();
+            const rawUrl = data.videoUrl || data.video_url || '';
+            const detectedYtId = data.youtubeId || data.youtube_id || extractYouTubeId(rawUrl);
+            const resolvedThumbnail =
+              data.thumbnail ||
+              (detectedYtId ? getYouTubeThumbnail(detectedYtId) : '') ||
+              'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
+
             return {
               id: docSnap.id,
-              title: data.title || '',
+              title: data.title || 'Untitled Tutorial',
               category: data.category || 'Phone Mastery',
               duration: data.duration || '10:00',
               views: data.views || '0 views',
               viewsCount: data.viewsCount || 0,
               viewedBy: data.viewedBy || [],
               date: data.date || 'Recent',
-              thumbnail: data.thumbnail || '',
-              youtubeId: data.youtubeId,
-              videoUrl: data.videoUrl,
+              thumbnail: resolvedThumbnail,
+              youtubeId: detectedYtId || undefined,
+              videoUrl: rawUrl || (detectedYtId ? `https://www.youtube.com/watch?v=${detectedYtId}` : ''),
               sourceType: data.sourceType || 'link',
               description: data.description || '',
-              tags: data.tags || [],
-              likes: data.likes || 0,
+              tags: Array.isArray(data.tags) ? data.tags : [],
+              likes: data.likes || data.likesCount || 0,
               likedBy: data.likedBy || [],
               comments: data.comments || [],
-              createdAt: data.createdAt,
+              createdAt: data.createdAt || data.created_at,
             };
           });
           callback(vids);
@@ -933,6 +956,64 @@ export async function acceptFanBadgeInDb(userId: string): Promise<void> {
     });
   } catch (err) {
     console.warn('acceptFanBadgeInDb fallback:', err);
+  }
+}
+
+/**
+ * Updates user profile details (username, avatarUrl) in Firestore and Auth
+ */
+export async function updateUserProfileInDb(
+  userId: string,
+  updates: { username?: string; avatarUrl?: string }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    });
+
+    if (auth.currentUser && (auth.currentUser.uid === userId || auth.currentUser.email)) {
+      try {
+        await updateProfile(auth.currentUser, {
+          displayName: updates.username,
+          photoURL: updates.avatarUrl,
+        });
+      } catch (authErr) {
+        console.warn('Auth updateProfile fallback:', authErr);
+      }
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('updateUserProfileInDb fallback:', err);
+    return { success: false, error: err?.message || 'Failed to update profile' };
+  }
+}
+
+/**
+ * Updates user password in Firebase Authentication
+ */
+export async function updateUserPasswordInAuth(
+  newPassword: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    if (!auth.currentUser) {
+      return { success: false, message: 'No active authenticated user session found.' };
+    }
+    await updatePassword(auth.currentUser, newPassword);
+    return { success: true };
+  } catch (err: any) {
+    console.warn('updateUserPasswordInAuth error:', err);
+    if (err?.code === 'auth/requires-recent-login') {
+      return {
+        success: false,
+        message: 'For security reasons, please re-sign in before updating your password.',
+      };
+    }
+    return {
+      success: false,
+      message: err?.message || 'Could not update password. Please try again.',
+    };
   }
 }
 
