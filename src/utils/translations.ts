@@ -143,17 +143,17 @@ export const translations: Record<Language, Translations> = {
       title: "I'm topson media",
       titleLine1: "I'm",
       titleLine2: 'topson media',
-      subtext: 'Empowering you with Phone & PC tutorials, tips, and digital skills.',
+      subtext: 'Tutorials, tips, and step-by-step guides for phones, PCs, and everyday software.',
       watchTutorials: 'Watch tutorials',
       liveChat: 'Live Chat',
-      makingTechEasy: 'Making tech feel easy',
-      curiousMinds: 'For curious minds everywhere',
+      makingTechEasy: 'Making tech easy',
+      curiousMinds: 'For anyone who wants to learn',
     },
     about: {
       kicker: 'WHO IS TOPSON MEDIA?',
-      title: 'Crafting digital confidence, one screen at a time.',
+      title: 'Practical tech guides that get straight to the point.',
       description:
-        'We simplify smartphones, computing, hardware tricks, and software shortcuts so anyone can master the devices they hold every single day.',
+        'Step-by-step tutorials on smartphone settings, PC maintenance, and useful software tricks for everyday use.',
       exploreTutorials: 'Explore Tutorials',
     },
     videosSection: {
@@ -211,7 +211,7 @@ export const translations: Record<Language, Translations> = {
     },
     socialSection: {
       kicker: 'CONNECT ON SOCIAL',
-      header: 'Dive in my social medias',
+      header: 'Follow on social media',
       subtext: 'Follow along on your preferred channel.',
       subscribe: 'Subscribe',
       follow: 'Follow',

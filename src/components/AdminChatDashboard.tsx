@@ -18,6 +18,7 @@ import {
 import { ChatMessage, User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { markThreadReadInDb } from '../services/firebase';
+import { renderMessageWithLinks } from '../utils/linkParser';
 
 interface AdminChatDashboardProps {
   currentUser: User | null;
@@ -491,7 +492,7 @@ export const AdminChatDashboard: React.FC<AdminChatDashboardProps> = ({
 
                       {/* Text */}
                       <p className="text-xs font-normal leading-relaxed whitespace-pre-wrap">
-                        {msg.text}
+                        {renderMessageWithLinks(msg.text)}
                       </p>
 
                       {/* Admin Delete Message Option */}

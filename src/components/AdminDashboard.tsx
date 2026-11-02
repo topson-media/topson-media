@@ -61,8 +61,8 @@ import { UserManagement } from './UserManagement';
 import { ViewsVsTimeDashboard } from './ViewsVsTimeDashboard';
 import { YouTubeModalPlayer } from './YouTubeModalPlayer';
 import { TopFanBadge } from './TopFanBadge';
-import { LiveStudioCore } from './LiveStudioCore';
 import { SafeAvatar } from './SafeAvatar';
+import { renderMessageWithLinks } from '../utils/linkParser';
 import { sendInboundReply, sendAccountStatusAlert } from '../services/emailService';
 import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb, db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -110,7 +110,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   // Navigation tabs within Admin Studio
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'analytics' | 'chat' | 'messages' | 'reviews' | 'upload' | 'tutorials' | 'users' | 'live'
+    'overview' | 'analytics' | 'chat' | 'messages' | 'reviews' | 'upload' | 'tutorials' | 'users'
   >('overview');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState(false);
   const tabDropdownRef = useRef<HTMLDivElement>(null);
@@ -1162,7 +1162,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shrink-0 shadow-xs">
                     {activeTab === 'overview' && <Activity className="w-5 h-5 text-orange-500" />}
                     {activeTab === 'analytics' && <BarChart3 className="w-5 h-5 text-orange-500" />}
-                    {activeTab === 'live' && <Radio className="w-5 h-5 text-rose-600 animate-pulse" />}
                     {activeTab === 'chat' && <MessageSquare className="w-5 h-5 text-orange-500" />}
                     {activeTab === 'tutorials' && <Film className="w-5 h-5 text-orange-500" />}
                     {activeTab === 'messages' && <Mail className="w-5 h-5 text-orange-500" />}
@@ -1175,11 +1174,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
                         Admin Workspace
                       </span>
-                      {activeTab === 'live' && (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-600 text-white shadow-xs animate-pulse">
-                          STREAM STUDIO
-                        </span>
-                      )}
                       {activeTab === 'messages' && emailMessages.length > 0 && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500 text-white shadow-xs">
                           {emailMessages.length} New
@@ -1204,7 +1198,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight truncate mt-0.5">
                       {activeTab === 'overview' && 'Live Activity & Visitors'}
                       {activeTab === 'analytics' && 'Video Engagement Analytics'}
-                      {activeTab === 'live' && 'Live Studio Core (WebRTC Broadcast)'}
                       {activeTab === 'chat' && 'Live Chat Studio'}
                       {activeTab === 'tutorials' && `Manage Tutorials (${videos.length})`}
                       {activeTab === 'messages' && `Inbound Email Messages (${emailMessages.length})`}
@@ -1231,7 +1224,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span className="truncate">
                           {activeTab === 'overview' && 'Live Activity & Visitors'}
                           {activeTab === 'analytics' && 'Video Engagement'}
-                          {activeTab === 'live' && 'Live Studio Core'}
                           {activeTab === 'chat' && 'Live Chat'}
                           {activeTab === 'tutorials' && 'Manage Tutorials'}
                           {activeTab === 'messages' && 'Inbound Emails'}
@@ -1260,13 +1252,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               label: 'Live Activity & Visitors',
                               desc: 'Real-time telemetry, visitor stream & charts',
                               icon: Activity,
-                            },
-                            {
-                              id: 'live',
-                              label: 'Live Studio Core',
-                              desc: 'WebRTC face-to-face live stream & viewer hub',
-                              icon: Radio,
-                              badge: 'LIVE',
                             },
                             {
                               id: 'analytics',
@@ -1925,8 +1910,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </div>
 
-                          <p className="text-xs sm:text-sm text-slate-700 font-normal leading-relaxed italic bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                            &ldquo;{fb.content || fb.text}&rdquo;
+                          <p className="text-xs sm:text-sm text-slate-700 font-normal leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100 whitespace-pre-wrap">
+                            {renderMessageWithLinks(fb.content || fb.text || '')}
                           </p>
                         </div>
 
@@ -2244,13 +2229,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     });
                   }}
                 />
-              </div>
-            )}
-
-            {/* TAB: LIVE STUDIO CORE (Admin WebRTC Face-to-Face Broadcast) */}
-            {activeTab === 'live' && (
-              <div className="animate-in fade-in duration-200">
-                <LiveStudioCore currentUser={currentUser} mode="admin" />
               </div>
             )}
 

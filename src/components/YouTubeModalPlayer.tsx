@@ -7,13 +7,13 @@ import {
   Check,
   Eye,
   Calendar,
-  Sparkles,
   MessageSquare,
   ShieldCheck,
   Maximize2
 } from 'lucide-react';
 import { VideoItem, User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
+import { renderMessageWithLinks } from '../utils/linkParser';
 
 interface YouTubeModalPlayerProps {
   video: VideoItem | null;
@@ -338,8 +338,8 @@ export const YouTubeModalPlayer: React.FC<YouTubeModalPlayerProps> = ({
 
           {/* Description */}
           {video.description && (
-            <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed font-normal bg-neutral-50 p-3.5 rounded-xl border border-neutral-200/60">
-              {video.description}
+            <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed font-normal bg-neutral-50 p-3.5 rounded-xl border border-neutral-200/60 whitespace-pre-wrap">
+              {renderMessageWithLinks(video.description)}
             </p>
           )}
 
@@ -384,7 +384,7 @@ export const YouTubeModalPlayer: React.FC<YouTubeModalPlayerProps> = ({
                         <span className="font-bold text-neutral-800">{c.authorName}</span>
                         <span>{c.timestamp}</span>
                       </div>
-                      <p className="text-neutral-700">{c.text}</p>
+                      <p className="text-neutral-700 break-words">{renderMessageWithLinks(c.text)}</p>
                     </div>
                   ))
                 ) : (

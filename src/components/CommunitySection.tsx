@@ -27,6 +27,7 @@ import { formatFeedbackTimeAgo } from '../utils/timeAgo';
 import { useLanguage } from '../context/LanguageContext';
 import { TopFanBadge } from './TopFanBadge';
 import { SafeAvatar } from './SafeAvatar';
+import { renderMessageWithLinks } from '../utils/linkParser';
 
 interface CommunitySectionProps {
   feedbacks: FeedbackItem[];
@@ -181,7 +182,7 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
         {/* Content */}
         <div className="relative pl-3 border-l-2 border-orange-500/40 my-3">
           <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed font-normal whitespace-pre-wrap">
-            &ldquo;{fb.content || fb.text}&rdquo;
+            {renderMessageWithLinks(fb.content || fb.text || '')}
           </p>
         </div>
 
@@ -197,7 +198,9 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
                   <span>{rep.authorName}</span>
                   <span className="text-[10px] text-neutral-400 font-normal">{rep.date}</span>
                 </div>
-                <p className="text-neutral-600 text-[11px] leading-relaxed">{rep.content}</p>
+                <p className="text-neutral-600 text-[11px] leading-relaxed break-words">
+                  {renderMessageWithLinks(rep.content)}
+                </p>
               </div>
             ))}
           </div>
@@ -676,11 +679,12 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
             {/* Card Header with User Details */}
             <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-800 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-slate-900 shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.6)]">
-                  <img
-                    src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'}
-                    alt={currentUser?.username || 'User'}
-                    className="w-full h-full object-cover rounded-full"
+                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-slate-900 shrink-0 shadow-xs">
+                  <SafeAvatar
+                    src={currentUser?.avatarUrl}
+                    name={currentUser?.username || 'User'}
+                    size="md"
+                    className="w-full h-full"
                   />
                 </div>
                 <div>

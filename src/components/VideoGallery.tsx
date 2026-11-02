@@ -20,9 +20,11 @@ import {
   Radio,
   ArrowUpRight,
   BarChart3,
+  Users,
 } from 'lucide-react';
 import { WatchPartyModal } from './WatchPartyModal';
 import { YouTubeModalPlayer } from './YouTubeModalPlayer';
+import { renderMessageWithLinks } from '../utils/linkParser';
 import { ViewsVsTimeDashboard } from './ViewsVsTimeDashboard';
 import { VideoItem, VideoComment, User } from '../types';
 import {
@@ -944,7 +946,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                       {isExpanded && (
                         <div className="mt-2 pt-2 border-t border-neutral-100 animate-in fade-in space-y-1.5 sm:space-y-2">
                           <p className="text-[11px] sm:text-xs text-neutral-600 leading-relaxed">
-                            {video.description}
+                            {renderMessageWithLinks(video.description)}
                           </p>
 
                           {cleanTags.length > 0 && (
@@ -1003,7 +1005,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                         className="inline-flex items-center gap-0.5 sm:gap-1 text-[9px] sm:text-[11px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded sm:rounded-lg transition-colors cursor-pointer border border-orange-200/50"
                         title="Watch together with synchronized playback"
                       >
-                        <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-500 animate-pulse" />
+                        <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-500" />
                         <span>Party</span>
                       </button>
                     </div>

@@ -8,6 +8,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { AdminChatDashboard } from './AdminChatDashboard';
 import { useLanguage } from '../context/LanguageContext';
 import { TopFanBadge } from './TopFanBadge';
+import { renderMessageWithLinks } from '../utils/linkParser';
 
 interface LiveChatProps {
   currentUser: User | null;
@@ -586,13 +587,13 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                         >
                           {isFirstWelcomeMsg ? (
                             <span className="break-words [word-break:break-word] [overflow-wrap:anywhere]">
-                              {animatedWelcomeText || msg.text}
+                              {renderMessageWithLinks(animatedWelcomeText || msg.text)}
                               {!isTypewriterDone && (
                                 <span className="inline-block w-1.5 h-3 ml-1 bg-orange-500 animate-pulse align-middle" />
                               )}
                             </span>
                           ) : (
-                            <span className="break-words [word-break:break-word] [overflow-wrap:anywhere]">{msg.text}</span>
+                            <span className="break-words [word-break:break-word] [overflow-wrap:anywhere]">{renderMessageWithLinks(msg.text)}</span>
                           )}
                         </div>
                       </div>

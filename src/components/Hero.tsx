@@ -29,26 +29,10 @@ export const Hero: React.FC<HeroProps> = ({
           : 'relative overflow-hidden py-8 md:py-12 bg-gradient-to-b from-slate-50 via-white to-slate-100/90 text-slate-900 border-b border-slate-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] scroll-mt-20'
       }
     >
-      {/* FLOATING TECH PARTICLES & AMBIENT GLOWING SPARKS */}
+      {/* Clean subtle grid background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        {/* Subtle high-tech grid mesh */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-80" />
-
-        {/* Ambient floating tech sparks */}
-        <span className="absolute top-1/4 left-[12%] w-1.5 h-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_#f97316] animate-particle-1" />
-        <span className="absolute top-2/3 left-[22%] w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_12px_#fbbf24] animate-particle-2" />
-        <span className="absolute top-1/3 left-[45%] w-1 h-1 rounded-full bg-orange-400 shadow-[0_0_8px_#f97316] animate-particle-3" />
-        <span className="absolute bottom-1/4 left-[32%] w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316] animate-particle-4" />
-        <span className="absolute top-1/5 right-[18%] w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_12px_#f97316] animate-particle-2" />
-        <span className="absolute bottom-1/3 right-[28%] w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-particle-1" />
-        <span className="absolute top-1/2 right-[42%] w-1.5 h-1.5 rounded-full bg-orange-400 shadow-[0_0_10px_#f97316] animate-particle-3" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
-
-      {/* SOFT GLOWING ORANGE/NEON RADIAL GRADIENT BACKDROP */}
-      <div
-        className="absolute right-0 lg:right-4 top-1/2 -translate-y-1/2 w-[260px] sm:w-[380px] md:w-[480px] lg:w-[620px] h-[260px] sm:h-[380px] md:h-[480px] lg:h-[620px] bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.14)_0%,rgba(249,115,22,0.05)_40%,transparent_70%)] blur-3xl pointer-events-none"
-        aria-hidden="true"
-      />
 
       {/* 2. TABLET & MOBILE VIEWPORT OPTIMIZED CONTAINER: Tighter vertical gaps & padding */}
       <div className={`max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 relative z-10 w-full ${isFullScreenIntegrated ? 'my-auto' : ''}`}>
