@@ -35,6 +35,11 @@
   .font-bold, .font-extrabold, .font-black, .font-semibold {
     font-weight: 500 !important;
   }
+
+  /* Explicit Preloader Hero Typography Override */
+  .preloader-brand-title {
+    font-weight: 900 !important;
+  }
 }
 
 @keyframes flowDownFromTop {

@@ -16,7 +16,7 @@ import { ContactSection } from './components/ContactSection';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
-import { WelcomeIntro } from './components/WelcomeIntro';
+import { Preloader } from './components/Preloader';
 import {
   INITIAL_VIDEOS,
   INITIAL_FEEDBACKS,
@@ -66,12 +66,12 @@ export default function App() {
   // Current view page: always default to 'home' when user opens website
   const [currentPage, setCurrentPage] = useState<'home' | 'admin'>('home');
 
-  // 6-Second Welcome Intro Sequence: Words from top fill screen before home section comes
-  const [showIntro, setShowIntro] = useState<boolean>(true);
+  // Cinematic Welcome Splash Screen Preloader Animation Controller
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [homeAnimatedIn, setHomeAnimatedIn] = useState<boolean>(false);
 
-  const handleIntroComplete = () => {
-    setShowIntro(false);
+  const handlePreloaderComplete = () => {
+    setIsLoading(false);
     setHomeAnimatedIn(true);
   };
 
@@ -843,8 +843,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-white text-neutral-900 font-sans selection:bg-orange-500 selection:text-white flex flex-col justify-between relative">
-      {/* 6-Second Welcome Intro Overlay: Words flow from top to fill screen before home section comes */}
-      {showIntro && <WelcomeIntro onComplete={handleIntroComplete} />}
+      {/* High-End Cinematic Preloader Splash Screen */}
+      {isLoading && <Preloader onComplete={handlePreloaderComplete} durationMs={3800} />}
 
       <div>
         {/* Persistent sticky navigation when scrolled past the full-screen hero or in admin view */}
