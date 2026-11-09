@@ -11,9 +11,10 @@ export interface SendEmailPayload {
   subject: string;
   text?: string;
   html?: string;
-  type: 'inbound_reply' | 'account_status' | 'top_fan_badge' | 'feedback_removal' | 'suspension' | 'deletion' | 'suspended' | 'deleted' | 'general';
+  type: 'inbound_reply' | 'account_status' | 'top_fan_badge' | 'feedback_removal' | 'suspension' | 'deletion' | 'suspended' | 'deleted' | 'admin_notification' | 'general';
   actionMessage?: string;
   senderName?: string;
+  senderEmail?: string;
 }
 
 export async function dispatchAutomatedEmail(payload: SendEmailPayload): Promise<{
@@ -118,4 +119,40 @@ export async function sendTopFanBadgeEmail(options: {
     actionMessage: 'wakiriye topfan badge ivuye kuri admin Topson Media komereza aho',
     senderName: 'Topson Media',
   });
+}
+
+/**
+ * 4. User message notification to admin's Gmail
+ * Directly notifies top22ken@gmail.com and topsonkenedy@gmail.com so admin receives push notifications on the Gmail app
+ */
+export async function sendAdminMessageAlert(options: {
+  senderName: string;
+  senderEmail: string;
+  subject: string;
+  message: string;
+}) {
+  const { senderName, senderEmail, subject, message } = options;
+
+  const results = await Promise.allSettled([
+    dispatchAutomatedEmail({
+      to: 'top22ken@gmail.com',
+      subject: `New Inquiry Alert: ${subject} from ${senderName}`,
+      text: `New contact submission on Topson Media website:\n\nFrom: ${senderName} (${senderEmail})\nSubject: ${subject}\n\nMessage:\n${message}\n\nReply directly to ${senderEmail}`,
+      type: 'admin_notification',
+      senderName,
+      senderEmail,
+      actionMessage: message,
+    }),
+    dispatchAutomatedEmail({
+      to: 'topsonkenedy@gmail.com',
+      subject: `New Inquiry Alert: ${subject} from ${senderName}`,
+      text: `New contact submission on Topson Media website:\n\nFrom: ${senderName} (${senderEmail})\nSubject: ${subject}\n\nMessage:\n${message}\n\nReply directly to ${senderEmail}`,
+      type: 'admin_notification',
+      senderName,
+      senderEmail,
+      actionMessage: message,
+    }),
+  ]);
+
+  return results;
 }

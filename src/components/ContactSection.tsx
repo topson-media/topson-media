@@ -3,6 +3,7 @@ import { Send, CheckCircle2, Mail, AlertTriangle } from 'lucide-react';
 import { EmailMessage } from '../types';
 import { addContactSubmissionToDb } from '../services/firebase';
 import { useLanguage } from '../context/LanguageContext';
+import { sendAdminMessageAlert } from '../services/emailService';
 
 interface ContactSectionProps {
   onJumpToChat?: () => void;
@@ -100,12 +101,20 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
         message: message.trim(),
       });
 
-      // 2. Notify parent state so Admin Dashboard can see the submission instantly
+      // 2. Instantly notify Admin's Gmail app via push alert notification
+      sendAdminMessageAlert({
+        senderName: submittedName,
+        senderEmail: email.trim().toLowerCase(),
+        subject: subject.trim(),
+        message: message.trim(),
+      }).catch((e) => console.warn('Admin Gmail notification dispatch error:', e));
+
+      // 3. Notify parent state so Admin Dashboard can see the submission instantly
       if (onSendMessageToAdmin) {
         onSendMessageToAdmin(newSubmission);
       }
 
-      // 3. Clear inputs smoothly and show neon-orange success alert
+      // 4. Clear inputs smoothly and show neon-orange success alert
       setName('');
       setEmail('');
       setEmailTouched(false);
@@ -137,19 +146,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
     >
       <div className="max-w-3xl mx-auto w-full">
         {/* Clean Kicker */}
-        <div className="text-[10px] sm:text-[11px] font-bold tracking-widest uppercase text-neutral-500 mb-0.5 sm:mb-1 text-center">
+        <div className="text-[10px] sm:text-[11px] font-medium tracking-widest uppercase text-neutral-500 mb-0.5 sm:mb-1 text-center">
           {t.contactSection.kicker}
         </div>
 
         {/* Section Title */}
         <div className="text-center mb-3 sm:mb-8">
-          <h2 className="text-xl sm:text-3xl font-black text-neutral-900 tracking-tight leading-tight flex items-center justify-center gap-2">
+          <h2 className="text-xl sm:text-3xl font-medium text-neutral-900 tracking-tight leading-tight flex items-center justify-center gap-2">
             <span>{t.contactSection.header}</span>
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
               <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </h2>
-          <p className="hidden sm:block text-xs sm:text-sm text-neutral-600 mt-1.5 max-w-lg mx-auto font-medium">
+          <p className="hidden sm:block text-xs sm:text-sm text-neutral-600 mt-1.5 max-w-lg mx-auto font-normal">
             {t.contactSection.subtext}
           </p>
         </div>
@@ -158,18 +167,18 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
         <div className="rounded-xl sm:rounded-3xl p-3.5 sm:p-8 bg-white border border-neutral-200 shadow-xs sm:shadow-sm relative">
           {/* Sleek Neon-Orange Success Alert Banner */}
           {sent && (
-            <div className="mb-3 sm:mb-5 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-600/15 border-2 border-orange-500 text-neutral-900 shadow-[0_0_25px_rgba(249,115,22,0.3)] flex items-center gap-2.5 sm:gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/40">
+            <div className="mb-3 sm:mb-5 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-orange-50 border-2 border-orange-500 text-neutral-900 shadow-xs flex items-center gap-2.5 sm:gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
                 <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-xs sm:text-sm font-black text-neutral-900 flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-medium text-neutral-900 flex items-center gap-2">
                   <span>{t.contactSection.messageSentSuccess}</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-orange-500 text-white text-[8px] sm:text-[9px] font-extrabold uppercase">
+                  <span className="px-1.5 py-0.2 rounded-full bg-orange-500 text-white text-[8px] sm:text-[9px] font-medium uppercase">
                     {t.contactSection.deliveredBadge}
                   </span>
                 </h4>
-                <p className="text-[10px] sm:text-[11px] text-neutral-700 mt-0.5 font-medium leading-tight truncate">
+                <p className="text-[10px] sm:text-[11px] text-neutral-700 mt-0.5 font-normal leading-tight truncate">
                   Thank you{lastSubmittedName ? `, ${lastSubmittedName}` : ''}! Topson will reply directly to your inbox.
                 </p>
               </div>
@@ -180,7 +189,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
             {/* Name and Email 2-column input row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
               <div>
-                <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
+                <label className="block text-[11px] sm:text-xs font-medium text-neutral-800 mb-1 sm:mb-1.5">
                   {t.contactSection.fullName}
                 </label>
                 <input
@@ -189,12 +198,12 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Alex Morgan"
-                  className="w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-2xs"
+                  className="w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs font-normal"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
+                <label className="block text-[11px] sm:text-xs font-medium text-neutral-800 mb-1 sm:mb-1.5">
                   {t.contactSection.emailAddress}
                 </label>
                 <input
@@ -204,17 +213,17 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
                   onChange={(e) => handleEmailChange(e.target.value)}
                   onBlur={handleEmailBlur}
                   placeholder="alex@example.com"
-                  className={`w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-all shadow-2xs ${
+                  className={`w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border text-neutral-900 placeholder:text-neutral-400 focus:outline-none transition-all shadow-2xs font-normal ${
                     emailError
                       ? 'border-orange-500 ring-2 ring-orange-500/25'
-                      : 'border-neutral-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20'
+                      : 'border-neutral-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20'
                   }`}
                 />
                 {/* Neon-Orange Validation Message */}
                 {emailError && (
-                  <div className="mt-1.5 p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-orange-500/10 border border-orange-500 text-orange-950 shadow-[0_0_15px_rgba(249,115,22,0.3)] flex items-center gap-2 animate-in fade-in duration-200">
+                  <div className="mt-1.5 p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-orange-500/10 border border-orange-500 text-orange-950 shadow-xs flex items-center gap-2 animate-in fade-in duration-200">
                     <AlertTriangle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-                    <span className="text-[11px] sm:text-xs font-bold text-orange-950 leading-tight">
+                    <span className="text-[11px] sm:text-xs font-medium text-orange-950 leading-tight">
                       {emailError}
                     </span>
                   </div>
@@ -224,13 +233,13 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
 
             {/* Subject Category Select */}
             <div>
-              <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
+              <label className="block text-[11px] sm:text-xs font-medium text-neutral-800 mb-1 sm:mb-1.5">
                 {t.contactSection.subjectTopic}
               </label>
               <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border border-neutral-300 text-neutral-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-2xs cursor-pointer"
+                className="w-full h-9 sm:h-11 px-3 sm:px-3.5 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border border-neutral-300 text-neutral-900 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs cursor-pointer font-normal"
               >
                 <option value="Question & Tutorial Request">Question & Tutorial Request</option>
                 <option value="Phone Optimization Help">Phone Optimization Help (Android / iPhone)</option>
@@ -242,7 +251,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
 
             {/* Message Input */}
             <div>
-              <label className="block text-[11px] sm:text-xs font-bold text-neutral-800 mb-1 sm:mb-1.5">
+              <label className="block text-[11px] sm:text-xs font-medium text-neutral-800 mb-1 sm:mb-1.5">
                 {t.contactSection.messageQuestion}
               </label>
               <textarea
@@ -251,7 +260,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Describe your tech issue or tutorial request..."
-                className="w-full min-h-[64px] sm:min-h-[120px] p-2 sm:p-3 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-2xs resize-none"
+                className="w-full min-h-[64px] sm:min-h-[120px] p-2 sm:p-3 text-xs sm:text-sm rounded-lg sm:rounded-xl bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all shadow-2xs resize-none font-normal"
               />
             </div>
 
@@ -259,7 +268,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
               <button
                 type="submit"
                 disabled={isSubmitting || (emailTouched && !isFormValid)}
-                className="h-10 sm:h-12 px-5 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg sm:rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 w-full sm:w-auto"
+                className="h-10 sm:h-12 px-5 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg sm:rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 {isSubmitting ? (
                   <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -271,11 +280,11 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
                 )}
               </button>
 
-              <div className="text-[10px] sm:text-[11px] text-neutral-500 font-medium text-center sm:text-left flex items-center justify-center sm:justify-start gap-1.5">
+              <div className="text-[10px] sm:text-[11px] text-neutral-500 font-normal text-center sm:text-left flex items-center justify-center sm:justify-start gap-1.5">
                 <span>Directly sent to:</span>
                 <a
                   href="mailto:topsonkenedy@gmail.com"
-                  className="font-bold text-orange-600 hover:underline inline-flex items-center gap-1"
+                  className="font-medium text-orange-600 hover:underline inline-flex items-center gap-1"
                   title="Send email to Topson Media"
                 >
                   <span>mail topson media</span>

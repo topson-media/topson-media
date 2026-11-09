@@ -16,13 +16,14 @@ import { ContactSection } from './components/ContactSection';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
+import { WelcomeIntro } from './components/WelcomeIntro';
 import {
   INITIAL_VIDEOS,
   INITIAL_FEEDBACKS,
   INITIAL_CHAT_MESSAGES,
   TOPSON_PROFILE_IMAGE,
 } from './data/mockData';
-import { User, FeedbackItem, ChatMessage, VideoItem, EmailMessage, VisitorActivity, VideoComment } from './types';
+import { User, FeedbackItem, ChatMessage, VideoItem, EmailMessage, VisitorActivity, VideoComment, MonetizationCampaign } from './types';
 import {
   subscribeToVideos,
   addVideoToDb,
@@ -48,6 +49,7 @@ import {
   acceptFanBadgeInDb,
   recordUserVisitInDb,
   subscribeToUserSuspension,
+  subscribeToMonetizationCampaign,
   auth,
 } from './services/firebase';
 import { signOut } from 'firebase/auth';
@@ -63,6 +65,15 @@ export default function App() {
 
   // Current view page: always default to 'home' when user opens website
   const [currentPage, setCurrentPage] = useState<'home' | 'admin'>('home');
+
+  // 6-Second Welcome Intro Sequence: Words from top fill screen before home section comes
+  const [showIntro, setShowIntro] = useState<boolean>(true);
+  const [homeAnimatedIn, setHomeAnimatedIn] = useState<boolean>(false);
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    setHomeAnimatedIn(true);
+  };
 
   // Active section for Scroll-Spy (Home, Tutorials, Community, Live Chat, Contact)
   const [activeNav, setActiveNav] = useState<NavSection>('home');
@@ -96,6 +107,9 @@ export default function App() {
 
   // Interactive Community Feedbacks (Loaded dynamically via Firestore real-time listener)
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
+
+  // Active Monetization Campaign (Ad Slots A & B)
+  const [monetizationCampaign, setMonetizationCampaign] = useState<MonetizationCampaign | null>(null);
 
   // Inbound Email Messages to topsonkenedy@gmail.com
   const [emailMessages, setEmailMessages] = useState<EmailMessage[]>(() => {
@@ -197,11 +211,16 @@ export default function App() {
       }
     });
 
+    const unsubMonetization = subscribeToMonetizationCampaign((camp) => {
+      setMonetizationCampaign(camp);
+    });
+
     return () => {
       unsubVideos();
       unsubFeedbacks();
       unsubMessages();
       unsubContacts();
+      unsubMonetization();
     };
   }, [currentUser?.id, currentUser?.role]);
 
@@ -824,6 +843,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-white text-neutral-900 font-sans selection:bg-orange-500 selection:text-white flex flex-col justify-between relative">
+      {/* 6-Second Welcome Intro Overlay: Words flow from top to fill screen before home section comes */}
+      {showIntro && <WelcomeIntro onComplete={handleIntroComplete} />}
+
       <div>
         {/* Persistent sticky navigation when scrolled past the full-screen hero or in admin view */}
         {(isScrolledPastHero || currentPage === 'admin') && (
@@ -866,8 +888,8 @@ export default function App() {
         {/* Main Content Area */}
         <main>
           {currentPage === 'home' ? (
-            /* ALL SECTIONS INTEGRATED ON MAIN FLOW (Scrollable, with Scroll-Spy) */
-            <div className="animate-in fade-in">
+            /* ALL SECTIONS INTEGRATED ON MAIN FLOW: Animates attractively after intro completes */
+            <div className={`transition-all duration-1000 ${homeAnimatedIn ? 'animate-in fade-in zoom-in-95 duration-1000' : 'animate-in fade-in'}`}>
               {/* 1. ELIMINATE EMPTY VERTICAL SPACE & REVEAL "ABOUT ME" (Tablet & Laptop):
                   Tightly wrapped dynamic height min-h-[85vh] or h-auto with clean padding.
                   No empty layout spacers or huge margins; pulls About Me directly upward into the viewport. */}
@@ -894,6 +916,7 @@ export default function App() {
                 {/* Welcome Section content tightly wrapped so About Me is immediately visible on screen */}
                 <div className="flex-1 flex flex-col justify-center items-center w-full">
                   <Hero
+                    campaign={monetizationCampaign}
                     onWatchTutorials={() => handleNavClick('tutorials')}
                     onLiveChat={() => handleNavClick('chat')}
                     onExploreScroll={() => {
@@ -914,6 +937,7 @@ export default function App() {
               <VideoGallery
                 videos={videoList}
                 searchQuery={searchQuery}
+                campaign={monetizationCampaign}
                 currentUser={currentUser}
                 onOpenAdminAuth={() => handleOpenAuth('admin')}
                 onUploadVideo={handleUploadVideo}

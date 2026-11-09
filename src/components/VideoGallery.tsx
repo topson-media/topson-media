@@ -21,12 +21,14 @@ import {
   ArrowUpRight,
   BarChart3,
   Users,
+  ExternalLink,
+  Megaphone,
 } from 'lucide-react';
 import { WatchPartyModal } from './WatchPartyModal';
 import { YouTubeModalPlayer } from './YouTubeModalPlayer';
 import { renderMessageWithLinks } from '../utils/linkParser';
 import { ViewsVsTimeDashboard } from './ViewsVsTimeDashboard';
-import { VideoItem, VideoComment, User } from '../types';
+import { VideoItem, VideoComment, User, MonetizationCampaign } from '../types';
 import {
   getYouTubeThumbnail,
   extractYouTubeId,
@@ -46,6 +48,7 @@ import { db, DEFAULT_TUTORIALS, seedInitialTutorialsIfEmpty } from '../services/
 interface VideoGalleryProps {
   videos: VideoItem[];
   searchQuery: string;
+  campaign?: MonetizationCampaign | null;
   currentUser?: User | null;
   onOpenAdminAuth?: () => void;
   onUploadVideo?: (video: VideoItem) => void;
@@ -60,6 +63,7 @@ interface VideoGalleryProps {
 export const VideoGallery: React.FC<VideoGalleryProps> = ({
   videos,
   searchQuery,
+  campaign,
   currentUser = null,
   onOpenAdminAuth,
   onUploadVideo,
@@ -76,6 +80,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [activePlayingId, setActivePlayingId] = useState<string | null>(null);
+  const [isAdDismissed, setIsAdDismissed] = useState(false);
 
   // Edit Video Modal state
   const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
@@ -773,7 +778,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5 lg:gap-6 w-full">
-            {visibleVideos.map((video) => {
+            {visibleVideos.map((video, index) => {
               const isExpanded = !!expandedCards[video.id];
               const isLink = isVideoLink(video);
               const isPlaying = activePlayingId === video.id;
@@ -805,10 +810,10 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
               return (
-                <div
-                  key={video.id}
-                  className="w-full group rounded-xl sm:rounded-2xl overflow-hidden bg-white border border-neutral-200 shadow-xs hover:shadow-lg hover:border-orange-500/50 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
-                >
+                <React.Fragment key={video.id}>
+                  <div
+                    className="w-full group rounded-xl sm:rounded-2xl overflow-hidden bg-white border border-neutral-200 shadow-xs hover:shadow-lg hover:border-orange-500/50 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                  >
                   <div>
                     {/* Media Area: 16:9 ratio */}
                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-950">
@@ -1047,9 +1052,11 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+              </React.Fragment>
+            );
+          })}
+        </div>
         )}
 
         {/* 4. TWO-ROW VIDEO GRID WITH DYNAMIC "SEE MORE" GATEWAY: Primary action button directly underneath 2nd row */}

@@ -222,7 +222,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     const newMsg: ChatMessage = {
       id: newMsgId,
       sender: isAdmin ? 'topson' : 'user',
-      senderName: isAdmin ? 'Topson Media (Admin)' : currentUser.username,
+      senderName: isAdmin ? 'topson media' : currentUser.username,
       senderId: isAdmin ? 'admin' : currentUid,
       receiverId: isAdmin ? 'user' : 'admin',
       userId: isAdmin ? undefined : currentUid,

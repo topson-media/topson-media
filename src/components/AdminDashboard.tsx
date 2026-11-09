@@ -33,7 +33,9 @@ import {
   Heart,
   AlertCircle,
   ChevronDown,
-  Radio
+  Radio,
+  Bell,
+  Megaphone,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -51,7 +53,7 @@ import {
   Legend,
   Cell
 } from 'recharts';
-import { User, VideoItem, FeedbackItem, EmailMessage, VisitorActivity, ChatMessage } from '../types';
+import { User, VideoItem, FeedbackItem, EmailMessage, VisitorActivity, ChatMessage, AdminActivity, MonetizationCampaign } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { getYouTubeThumbnail, extractYouTubeId, fetchYouTubeVideoDetails } from '../utils/youtubeHelper';
 import { extractVideoDurationFromFile } from '../utils/videoDuration';
@@ -64,7 +66,15 @@ import { TopFanBadge } from './TopFanBadge';
 import { SafeAvatar } from './SafeAvatar';
 import { renderMessageWithLinks } from '../utils/linkParser';
 import { sendInboundReply, sendAccountStatusAlert } from '../services/emailService';
-import { fetchUsersListFromDb, deleteUserFromDb, awardFanBadgeInDb, db } from '../services/firebase';
+import {
+  fetchUsersListFromDb,
+  deleteUserFromDb,
+  awardFanBadgeInDb,
+  subscribeToAdminActivities,
+  subscribeToMonetizationCampaign,
+  saveMonetizationCampaign,
+  db
+} from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AdminDashboardProps {
@@ -110,16 +120,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   // Navigation tabs within Admin Studio
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'analytics' | 'chat' | 'messages' | 'reviews' | 'upload' | 'tutorials' | 'users'
+    'overview' | 'analytics' | 'chat' | 'messages' | 'reviews' | 'upload' | 'tutorials' | 'users' | 'ads'
   >('overview');
   const [isTabDropdownOpen, setIsTabDropdownOpen] = useState(false);
   const tabDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close tab dropdown on outside click
+  // Admin Notification Hub State
+  const [adminActivities, setAdminActivities] = useState<AdminActivity[]>([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const notificationDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Subscribe to real-time admin activities
+  useEffect(() => {
+    const unsub = subscribeToAdminActivities((acts) => {
+      setAdminActivities(acts);
+      try {
+        const readIds: string[] = JSON.parse(localStorage.getItem('topson_read_activity_ids') || '[]');
+        const unread = acts.filter((a) => !readIds.includes(a.id)).length;
+        setUnreadNotificationsCount(unread);
+      } catch {
+        setUnreadNotificationsCount(acts.length);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Monetization & Sponsorships State
+  const [adCampaign, setAdCampaign] = useState<MonetizationCampaign>({
+    title: '',
+    description: '',
+    redirectUrl: '',
+    imageUrl: '',
+    isActive: true,
+  });
+  const [isSavingAd, setIsSavingAd] = useState(false);
+  const [adSaveSuccess, setAdSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribeToMonetizationCampaign((camp) => {
+      if (camp) {
+        setAdCampaign(camp);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSaveMonetization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAd(true);
+    try {
+      await saveMonetizationCampaign(adCampaign);
+      setAdSaveSuccess(true);
+      setTimeout(() => setAdSaveSuccess(false), 3500);
+    } catch (err) {
+      console.error('Failed to save monetization campaign:', err);
+    } finally {
+      setIsSavingAd(false);
+    }
+  };
+
+  const handleToggleNotifications = () => {
+    const next = !isNotificationsOpen;
+    setIsNotificationsOpen(next);
+    if (next && adminActivities.length > 0) {
+      try {
+        const allIds = adminActivities.map((a) => a.id);
+        localStorage.setItem('topson_read_activity_ids', JSON.stringify(allIds));
+        setUnreadNotificationsCount(0);
+      } catch {
+        setUnreadNotificationsCount(0);
+      }
+    }
+  };
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (tabDropdownRef.current && !tabDropdownRef.current.contains(event.target as Node)) {
         setIsTabDropdownOpen(false);
+      }
+      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -369,24 +451,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     e.preventDefault();
     setUploadDiagnostic(null);
 
-    // 1. DYNAMIC INPUT SANITIZATION
-    const titleClean = (videoTitle || '').trim();
-    const categoryClean = (videoCategory || 'phone').toLowerCase().trim();
-    const durationClean = (videoDuration || '10:00').trim();
-    const descriptionClean = (videoDescription || '').trim();
-
-    if (!titleClean) {
-      setUploadDiagnostic({
-        code: 'validation/missing-title',
-        message: 'The tutorial title cannot be empty or purely whitespace.',
-        diagnosis: 'Input validation rejected before Firestore call.',
-        solution: 'Please enter a descriptive title for this tutorial.',
-        timestamp: new Date().toLocaleTimeString(),
-        rawError: 'Title validation check failed.',
-      });
-      return;
-    }
-
+    // 1. DYNAMIC INPUT SANITIZATION (Supports posting even link only)
     const rawUrl = (videoLink || '').trim();
     if (!rawUrl) {
       setUploadDiagnostic({
@@ -400,14 +465,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return;
     }
 
+    const cleanYtId = extractYouTubeId(rawUrl);
+    const finalVideoUrl = cleanYtId ? `https://www.youtube.com/watch?v=${cleanYtId}` : rawUrl;
+    const autoTitle = cleanYtId ? `YouTube Tutorial (${cleanYtId})` : 'New Video Tutorial';
+
+    const titleClean = (videoTitle || '').trim() || autoTitle;
+    const categoryClean = (videoCategory || 'phone').toLowerCase().trim();
+    const durationClean = (videoDuration || '10:00').trim();
+    const descriptionClean = (videoDescription || '').trim() || `Tutorial on ${titleClean}`;
+
     // Automatic YouTube thumbnail extraction when pasting a YouTube link
     const ytThumb = getYouTubeThumbnail(rawUrl);
     const finalThumbnail =
       ytThumb ||
       'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
-
-    const cleanYtId = extractYouTubeId(rawUrl);
-    const finalVideoUrl = cleanYtId ? `https://www.youtube.com/watch?v=${cleanYtId}` : rawUrl;
 
     // 2. EXPLICIT DOCUMENT PAYLOAD (Unified across 'videos' and 'video_tutorials')
     const finalViews = detectedYouTubeViews || '0 views';
@@ -417,9 +488,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       video_url: finalVideoUrl,
       videoUrl: finalVideoUrl,
       created_at: serverTimestamp(),
+      createdAt: serverTimestamp(),
+      uploadTimestamp: Date.now(),
       thumbnail: finalThumbnail,
       duration: durationClean,
-      description: descriptionClean || `Tutorial on ${titleClean}`,
+      description: descriptionClean,
       views: finalViews,
       viewsCount: 0,
       likes: 0,
@@ -977,37 +1050,110 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Navigation Breadcrumb & Top Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-200 bg-white p-4 rounded-2xl border shadow-sm">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-row items-center justify-between w-full pb-4 border-b border-slate-100 mb-6 sm:mb-8 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-sm gap-3">
+          {/* Left: Back to Home navigation block */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={onNavigateHome}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 transition-all shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs sm:text-sm font-bold text-slate-800 transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              title="Return to public website"
             >
-              <ArrowLeft className="w-4 h-4 text-orange-500" />
+              <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500 shrink-0" />
               <span>Back to Home</span>
             </button>
-            <div className="h-4 w-px bg-slate-200" />
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <span>Admin Creator Studio</span>
-              <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
-                Primary Control
-              </span>
-            </h1>
           </div>
 
-          {isAdmin && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-medium">Logged in as:</span>
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 shadow-xs">
-                <div className="w-6 h-6 rounded-full overflow-hidden border border-orange-500 shadow-xs">
-                  <img src={TOPSON_PROFILE_IMAGE} alt="Admin" className="w-full h-full object-cover" />
-                </div>
-                <span className="text-xs font-bold text-slate-900">Topson Media</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
+          {/* Right: Creator Studio branding identity text + notification center icon */}
+          <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+            <div className="text-right flex flex-col items-end">
+              <h1 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-1.5 whitespace-nowrap">
+                <span>Creator Studio</span>
+                <span className="hidden sm:inline-block text-[9px] sm:text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                  Admin
+                </span>
+              </h1>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium hidden xs:block whitespace-nowrap">
+                Primary Control
+              </span>
             </div>
-          )}
+
+            {isAdmin && (
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* REAL-TIME ADMIN NOTIFICATION HUB */}
+                <div className="relative" ref={notificationDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={handleToggleNotifications}
+                    className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 transition-all cursor-pointer shadow-xs flex items-center justify-center"
+                    title="Notifications & Activity Stream"
+                    aria-label="Admin Notifications"
+                  >
+                    <Bell className="w-4 h-4 text-slate-700" />
+                    {unreadNotificationsCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 text-white font-bold text-[10px] flex items-center justify-center shadow-xs animate-pulse">
+                        {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Glassmorphic Dropdown Modal Overlay */}
+                  {isNotificationsOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-2xl p-3.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-200">
+                            <Bell className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-900">Latest Activities</span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Real-time Hub
+                        </span>
+                      </div>
+
+                      <div className="max-h-72 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                        {adminActivities.length === 0 ? (
+                          <div className="py-8 text-center text-slate-400 text-xs font-medium">
+                            No recent activities logged yet.
+                          </div>
+                        ) : (
+                          adminActivities.map((act) => (
+                            <div
+                              key={act.id}
+                              className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/80 transition-colors text-xs space-y-0.5"
+                            >
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span className="font-bold text-orange-600 uppercase tracking-wider text-[9px]">
+                                  {act.type.replace('_', ' ')}
+                                </span>
+                                <span>{act.timestamp}</span>
+                              </div>
+                              <p className="font-medium text-slate-800 leading-snug">
+                                {act.text}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 shadow-xs">
+                    <div className="w-6 h-6 rounded-full overflow-hidden border border-orange-500 shadow-xs">
+                      <img src={TOPSON_PROFILE_IMAGE} alt="Admin" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 hidden md:inline">Topson</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {isAdmin ? (
@@ -1230,6 +1376,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {activeTab === 'reviews' && 'Community Reviews'}
                           {activeTab === 'upload' && 'Publish Tutorial'}
                           {activeTab === 'users' && 'Users & Badges'}
+                          {activeTab === 'ads' && 'Sponsorships & Ads'}
                         </span>
                       </span>
                       <ChevronDown
@@ -1301,6 +1448,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               desc: 'Permanent account purging & Star badges',
                               icon: Users,
                               badge: usersList.length > 0 ? `${usersList.length}` : undefined,
+                            },
+                            {
+                              id: 'ads',
+                              label: 'Sponsorships & Ads Manager',
+                              desc: 'Configure promotional banners, sponsor links & cards',
+                              icon: Megaphone,
+                              badge: adCampaign.isActive && adCampaign.title ? 'Active' : undefined,
                             },
                           ].map((opt) => {
                             const isSelected = activeTab === opt.id;
@@ -2071,14 +2225,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Tutorial Title
+                        Tutorial Title <span className="text-slate-400 font-normal">(Optional when link provided)</span>
                       </label>
                       <input
                         type="text"
-                        required
                         value={videoTitle ?? ''}
                         onChange={(e) => setVideoTitle(e.target.value)}
-                        placeholder="e.g. How to Speed Up Any Android Phone in 2025"
+                        placeholder="e.g. How to Speed Up Any Android Phone (or leave blank for auto-title)"
                         className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-1 focus:ring-orange-500/20 transition-all"
                       />
                     </div>
@@ -2229,6 +2382,267 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     });
                   }}
                 />
+              </div>
+            )}
+
+            {/* TAB: SPONSORSHIPS & ADS MANAGER */}
+            {activeTab === 'ads' && (
+              <div className="space-y-8 animate-in fade-in duration-200">
+                {/* Header overview */}
+                <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="p-2 rounded-xl bg-orange-50 text-orange-600 border border-orange-100">
+                        <Megaphone className="w-5 h-5" />
+                      </span>
+                      <h3 className="text-lg font-black text-slate-900">
+                        Sponsorships &amp; Ads Manager
+                      </h3>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                      Control non-intrusive promotional placements across Topson Media: Slot A (Hero Marquee) &amp; Slot B (Video Gallery Native Card).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border ${
+                        adCampaign.isActive && adCampaign.title
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          adCampaign.isActive && adCampaign.title ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                        }`}
+                      />
+                      {adCampaign.isActive && adCampaign.title ? 'Campaign Live' : 'Campaign Inactive / Draft'}
+                    </span>
+                  </div>
+                </div>
+
+                {adSaveSuccess && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm font-bold flex items-center gap-2 animate-in fade-in">
+                    <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <span>Monetization campaign updated successfully and synced with Firestore!</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  {/* Left Column: Configuration Form */}
+                  <div className="lg:col-span-7 p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
+                    <div className="border-b border-slate-100 pb-4">
+                      <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                        Campaign Settings
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Saved metadata is written directly to Firestore path <code className="text-[11px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-orange-600">monetization/active_campaign</code>.
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleSaveMonetization} className="space-y-4 text-xs sm:text-sm">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          Ad / Sponsor Title <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={adCampaign.title}
+                          onChange={(e) => setAdCampaign({ ...adCampaign, title: e.target.value })}
+                          placeholder="e.g. Try ProtonVPN – 60% Off for Topson Viewers"
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          Campaign Tagline or Description
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={adCampaign.description}
+                          onChange={(e) => setAdCampaign({ ...adCampaign, description: e.target.value })}
+                          placeholder="e.g. Encrypt your mobile data, unblock geo-restricted tech tools, and enjoy high speeds."
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          Destination Redirect URL <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="url"
+                          required
+                          value={adCampaign.redirectUrl}
+                          onChange={(e) => setAdCampaign({ ...adCampaign, redirectUrl: e.target.value })}
+                          placeholder="https://partner.com/deal?ref=topson"
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Always opens in a secure external tab (<code className="font-mono">target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot;</code>).
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          Banner / Thumbnail Image Asset URL (Slot B &amp; Slot A)
+                        </label>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="url"
+                            value={adCampaign.imageUrl || ''}
+                            onChange={(e) => setAdCampaign({ ...adCampaign, imageUrl: e.target.value })}
+                            placeholder="https://images.unsplash.com/photo-..."
+                            className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white"
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Optional high-resolution graphic for the native video gallery sponsor card.
+                        </p>
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={adCampaign.isActive}
+                            onChange={(e) => setAdCampaign({ ...adCampaign, isActive: e.target.checked })}
+                            className="w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer"
+                          />
+                          <span className="text-xs font-bold text-slate-800">
+                            Active Campaign (Visible to Audience)
+                          </span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm('Clear all fields for this campaign?')) {
+                              setAdCampaign({
+                                title: '',
+                                description: '',
+                                redirectUrl: '',
+                                imageUrl: '',
+                                isActive: false,
+                              });
+                            }
+                          }}
+                          className="text-xs text-slate-500 hover:text-red-600 font-medium transition-colors cursor-pointer"
+                        >
+                          Clear Fields
+                        </button>
+                      </div>
+
+                      <div className="pt-4">
+                        <button
+                          type="submit"
+                          disabled={isSavingAd}
+                          className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-60"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>{isSavingAd ? 'Saving to Firestore...' : 'Save & Publish Campaign'}</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Right Column: Real-time Live Placements Preview */}
+                  <div className="lg:col-span-5 space-y-6">
+                    {/* Slot A Preview */}
+                    <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          Slot A Preview &bull; Hero Marquee
+                        </span>
+                        <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                          Top Welcome View
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Appears right beneath the primary hero buttons without blocking user actions:
+                      </p>
+
+                      {adCampaign.title ? (
+                        <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-600 flex items-center justify-between gap-3 shadow-2xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[9px] uppercase tracking-wider font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded shrink-0">
+                              Ad
+                            </span>
+                            <span className="truncate font-medium text-slate-900">
+                              {adCampaign.title}
+                            </span>
+                          </div>
+                          <span className="shrink-0 text-orange-600 font-semibold hover:underline flex items-center gap-1 text-[11px]">
+                            <span>Visit</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center text-xs text-slate-400">
+                          Enter a Title and URL to preview the Hero Marquee banner.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Slot B Preview */}
+                    <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          Slot B Preview &bull; Native Gallery Card
+                        </span>
+                        <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                          Tutorial Grid
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Blends naturally into the video cards with a clean, discreet &ldquo;SPONSORED / AD&rdquo; tag:
+                      </p>
+
+                      {adCampaign.title ? (
+                        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm max-w-sm mx-auto">
+                          <div className="relative aspect-video bg-slate-100 flex items-center justify-center overflow-hidden">
+                            {adCampaign.imageUrl ? (
+                              <img
+                                src={adCampaign.imageUrl}
+                                alt="Sponsor banner preview"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+                                <Megaphone className="w-8 h-8 mb-1 text-slate-300" />
+                                <span className="text-xs font-medium">Topson Media Partner Asset</span>
+                              </div>
+                            )}
+                            <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wider flex items-center gap-1">
+                              <span>SPONSORED / AD</span>
+                            </div>
+                          </div>
+                          <div className="p-3.5 space-y-1.5">
+                            <h5 className="font-bold text-xs text-slate-900 truncate">
+                              {adCampaign.title}
+                            </h5>
+                            <p className="text-[11px] text-slate-500 line-clamp-2">
+                              {adCampaign.description || 'Exclusive partner promotion curated for our community.'}
+                            </p>
+                            <div className="pt-1 flex items-center justify-between text-[11px]">
+                              <span className="text-slate-400 font-medium">topson-media.vercel.app</span>
+                              <span className="text-orange-600 font-bold flex items-center gap-1">
+                                <span>Learn More</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center text-xs text-slate-400">
+                          Enter campaign details to preview the native video card.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

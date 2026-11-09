@@ -30,6 +30,8 @@ import {
   VideoComment,
   LiveSession,
   LiveStreamChatMessage,
+  AdminActivity,
+  MonetizationCampaign,
 } from '../types';
 
 // The live Firebase configuration strictly provided for topson-media-64bc9
@@ -103,7 +105,7 @@ export function getYouTubeThumbnail(urlOrId?: string): string | null {
 
 export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () => void {
   try {
-    const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'), limit(100));
+    const q = query(collection(db, 'videos'), limit(150));
     return onSnapshot(
       q,
       (snapshot) => {
@@ -117,13 +119,21 @@ export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () =
               (detectedYtId ? getYouTubeThumbnail(detectedYtId) : '') ||
               'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
 
+            const createdTime =
+              data.createdAt?.toMillis?.() ||
+              data.created_at?.toMillis?.() ||
+              (typeof data.createdAt === 'number' ? data.createdAt : 0) ||
+              (typeof data.created_at === 'number' ? data.created_at : 0) ||
+              data.uploadTimestamp ||
+              0;
+
             return {
               id: docSnap.id,
-              title: data.title || 'Untitled Tutorial',
+              title: data.title || (detectedYtId ? `YouTube Tutorial (${detectedYtId})` : 'Untitled Tutorial'),
               category: data.category || 'Phone Mastery',
               duration: data.duration || '10:00',
               views: data.views || '0 views',
-              viewsCount: data.viewsCount || 0,
+              viewsCount: typeof data.viewsCount === 'number' ? data.viewsCount : 0,
               viewedBy: data.viewedBy || [],
               date: data.date || 'Recent',
               thumbnail: resolvedThumbnail,
@@ -135,9 +145,18 @@ export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () =
               likes: data.likes || data.likesCount || 0,
               likedBy: data.likedBy || [],
               comments: data.comments || [],
-              createdAt: data.createdAt || data.created_at,
+              createdAt: createdTime,
+              created_at: createdTime,
             };
           });
+
+          // Sort descending by creation timestamp
+          vids.sort((a, b) => {
+            const aTime = typeof a.createdAt === 'number' ? a.createdAt : 0;
+            const bTime = typeof b.createdAt === 'number' ? b.createdAt : 0;
+            return bTime - aTime;
+          });
+
           callback(vids);
           try {
             localStorage.setItem('topson_videos_cache', JSON.stringify(vids));
@@ -145,7 +164,6 @@ export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () =
             // ignore
           }
         } else {
-          // If Firestore is empty, check localStorage cache
           try {
             const cached = localStorage.getItem('topson_videos_cache');
             if (cached) {
@@ -180,11 +198,16 @@ export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () =
 
 export async function addVideoToDb(video: VideoItem): Promise<string> {
   try {
-    const docRef = await addDoc(collection(db, 'videos'), {
+    const payload = {
       ...video,
       createdAt: serverTimestamp(),
+      created_at: serverTimestamp(),
       uploadTimestamp: Date.now(),
-    });
+    };
+    const docRef = await addDoc(collection(db, 'videos'), payload);
+    try {
+      await addDoc(collection(db, 'video_tutorials'), payload);
+    } catch (_) {}
     return docRef.id;
   } catch (err) {
     console.warn('addVideoToDb fallback:', err);
@@ -405,6 +428,12 @@ export async function addFeedbackToDb(feedback: FeedbackItem): Promise<string> {
       ...feedback,
       createdAt: serverTimestamp(),
     });
+    const feedbackAuthor = feedback.authorName || feedback.user || 'Viewer';
+    logAdminActivity({
+      type: 'feedback_added',
+      text: `New Feedback added by: ${feedbackAuthor}`,
+      user: feedbackAuthor,
+    }).catch(() => {});
     return docRef.id;
   } catch (err) {
     console.warn('addFeedbackToDb fallback:', err);
@@ -779,6 +808,11 @@ export async function addContactSubmissionToDb(data: {
       ...newSubmission,
       createdAt: serverTimestamp(),
     });
+    logAdminActivity({
+      type: 'email_inquiry',
+      text: `New Inbound message from: ${data.senderName || 'Visitor'}`,
+      user: data.senderName,
+    }).catch(() => {});
     return { ...newSubmission, id: docRef.id };
   } catch (err) {
     console.warn('addContactSubmissionToDb fallback:', err);
@@ -1189,8 +1223,10 @@ export async function loginUserFromDb(
   // Official Admin account configuration
   const isAdminSpecial =
     normalized === 'topsonkenedy@gmail.com' ||
+    normalized === 'top22ken@gmail.com' ||
     normalized === 'admin@topsonmedia.com' ||
     normalized === 'topsonkenedy' ||
+    normalized === 'top22ken' ||
     normalized === 'admin' ||
     normalized === 'topson' ||
     normalized === 'jabsco59';
@@ -1204,8 +1240,8 @@ export async function loginUserFromDb(
       const adminUser: User = {
         id: 'admin-topsonkenedy',
         uid: 'admin-topsonkenedy',
-        username: 'Topson Kenedy',
-        email: 'topsonkenedy@gmail.com',
+        username: 'topson media',
+        email: normalized.includes('@') ? normalized : 'topsonkenedy@gmail.com',
         role: 'admin',
         joinedDate: 'Topson Media Creator & Admin',
         avatarUrl: 'https://i.postimg.cc/Hsb9TQcX/profile.png',
@@ -1265,7 +1301,7 @@ export function subscribeToLiveSession(callback: (session: LiveSession | null) =
           id: 'current',
           isLive: !!data.isLive,
           title: data.title || 'Topson Media Live Studio Broadcast',
-          adminName: data.adminName || 'Topson Kenedy',
+          adminName: data.adminName || 'topson media',
           adminAvatar: data.adminAvatar || 'https://i.postimg.cc/Hsb9TQcX/profile.png',
           startedAt: data.startedAt,
           endedAt: data.endedAt,
@@ -1297,7 +1333,7 @@ export async function startLiveStreamInDb(params: {
     await setDoc(sessionRef, {
       isLive: true,
       title: params.title.trim() || 'Topson Media Live Masterclass',
-      adminName: params.adminName || 'Topson Kenedy',
+      adminName: params.adminName || 'topson media',
       adminAvatar: params.adminAvatar || 'https://i.postimg.cc/Hsb9TQcX/profile.png',
       startedAt: serverTimestamp(),
       endedAt: null,
@@ -1403,4 +1439,132 @@ export async function sendLiveStreamMessage(msg: {
     console.warn('sendLiveStreamMessage error:', err);
   }
 }
+
+// ============================================================================
+// ADMIN NOTIFICATION HUB (Latest Activity Engine)
+// ============================================================================
+
+export async function logAdminActivity(activity: {
+  type: 'member_registered' | 'feedback_added' | 'email_inquiry' | string;
+  text: string;
+  user?: string;
+}): Promise<void> {
+  try {
+    const colRef = collection(db, 'latest_activities');
+    await addDoc(colRef, {
+      type: activity.type,
+      text: activity.text,
+      user: activity.user || 'Member',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: serverTimestamp(),
+      created_at: Date.now(),
+      isRead: false,
+    });
+  } catch (err) {
+    console.warn('logAdminActivity error:', err);
+  }
+}
+
+export function subscribeToAdminActivities(callback: (activities: AdminActivity[]) => void): () => void {
+  try {
+    const colRef = collection(db, 'latest_activities');
+    const q = query(colRef, limit(20));
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const acts: AdminActivity[] = snapshot.docs.map((d) => {
+            const data = d.data();
+            const timeVal =
+              data.createdAt?.toMillis?.() ||
+              data.created_at ||
+              Date.now();
+
+            return {
+              id: d.id,
+              type: data.type || 'activity',
+              text: data.text || 'New system activity',
+              user: data.user || 'Member',
+              timestamp: data.timestamp || 'Just now',
+              createdAt: timeVal,
+              isRead: !!data.isRead,
+            };
+          });
+
+          // Sort desc by time
+          acts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          callback(acts.slice(0, 20));
+        } else {
+          callback([]);
+        }
+      },
+      (err) => {
+        console.warn('subscribeToAdminActivities error:', err);
+        callback([]);
+      }
+    );
+  } catch (err) {
+    console.warn('subscribeToAdminActivities listener error:', err);
+    return () => {};
+  }
+}
+
+// ============================================================================
+// MONETIZATION & CONTEXTUAL ADVERTISING SYSTEM
+// ============================================================================
+
+export function subscribeToMonetizationCampaign(callback: (campaign: MonetizationCampaign | null) => void): () => void {
+  try {
+    const campaignRef = doc(db, 'monetization', 'active_campaign');
+    return onSnapshot(
+      campaignRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          callback({
+            id: snap.id,
+            title: data.title || '',
+            description: data.description || '',
+            redirectUrl: data.redirectUrl || '',
+            imageUrl: data.imageUrl || '',
+            isActive: data.isActive !== false,
+            updatedAt: data.updatedAt,
+          });
+        } else {
+          callback(null);
+        }
+      },
+      (err) => {
+        console.warn('subscribeToMonetizationCampaign error:', err);
+        callback(null);
+      }
+    );
+  } catch (err) {
+    console.warn('subscribeToMonetizationCampaign error:', err);
+    return () => {};
+  }
+}
+
+export async function saveMonetizationCampaign(campaign: MonetizationCampaign): Promise<void> {
+  try {
+    const campaignRef = doc(db, 'monetization', 'active_campaign');
+    await setDoc(
+      campaignRef,
+      {
+        title: campaign.title.trim(),
+        description: campaign.description.trim(),
+        redirectUrl: campaign.redirectUrl.trim(),
+        imageUrl: (campaign.imageUrl || '').trim(),
+        isActive: campaign.isActive,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error('saveMonetizationCampaign error:', err);
+    throw err;
+  }
+}
+
 

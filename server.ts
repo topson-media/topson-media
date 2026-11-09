@@ -248,6 +248,39 @@ app.post('/api/send-email', async (req: Request, res: Response) => {
           actionText: 'View Your Badge on Topson Media',
           actionUrl: process.env.APP_URL || 'https://topson-media.web.app',
         });
+    }
+
+    // 4. ADMIN GMAIL NOTIFICATION: WHEN USER SENDS A MESSAGE / INQUIRY
+    else if (type === 'admin_notification') {
+      const senderDisplayName = senderName || 'Website Visitor';
+      const senderEmailAddress = req.body.senderEmail || 'N/A';
+      finalText = `New inquiry received from ${senderDisplayName} (${senderEmailAddress}):\n\nSubject: ${emailSubject}\n\nMessage:\n${actionMessage || text || ''}\n\nReply directly to ${senderEmailAddress}`;
+      finalHtml =
+        html ||
+        compileBrandedEmailHtml({
+          title: emailSubject,
+          preheader: `New Message from ${senderDisplayName}`,
+          bodyContent: `
+            <div style="background: #1e293b; border-left: 4px solid #ea580c; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h2 style="color: #ffffff; margin-top: 0; font-size: 18px;">New Message from ${senderDisplayName}</h2>
+              <p style="margin: 6px 0; font-size: 13px; color: #94a3b8;">
+                <strong>Sender:</strong> ${senderDisplayName} (<a href="mailto:${senderEmailAddress}" style="color: #fb923c;">${senderEmailAddress}</a>)
+              </p>
+              <p style="margin: 6px 0 16px 0; font-size: 13px; color: #94a3b8;">
+                <strong>Subject:</strong> ${emailSubject}
+              </p>
+              <div style="background: #0f172a; padding: 16px; border-radius: 8px; color: #f8fafc; font-size: 14.5px; line-height: 1.6; border: 1px solid #334155;">
+                ${(actionMessage || text || '').replace(/\n/g, '<br/>')}
+              </div>
+            </div>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 16px;">
+              This notification was instantly routed to your Gmail inbox and mobile device so you never miss an inquiry from Topson Media viewers.
+            </p>
+          `,
+          includeAvatarHeader: true,
+          actionText: `Reply to ${senderDisplayName}`,
+          actionUrl: senderEmailAddress !== 'N/A' ? `mailto:${senderEmailAddress}?subject=Re: ${encodeURIComponent(emailSubject)}` : undefined,
+        });
     } else {
       if (!finalHtml) {
         finalHtml = compileBrandedEmailHtml({

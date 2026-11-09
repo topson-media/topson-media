@@ -77,6 +77,16 @@ service cloud.firestore {
         allow read, create, update, delete: if true;
       }
     }
+
+    // Admin Activity Hub (Real-time notifications)
+    match /latest_activities/{activityId} {
+      allow read, create, update, delete: if true;
+    }
+
+    // Monetization & Sponsorship Ads
+    match /monetization/{docId} {
+      allow read, create, update, delete: if true;
+    }
   }
 }
 

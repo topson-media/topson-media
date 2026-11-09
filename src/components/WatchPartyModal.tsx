@@ -19,8 +19,9 @@ import {
   PartyPopper,
   Lightbulb,
   Heart,
-  Rocket
+  Rocket,
 } from 'lucide-react';
+import { renderMessageWithLinks } from '../utils/linkParser';
 import { VideoItem, User, WatchPartyAttendee, WatchPartyRoom, WatchPartyMessage } from '../types';
 import {
   subscribeToWatchPartyRoom,
@@ -566,7 +567,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                         <span className="font-bold text-orange-400">{msg.senderName}</span>
                         <span>{msg.timestamp}</span>
                       </div>
-                      <p className="text-neutral-200 text-xs break-words">{msg.text}</p>
+                      <p className="text-neutral-200 text-xs break-words">{renderMessageWithLinks(msg.text)}</p>
                     </div>
                   ))}
                 </div>

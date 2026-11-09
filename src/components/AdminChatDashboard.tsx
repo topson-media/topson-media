@@ -458,8 +458,8 @@ export const AdminChatDashboard: React.FC<AdminChatDashboardProps> = ({
                     >
                       {/* Sender Name Bar */}
                       <div className="flex items-center justify-between gap-2.5 mb-1">
-                        <span className={`text-[10px] font-bold ${isAdmin ? 'text-orange-400' : 'text-neutral-600'}`}>
-                          {isAdmin ? 'Topson Media (You)' : msg.senderName}
+                        <span className={`text-[10px] font-medium ${isAdmin ? 'text-orange-400' : 'text-neutral-600'}`}>
+                          {isAdmin ? 'topson media (You)' : msg.senderName}
                         </span>
                         <div className="flex items-center gap-1 text-[9px] text-neutral-400">
                           <span>{msg.timestamp}</span>

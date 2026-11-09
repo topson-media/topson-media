@@ -195,3 +195,23 @@ export interface LiveStreamChatMessage {
   isAdmin?: boolean;
 }
 
+export interface AdminActivity {
+  id: string;
+  type: 'member_registered' | 'feedback_added' | 'email_inquiry' | string;
+  text: string;
+  timestamp: string;
+  createdAt?: any;
+  user?: string;
+  isRead?: boolean;
+}
+
+export interface MonetizationCampaign {
+  id?: string;
+  title: string;
+  description: string;
+  redirectUrl: string;
+  imageUrl?: string;
+  isActive: boolean;
+  updatedAt?: any;
+}
+

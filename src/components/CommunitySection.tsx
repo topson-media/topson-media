@@ -133,9 +133,9 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
     >
       <div className="overflow-y-auto custom-scrollbar pr-1">
         {/* Top Author Bar */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-neutral-100 shrink-0 shadow-xs flex items-center justify-center">
+        <div className="flex flex-row items-center justify-between w-full gap-2 mb-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-neutral-100 shrink-0 shadow-xs flex items-center justify-center">
               <SafeAvatar
                 src={fb.avatarUrl}
                 name={fb.authorName || fb.user || 'Member'}
@@ -143,33 +143,35 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
                 className="w-full h-full"
               />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h4 className="text-sm sm:text-base font-black text-neutral-900 leading-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                <h4 className="text-xs sm:text-sm md:text-base font-black text-neutral-900 leading-tight whitespace-nowrap truncate">
                   {fb.authorName || fb.user}
                 </h4>
                 {hasFanBadge && (
                   <TopFanBadge size="xs" />
                 )}
                 {fb.isPinned && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold shadow-2xs">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[9px] sm:text-[10px] font-bold shadow-2xs shrink-0 whitespace-nowrap">
                     <span>📌</span>
                     <span>Pinned</span>
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-neutral-500 font-medium">
-                {fb.authorRole || 'Community Member'}
-              </p>
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-neutral-500 font-medium whitespace-nowrap">
+                <span className="truncate">{fb.authorRole || 'Community Member'}</span>
+                <span>•</span>
+                <span className="whitespace-nowrap shrink-0">{formatFeedbackTimeAgo(fb.createdAt || fb.date, language)}</span>
+              </div>
             </div>
           </div>
 
           {/* Star rating */}
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 shrink-0">
             {[1, 2, 3, 4, 5].map((s) => (
               <Star
                 key={s}
-                className={`w-3.5 h-3.5 ${
+                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
                   s <= (fb.rating || 5)
                     ? 'fill-amber-400 text-amber-400'
                     : 'text-neutral-200'

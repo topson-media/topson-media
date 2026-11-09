@@ -28,7 +28,7 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
-import { auth, db, loginUserFromDb, isAccountPurgedInDb } from '../services/firebase';
+import { auth, db, loginUserFromDb, isAccountPurgedInDb, logAdminActivity } from '../services/firebase';
 import { User } from '../types';
 import { TOPSON_PROFILE_IMAGE } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
@@ -160,6 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       const isAdmin =
         userEmail === 'topsonkenedy@gmail.com' ||
+        userEmail === 'top22ken@gmail.com' ||
         userEmail === 'admin@topsonmedia.com' ||
         userEmail === 'jabsco59@gmail.com';
 
@@ -192,7 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const appUser: User = {
         id: uid,
         uid: uid,
-        username: isAdmin ? 'Topson Media' : displayName,
+        username: isAdmin ? 'topson media' : displayName,
         email: userEmail,
         role: isAdmin ? 'admin' : 'member',
         joinedDate: isAdmin ? 'Channel Creator & Admin' : 'Joined via Google',
@@ -215,6 +216,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } catch (dbErr) {
         console.warn('Firestore user profile sync warning:', dbErr);
       }
+
+      logAdminActivity({
+        type: 'member_registered',
+        text: `New Member joined: ${appUser.username || 'Google Member'}`,
+        user: appUser.username,
+      }).catch(() => {});
 
       // Grant full access to Live Chat or tutorials seamlessly without requiring any additional verification links
       onSuccess(appUser);
@@ -396,6 +403,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             console.warn('Pending verification record notice:', dbErr);
           }
 
+          logAdminActivity({
+            type: 'member_registered',
+            text: `New Member joined: ${username.trim()}`,
+            user: username.trim(),
+          }).catch(() => {});
+
           // 2. Immediately trigger the official verification function: sendEmailVerification(auth.currentUser)
           await sendEmailVerification(newUser);
 
@@ -434,8 +447,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         // 1. Direct Official Admin Credentials Check
         const isAdminTarget =
           normalized === 'topsonkenedy@gmail.com' ||
+          normalized === 'top22ken@gmail.com' ||
           normalized === 'admin@topsonmedia.com' ||
           normalized === 'topsonkenedy' ||
+          normalized === 'top22ken' ||
           normalized === 'admin' ||
           normalized === 'topson';
 
@@ -447,8 +462,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             const adminUser: User = {
               id: 'admin-topsonkenedy',
               uid: 'admin-topsonkenedy',
-              username: 'Topson Kenedy',
-              email: 'topsonkenedy@gmail.com',
+              username: 'topson media',
+              email: normalized.includes('@') ? normalized : 'topsonkenedy@gmail.com',
               role: 'admin',
               joinedDate: 'Topson Media Creator & Admin',
               avatarUrl: TOPSON_PROFILE_IMAGE,
@@ -522,13 +537,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const uid = firebaseUser.uid;
         const verifiedEmail = (firebaseUser.email || inputIdentifier).toLowerCase();
 
-        const isAdmin = verifiedEmail === 'topsonkenedy@gmail.com';
+        const isAdmin =
+          verifiedEmail === 'topsonkenedy@gmail.com' ||
+          verifiedEmail === 'top22ken@gmail.com' ||
+          verifiedEmail === 'admin@topsonmedia.com';
 
         let appUser: User = {
           id: uid,
           uid: uid,
           username: isAdmin
-            ? 'Topson Kenedy'
+            ? 'topson media'
             : firebaseUser.displayName || verifiedEmail.split('@')[0],
           email: verifiedEmail,
           role: isAdmin ? 'admin' : 'member',
