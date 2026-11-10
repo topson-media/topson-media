@@ -515,18 +515,17 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                             className="w-full h-full object-cover rounded-full"
                           />
                         </div>
-                      ) : msg.avatarUrl ? (
+                      ) : (
                         <div className="w-6 h-6 rounded-full border border-neutral-300 overflow-hidden bg-white shadow-2xs shrink-0">
                           <img
-                            src={msg.avatarUrl}
-                            alt={msg.senderName}
+                            src={msg.avatarUrl || '/welcome.png'}
+                            alt={msg.senderName || 'User'}
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover rounded-full"
+                            onError={(e) => {
+                              e.currentTarget.src = '/welcome.png';
+                            }}
                           />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 text-slate-800 font-bold flex items-center justify-center text-[9px] shadow-2xs">
-                          {msg.senderName.slice(0, 1).toUpperCase()}
                         </div>
                       )}
                     </div>

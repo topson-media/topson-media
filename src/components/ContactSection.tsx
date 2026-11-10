@@ -146,13 +146,13 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onSendMessageToA
     >
       <div className="max-w-3xl mx-auto w-full">
         {/* Clean Kicker */}
-        <div className="text-[10px] sm:text-[11px] font-medium tracking-widest uppercase text-neutral-500 mb-0.5 sm:mb-1 text-center">
+        <div className="text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase text-slate-500 mb-0.5 sm:mb-1 text-center">
           {t.contactSection.kicker}
         </div>
 
         {/* Section Title */}
         <div className="text-center mb-3 sm:mb-8">
-          <h2 className="text-xl sm:text-3xl font-medium text-neutral-900 tracking-tight leading-tight flex items-center justify-center gap-2">
+          <h2 className="text-xl sm:text-3xl font-semibold text-slate-900 tracking-tight leading-snug flex items-center justify-center gap-2">
             <span>{t.contactSection.header}</span>
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
               <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

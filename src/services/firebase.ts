@@ -363,12 +363,16 @@ export function subscribeToFeedbacks(callback: (feedbacks: FeedbackItem[]) => vo
                 ? data.likesCount
                 : (likedByList.length > 0 ? likedByList.length : (data.likes || 0));
 
+            const profilePhoto = data.userProfileUrl || data.photoURL || data.avatarUrl || '';
             return {
               id: docSnap.id,
               authorName: data.authorName || data.user || 'Member',
               authorHandle: data.authorHandle || (data.user ? `@${data.user.toLowerCase().replace(/\s+/g, '')}` : undefined),
               authorRole: data.authorRole || 'Community Member',
-              avatarUrl: data.avatarUrl || '',
+              avatarUrl: profilePhoto,
+              userProfileUrl: profilePhoto,
+              photoURL: profilePhoto,
+              username: data.username || data.authorName || data.user || 'User',
               rating: data.rating || 5,
               date: data.date || 'Recent',
               createdAt: createdTime,

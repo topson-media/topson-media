@@ -717,17 +717,17 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Kicker */}
-        <div className="text-xs font-bold tracking-widest uppercase text-neutral-800 mb-6">
+        <div className="text-xs font-semibold tracking-wider uppercase text-slate-500 mb-6">
           VIDEO GALLERY {isStandalonePage ? '· COMPLETE ARCHIVE' : ''}
         </div>
 
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight leading-[1.05]">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight leading-snug">
               {t.videosSection.header}
             </h2>
-            <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 font-normal">
               {t.videosSection.subtext}
             </p>
           </div>
@@ -909,7 +909,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
                     <div className="p-2.5 sm:p-4">
                       <div className="flex items-center justify-between gap-1 text-[9px] sm:text-[11px] text-neutral-500 font-semibold mb-1.5 sm:mb-2">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className="text-orange-600 font-bold flex items-center gap-0.5">
+                          <span className="flex items-center gap-0.5 text-[11px] font-medium text-slate-400 tracking-tight">
                             <span>🕒</span>
                             <span>{displayTimeAgo}</span>
                           </span>

@@ -12,8 +12,9 @@ export function formatTimeAgo(timestamp?: string | number, lang: 'en' | 'kn' = '
   } else if (!isNaN(Number(timestamp))) {
     timeMs = Number(timestamp);
   } else {
-    // If it's a relative string already (like "Just now", "2 days ago")
-    const lower = String(timestamp).toLowerCase();
+    // If it's a relative string already (like "Just now", "2 days ago", "Posted 3d ago")
+    const cleaned = String(timestamp).replace(/^(posted|uploaded)\s+/i, '').trim();
+    const lower = cleaned.toLowerCase();
     if (lower.includes('just now') || lower.includes('ubu ngubu')) {
       return justNowText;
     }
@@ -23,11 +24,11 @@ export function formatTimeAgo(timestamp?: string | number, lang: 'en' | 'kn' = '
       lower.includes('yesterday') ||
       lower.includes('hashize')
     ) {
-      return String(timestamp);
+      return cleaned;
     }
 
     const parsed = Date.parse(timestamp);
-    if (isNaN(parsed)) return String(timestamp);
+    if (isNaN(parsed)) return cleaned;
     timeMs = parsed;
   }
 
@@ -39,7 +40,9 @@ export function formatTimeAgo(timestamp?: string | number, lang: 'en' | 'kn' = '
 
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) {
-    return lang === 'kn' ? `Hashize iminota ${minutes}` : `${minutes}m ago`;
+    return lang === 'kn'
+      ? `Hashize iminota ${minutes}`
+      : `${minutes} ${minutes === 1 ? 'min' : 'mins'} ago`;
   }
 
   const hours = Math.floor(minutes / 60);
@@ -68,24 +71,10 @@ export function formatTimeAgo(timestamp?: string | number, lang: 'en' | 'kn' = '
 
 export function formatUploadedTimeAgo(timestamp?: string | number, lang: 'en' | 'kn' = 'en'): string {
   const ago = formatTimeAgo(timestamp, lang);
-  if (ago.toLowerCase().includes('just now') || ago.toLowerCase().includes('ubu ngubu')) {
-    return lang === 'kn' ? 'Yashyizweho ubu ngubu' : 'Uploaded just now';
-  }
-  if (lang === 'kn') {
-    return `Yashyizweho ${ago}`;
-  }
-  if (ago.toLowerCase().startsWith('uploaded')) return ago;
-  return `Uploaded ${ago}`;
+  return ago.replace(/^(posted|uploaded)\s+/i, '');
 }
 
 export function formatFeedbackTimeAgo(timestamp?: string | number, lang: 'en' | 'kn' = 'en'): string {
   const ago = formatTimeAgo(timestamp, lang);
-  if (ago.toLowerCase().includes('just now') || ago.toLowerCase().includes('ubu ngubu')) {
-    return lang === 'kn' ? 'Ubu ngubu' : 'Posted just now';
-  }
-  if (lang === 'kn') {
-    return ago;
-  }
-  if (ago.toLowerCase().startsWith('posted')) return ago;
-  return `Posted ${ago}`;
+  return ago.replace(/^(posted|uploaded)\s+/i, '');
 }

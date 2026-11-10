@@ -54,6 +54,9 @@ export interface FeedbackItem {
   authorHandle?: string;
   authorRole: string;
   avatarUrl: string;
+  userProfileUrl?: string;
+  photoURL?: string;
+  username?: string;
   rating: number;
   date: string;
   createdAt?: number | string;

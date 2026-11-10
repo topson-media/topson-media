@@ -96,17 +96,17 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
 
             {/* Welcome Message Label */}
-            <div className="text-xs sm:text-sm font-medium tracking-widest uppercase text-orange-600 flex items-center gap-2">
+            <div className="text-xs sm:text-sm font-sans font-semibold tracking-widest uppercase text-orange-600 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
               <span>WELCOME TO</span>
             </div>
 
             {/* Main Interactive Headline: CONTINUOUSLY ANIMATING WORDS WITH LIVING WAVE & INTERACTIVE BOUNCE */}
             <h1
-              className="font-sans font-medium tracking-tight text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-slate-900 leading-tight select-none"
+              className="font-sans font-semibold tracking-tight text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-slate-900 leading-tight select-none antialiased whitespace-nowrap"
               aria-label="TOPSON MEDIA"
             >
-              <span className="inline-flex flex-wrap items-baseline">
+              <span className="inline-flex whitespace-nowrap items-baseline">
                 {FULL_BRAND_TITLE.split('').map((char, index) => {
                   const isSpace = char === ' ';
                   const isBouncing = bouncingIndex === index;
@@ -123,7 +123,7 @@ export const Hero: React.FC<HeroProps> = ({
                     <span
                       key={`char-${index}`}
                       onClick={() => handleLetterClick(index)}
-                      className={`inline-block font-medium cursor-pointer transition-all duration-300 text-orange-600 hover:text-orange-500 hover:scale-125 hover:-translate-y-1 active:scale-95 animate-living-word ${
+                      className={`inline-block font-semibold cursor-pointer transition-all duration-300 text-orange-600 hover:text-orange-500 hover:scale-125 hover:-translate-y-1 active:scale-95 animate-living-word ${
                         isBouncing ? 'animate-bounce text-amber-500' : ''
                       }`}
                       style={{
@@ -139,8 +139,8 @@ export const Hero: React.FC<HeroProps> = ({
               </span>
             </h1>
 
-            {/* Description text - non-bold typography */}
-            <p className="hidden md:block text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 max-w-lg leading-relaxed font-normal">
+            {/* Description text - clean geometric mid-weight font */}
+            <p className="hidden md:block text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 max-w-lg leading-relaxed font-sans font-normal">
               {t.hero.subtext}
             </p>
 

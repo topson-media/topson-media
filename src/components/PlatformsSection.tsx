@@ -114,18 +114,18 @@ export const PlatformsSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Kicker */}
-        <div className="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-neutral-800 mb-4 sm:mb-6">
+        <div className="text-[11px] sm:text-xs font-semibold tracking-wider uppercase text-slate-500 mb-4 sm:mb-6">
           {t.socialSection.kicker}
         </div>
 
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-10 gap-3">
           <div>
-            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight leading-[1.05]">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight leading-snug">
               {t.socialSection.header}
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-neutral-600 max-w-xs md:text-right font-medium">
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xs md:text-right font-normal">
             {t.socialSection.subtext}
           </p>
         </div>

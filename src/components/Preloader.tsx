@@ -8,7 +8,8 @@ interface PreloaderProps {
   durationMs?: number;
 }
 
-const BRAND_NAME = 'TOPSON MEDIA';
+// 2. BRAND MOTIVATIONAL SLOGAN TEXT IN ALL CAPITAL LETTERS
+const BRAND_SLOGAN = 'LEARN & GAIN SKILLS';
 
 export const Preloader: React.FC<PreloaderProps> = ({
   onComplete,
@@ -19,16 +20,16 @@ export const Preloader: React.FC<PreloaderProps> = ({
   const [displayedText, setDisplayedText] = useState<string>('');
 
   useEffect(() => {
-    // Progressive Typewriter reveal for "TOPSON MEDIA"
-    const totalChars = BRAND_NAME.length;
-    const typeDelay = 400; // start typing after 400ms
-    const typeInterval = Math.max(80, Math.floor((durationMs - 1200) / totalChars));
+    // Progressive Typewriter reveal for "LEARN & GAIN SKILLS"
+    const totalChars = BRAND_SLOGAN.length;
+    const typeDelay = 350; // brief pause before typing starts
+    const typeInterval = Math.max(65, Math.floor((durationMs - 1100) / totalChars));
 
     let charIndex = 0;
     const startTimeout = setTimeout(() => {
       const typeTimer = setInterval(() => {
         charIndex++;
-        setDisplayedText(BRAND_NAME.slice(0, charIndex));
+        setDisplayedText(BRAND_SLOGAN.slice(0, charIndex));
         if (charIndex >= totalChars) {
           clearInterval(typeTimer);
         }
@@ -37,7 +38,7 @@ export const Preloader: React.FC<PreloaderProps> = ({
       return () => clearInterval(typeTimer);
     }, typeDelay);
 
-    // Main completion timer for 3-5s flexible retention window
+    // Main completion timer for smooth lifecycle transition
     const completionTimer = setTimeout(() => {
       setIsLoading(false);
     }, durationMs);
@@ -61,7 +62,7 @@ export const Preloader: React.FC<PreloaderProps> = ({
     >
       {isLoading && (
         <motion.div
-          key="cinematic-preloader"
+          key="cinematic-white-preloader"
           initial={{ opacity: 1 }}
           exit={{
             opacity: 0,
@@ -69,39 +70,59 @@ export const Preloader: React.FC<PreloaderProps> = ({
             filter: 'blur(8px)',
             transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] },
           }}
-          className="bg-black w-screen h-screen fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden select-none"
+          className="bg-slate-50 w-screen h-screen fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden select-none px-3"
           aria-label="Topson Media Welcome Preloader"
         >
-          {/* Subtle Ambient Background Mesh */}
+          {/* Subtle Ambient Light Grid Mesh */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(234,88,12,0.18),rgba(0,0,0,0))]" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(249,115,22,0.12),rgba(255,255,255,0))]" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.025)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
           </div>
 
-          <div className="relative z-10 flex flex-col items-center justify-center px-4 max-w-lg text-center">
+          <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-5xl text-center">
             
-            {/* 2. VISUAL LAYOUT & ATTRACTIVE FLOATING ANIMATION */}
-            <div className="relative flex items-center justify-center">
-              {/* High-end glowing soft neon-orange radial backdrop */}
+            {/* 1. DYNAMIC CIRCLING BACKDROP BEHIND PROFILE (Profile Image Remains 100% Static) */}
+            <div className="relative flex items-center justify-center mb-4 sm:mb-6">
+              
+              {/* Luminous Neon-Orange Radial Glow Field for White Background */}
               <div
-                className="absolute w-44 h-44 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full bg-gradient-to-tr from-orange-600/40 via-amber-500/30 to-orange-500/15 blur-2xl sm:blur-3xl pointer-events-none animate-pulse"
+                className="absolute w-48 h-48 sm:w-60 sm:h-60 md:w-72 md:h-72 rounded-full bg-gradient-to-tr from-orange-500/25 via-amber-400/20 to-transparent blur-3xl pointer-events-none animate-pulse"
                 style={{ animationDuration: '3s' }}
               />
 
-              {/* Gentle pulsing breathing effect scaling continuously */}
-              <motion.div
-                animate={{
-                  scale: [1, 1.055, 1],
-                  y: [0, -6, 0],
+              {/* DUAL-CONCENTRIC DECORATIVE BLUR RING: Endless Infinite 6s CSS Rotation */}
+              <div
+                className="absolute -inset-4 sm:-inset-6 md:-inset-8 rounded-full pointer-events-none animate-spin"
+                style={{
+                  animationDuration: '6s',
+                  animationTimingFunction: 'linear',
+                  animationIterationCount: 'infinite',
                 }}
-                transition={{
-                  duration: 3.2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-gradient-to-b from-orange-500 to-amber-500/60 shadow-[0_0_50px_rgba(249,115,22,0.45)] ring-4 ring-orange-500/20"
               >
-                <div className="w-full h-full rounded-full overflow-hidden bg-black border-2 border-orange-400/80">
+                {/* Outer concentric gradient border ring */}
+                <div className="w-full h-full rounded-full border-2 border-dashed border-orange-500/40 p-2 sm:p-3">
+                  {/* Inner neon energy arc with high-contrast gradient colors */}
+                  <div className="w-full h-full rounded-full border-2 sm:border-[3px] border-t-amber-500 border-r-orange-600 border-b-transparent border-l-amber-400/40 shadow-[0_0_20px_rgba(249,115,22,0.4)]" />
+                </div>
+              </div>
+
+              {/* Counter-spinning subtle secondary energy orbital particles */}
+              <div
+                className="absolute -inset-2 sm:-inset-3 rounded-full pointer-events-none animate-spin"
+                style={{
+                  animationDuration: '10s',
+                  animationTimingFunction: 'linear',
+                  animationDirection: 'reverse',
+                  animationIterationCount: 'infinite',
+                }}
+              >
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_10px_#f59e0b] absolute top-0 left-1/2 -translate-x-1/2" />
+                <div className="w-2 h-2 rounded-full bg-orange-600 shadow-[0_0_8px_#ea580c] absolute bottom-0 left-1/2 -translate-x-1/2" />
+              </div>
+
+              {/* FIXED 100% STATIC PROFILE AVATAR CONTAINER (Strictly Zero Spin) */}
+              <div className="relative z-10 w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 bg-white border-2 border-orange-500 shadow-xl shadow-orange-500/25 ring-4 ring-orange-200/60">
+                <div className="w-full h-full rounded-full overflow-hidden bg-white">
                   <img
                     src="/welcome.png"
                     alt="topson media"
@@ -114,30 +135,32 @@ export const Preloader: React.FC<PreloaderProps> = ({
                     }}
                   />
                 </div>
-              </motion.div>
-            </div>
-
-            {/* 3. GEOMETRIC TYPOGRAPHY METADATA */}
-            <div className="mt-6 sm:mt-8 flex flex-col items-center w-full max-w-4xl px-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] sm:text-xs font-sans tracking-widest uppercase mb-2">
-                <Sparkles className="w-3 h-3 text-orange-400 animate-spin" style={{ animationDuration: '4s' }} />
-                <span>OFFICIAL STUDIO</span>
               </div>
 
-              {/* INTENSE EXTRA-BOLD MASSIVE SCALE & HIGH-CONTRAST GLOWING GRADIENT */}
+            </div>
+
+            {/* Top Studio Kicker Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-[10px] sm:text-xs font-sans tracking-widest uppercase mb-1 shadow-2xs">
+              <Sparkles className="w-3 h-3 text-orange-500 animate-spin" style={{ animationDuration: '4s' }} />
+              <span>OFFICIAL STUDIO</span>
+            </div>
+
+            {/* 2. TEXT CONTENT & MAXIMUM GEOMETRIC BOLDNESS: "LEARN & GAIN SKILLS"
+                Exact Tailwind specification: font-sans font-black tracking-tight text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-orange-600 to-amber-500 drop-shadow-[0_4px_12px_rgba(249,115,22,0.2)] uppercase whitespace-nowrap mt-8 */}
+            <div className="w-full flex items-center justify-center overflow-hidden px-1 whitespace-nowrap">
               <h1
                 style={{ fontWeight: 900 }}
-                className="preloader-brand-title font-sans font-black font-[900] uppercase text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-400 to-orange-600 min-h-[1.2em] flex items-center justify-center leading-none select-none text-center drop-shadow-[0_10px_35px_rgba(234,88,12,0.4)]"
+                className="preloader-brand-title font-sans font-black font-[900] tracking-tight text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-orange-600 to-amber-500 drop-shadow-[0_4px_12px_rgba(249,115,22,0.2)] uppercase whitespace-nowrap mt-8 min-h-[1.2em] flex items-center justify-center leading-none select-none text-center"
               >
                 <span>{displayedText}</span>
-                {displayedText.length < BRAND_NAME.length && (
-                  <span className="inline-block w-1 sm:w-1.5 md:w-2 h-10 sm:h-14 md:h-18 lg:h-20 bg-orange-500 ml-1.5 sm:ml-2 animate-pulse" />
+                {displayedText.length < BRAND_SLOGAN.length && (
+                  <span className="inline-block w-1 sm:w-1.5 md:w-2 h-7 sm:h-12 md:h-16 lg:h-20 bg-orange-600 ml-1 sm:ml-2 animate-pulse" />
                 )}
               </h1>
             </div>
 
-            {/* Cinematic Minimal Loading Indicator */}
-            <div className="w-36 sm:w-48 h-1 bg-white/10 rounded-full mt-8 overflow-hidden">
+            {/* Minimalist Light Loading Bar */}
+            <div className="w-36 sm:w-48 h-1.5 bg-slate-200 rounded-full mt-6 sm:mt-8 overflow-hidden shadow-2xs">
               <motion.div
                 initial={{ x: '-100%' }}
                 animate={{ x: '100%' }}
@@ -154,7 +177,7 @@ export const Preloader: React.FC<PreloaderProps> = ({
             <button
               type="button"
               onClick={handleDismiss}
-              className="mt-6 inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-orange-400 transition-colors cursor-pointer py-1 px-3 rounded-full hover:bg-white/5 font-sans"
+              className="mt-6 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-orange-600 transition-colors cursor-pointer py-1.5 px-3.5 rounded-full hover:bg-orange-50 border border-slate-200/80 font-sans shadow-2xs"
             >
               <span>Skip Intro</span>
               <ArrowRight className="w-3 h-3" />

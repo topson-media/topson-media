@@ -1,44 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  --font-sans: 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 @layer base {
   :root {
-    --font-sans: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+    --font-sans: 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   *, *::before, *::after {
-    font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+    font-family: 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   }
 
   html, body {
-    font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
-    letter-spacing: -0.01em;
+    font-family: 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    letter-spacing: -0.015em;
     background-color: #ffffff !important;
-    color: #171717 !important;
+    color: #0f172a !important;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6, p, span, a, button, input, textarea, select, label {
-    font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
-  }
-
-  /* Universal Non-Bold Typography Enforcement across entire website */
-  * {
-    font-weight: 500;
-  }
-  h1, h2, h3, h4, h5, h6, strong, b, button, label, span {
-    font-weight: 500 !important;
-  }
-  .font-bold, .font-extrabold, .font-black, .font-semibold {
-    font-weight: 500 !important;
-  }
-
-  /* Explicit Preloader Hero Typography Override */
-  .preloader-brand-title {
-    font-weight: 900 !important;
+    font-family: 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   }
 }
 

@@ -135,12 +135,14 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
         {/* Top Author Bar */}
         <div className="flex flex-row items-center justify-between w-full gap-2 mb-3">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-neutral-100 shrink-0 shadow-xs flex items-center justify-center">
-              <SafeAvatar
-                src={fb.avatarUrl}
-                name={fb.authorName || fb.user || 'Member'}
-                size="md"
-                className="w-full h-full"
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-white shrink-0 shadow-xs flex items-center justify-center">
+              <img
+                src={fb.userProfileUrl || fb.avatarUrl || fb.photoURL || '/welcome.png'}
+                alt={fb.authorName || fb.username || fb.user || 'User'}
+                className="w-full h-full rounded-full object-cover border border-slate-200"
+                onError={(e) => {
+                  e.currentTarget.src = '/welcome.png';
+                }}
               />
             </div>
             <div className="min-w-0">
@@ -158,10 +160,10 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-neutral-500 font-medium whitespace-nowrap">
-                <span className="truncate">{fb.authorRole || 'Community Member'}</span>
-                <span>•</span>
-                <span className="whitespace-nowrap shrink-0">{formatFeedbackTimeAgo(fb.createdAt || fb.date, language)}</span>
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                <span className="truncate text-[11px] font-medium text-neutral-500">{fb.authorRole || 'Community Member'}</span>
+                <span className="text-slate-300">•</span>
+                <span className="whitespace-nowrap shrink-0 text-[11px] font-medium text-slate-400 tracking-tight">{formatFeedbackTimeAgo(fb.createdAt || fb.date, language)}</span>
               </div>
             </div>
           </div>
@@ -267,7 +269,7 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-neutral-500 font-semibold flex items-center gap-1">
+          <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400 tracking-tight">
             <span>🕒</span>
             <span>{formatFeedbackTimeAgo(fb.createdAt || fb.date, language)}</span>
           </span>
@@ -453,16 +455,25 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
       const now = new Date();
       const timestampMs = now.getTime();
 
+      const authorAvatar =
+        currentUser.avatarUrl ||
+        (currentUser.role === 'admin'
+          ? 'https://i.postimg.cc/Hsb9TQcX/profile.png'
+          : '/welcome.png');
+
       const docPayload = {
         text: feedbackMessage,
         user: currentUser.username,
+        username: currentUser.username,
         created_at: now,
         // UI & schema fields for instant seamless display
         content: feedbackMessage,
         authorName: currentUser.username,
         authorHandle: `@${currentUser.username.toLowerCase().replace(/\s+/g, '')}`,
         authorRole: currentUser.role === 'admin' ? 'Topson Media Host & Admin' : 'Community Member',
-        avatarUrl: currentUser.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+        avatarUrl: authorAvatar,
+        userProfileUrl: authorAvatar,
+        photoURL: authorAvatar,
         rating: rating || 5,
         date: 'Just now',
         createdAt: timestampMs,
@@ -497,17 +508,26 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
       }, 1400);
     } catch (err) {
       console.warn('addDoc feedback fallback:', err);
+      const authorAvatar =
+        currentUser.avatarUrl ||
+        (currentUser.role === 'admin'
+          ? 'https://i.postimg.cc/Hsb9TQcX/profile.png'
+          : '/welcome.png');
+
       // Resilient fallback: ensure user's item drops into live state immediately
       const fallbackItem: FeedbackItem = {
         id: 'fb-' + Date.now(),
         text: feedbackMessage,
         user: currentUser.username,
+        username: currentUser.username,
         created_at: new Date(),
         content: feedbackMessage,
         authorName: currentUser.username,
         authorHandle: `@${currentUser.username.toLowerCase().replace(/\s+/g, '')}`,
         authorRole: 'Community Member',
-        avatarUrl: currentUser.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+        avatarUrl: authorAvatar,
+        userProfileUrl: authorAvatar,
+        photoURL: authorAvatar,
         rating: rating || 5,
         date: 'Just now',
         createdAt: Date.now(),
@@ -572,7 +592,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Kicker */}
-        <div className="text-xs font-bold tracking-widest uppercase text-neutral-800 mb-6 flex items-center gap-2">
+        <div className="text-xs font-semibold tracking-wider uppercase text-slate-500 mb-6 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
           <span>COMMUNITY HUB {isStandalonePage ? '· ALL REVIEWS' : ''}</span>
         </div>
@@ -580,10 +600,10 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight leading-[1.05]">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight leading-snug">
               {t.communitySection.header}
             </h2>
-            <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 font-normal max-w-xl">
               {t.communitySection.subtext}
             </p>
           </div>
@@ -651,7 +671,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
             <button
               type="button"
               onClick={handleToggleInput}
-              className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 transition-all shadow-[0_0_20px_rgba(249,115,22,0.45)] hover:shadow-[0_0_30px_rgba(249,115,22,0.7)] border border-orange-400/50 flex items-center gap-2 cursor-pointer shrink-0"
+              className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-slate-900 hover:bg-slate-800 active:scale-95 transition-all duration-300 shadow-sm hover:shadow-md border border-slate-800 flex items-center gap-2 cursor-pointer shrink-0"
               title="Andika igitekerezo cyawe muri Topson Media"
             >
               {showInput ? (
@@ -661,7 +681,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 stroke-[3] text-white" />
+                  <MessageSquarePlus className="w-4 h-4 text-orange-400" />
                   <span>Andika igitekerezo</span>
                 </>
               )}
@@ -681,12 +701,14 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
             {/* Card Header with User Details */}
             <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-800 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-slate-900 shrink-0 shadow-xs">
-                  <SafeAvatar
-                    src={currentUser?.avatarUrl}
-                    name={currentUser?.username || 'User'}
-                    size="md"
-                    className="w-full h-full"
+                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-orange-500 p-0.5 bg-slate-900 shrink-0 shadow-xs flex items-center justify-center">
+                  <img
+                    src={currentUser?.avatarUrl || '/welcome.png'}
+                    alt={currentUser?.username || 'User'}
+                    className="w-full h-full rounded-full object-cover border border-slate-700"
+                    onError={(e) => {
+                      e.currentTarget.src = '/welcome.png';
+                    }}
                   />
                 </div>
                 <div>
@@ -845,9 +867,9 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
             <button
               type="button"
               onClick={handleToggleInput}
-              className="mt-2 h-11 sm:h-12 px-6 py-3 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 transition-all shadow-[0_0_22px_rgba(249,115,22,0.5)] hover:shadow-[0_0_32px_rgba(249,115,22,0.75)] border border-orange-400/50 flex items-center gap-2.5 cursor-pointer"
+              className="mt-2 h-11 sm:h-12 px-6 py-3 rounded-xl font-semibold text-xs sm:text-sm text-white bg-slate-900 hover:bg-slate-800 active:scale-95 transition-all duration-300 shadow-sm hover:shadow-md border border-slate-800 flex items-center gap-2.5 cursor-pointer"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
+              <MessageSquarePlus className="w-4 h-4 text-orange-400" />
               <span>Andika igitekerezo</span>
             </button>
           </div>
@@ -882,9 +904,9 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
               <button
                 type="button"
                 onClick={handleToggleInput}
-                className="h-11 sm:h-12 px-6 py-3 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 transition-all shadow-[0_0_20px_rgba(249,115,22,0.45)] hover:shadow-[0_0_30px_rgba(249,115,22,0.7)] border border-orange-400/50 flex items-center gap-2.5 cursor-pointer shrink-0"
+                className="h-11 sm:h-12 px-6 py-3 rounded-xl font-semibold text-xs sm:text-sm text-white bg-slate-900 hover:bg-slate-800 active:scale-95 transition-all duration-300 shadow-sm hover:shadow-md border border-slate-800 flex items-center gap-2.5 cursor-pointer shrink-0"
               >
-                {showInput ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4 stroke-[3]" />}
+                {showInput ? <X className="w-4 h-4 text-white" /> : <MessageSquarePlus className="w-4 h-4 text-orange-400" />}
                 <span>{showInput ? 'Funga igitekerezo' : 'Andika igitekerezo'}</span>
               </button>
             </div>
@@ -979,9 +1001,9 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
               <button
                 type="button"
                 onClick={handleToggleInput}
-                className="h-12 px-6 py-3 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 hover:from-orange-500 hover:to-amber-400 active:scale-95 transition-all shadow-[0_0_20px_rgba(249,115,22,0.45)] hover:shadow-[0_0_30px_rgba(249,115,22,0.7)] border border-orange-400/50 flex items-center gap-2.5 cursor-pointer shrink-0"
+                className="h-12 px-6 py-3 rounded-xl font-semibold text-xs sm:text-sm text-white bg-slate-900 hover:bg-slate-800 active:scale-95 transition-all duration-300 shadow-sm hover:shadow-md border border-slate-800 flex items-center gap-2.5 cursor-pointer shrink-0"
               >
-                {showInput ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4 stroke-[3]" />}
+                {showInput ? <X className="w-4 h-4 text-white" /> : <MessageSquarePlus className="w-4 h-4 text-orange-400" />}
                 <span>{showInput ? 'Funga igitekerezo' : 'Andika igitekerezo'}</span>
               </button>
             </div>
