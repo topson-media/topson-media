@@ -16,6 +16,8 @@ import {
   Filter,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Mail,
   Send
 } from 'lucide-react';
@@ -49,6 +51,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'top_fans' | 'pending' | 'loyal' | 'suspended'>('all');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'delete' | 'info' } | null>(null);
   const [selectedUserForDetails, setSelectedUserForDetails] = useState<User | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Track accounts that have been deactivated / suspended locally in localStorage & Firestore
   const [suspendedUserIds, setSuspendedUserIds] = useState<string[]>(() => {
@@ -83,6 +87,27 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       console.error('Failed to load users:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSyncDatabase = async () => {
+    setIsSyncing(true);
+    try {
+      const list = await fetchUsersListFromDb();
+      setUsersList(list);
+      const firestoreSuspended = list.filter((u) => u.suspended).map((u) => u.id);
+      if (firestoreSuspended.length > 0) {
+        setSuspendedUserIds((prev) => Array.from(new Set([...prev, ...firestoreSuspended])));
+      }
+      if (onUserCountChange) {
+        onUserCountChange(list.length);
+      }
+      showToast(`Database synced successfully! ${list.length} user records updated.`, 'success');
+    } catch (err) {
+      console.error('Failed to sync users:', err);
+      showToast('Could not sync user accounts from database.', 'delete');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -268,34 +293,34 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         </div>
       )}
 
-      {/* Header & Controls in Glassmorphic Container */}
-      <div className="rounded-3xl p-6 sm:p-7 bg-slate-950/40 backdrop-blur-xl border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header & Controls in Clean High-End White Container (Static blur mask completely removed) */}
+      <div className="rounded-3xl p-6 sm:p-7 bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/40 flex items-center justify-center shadow-[0_0_12px_rgba(249,115,22,0.3)]">
-              <Users className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center shadow-xs">
+              <Users className="w-5 h-5" />
             </div>
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               User Accounts Directory &amp; Fan Badges
             </h3>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/40">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200">
               Admin Exclusive
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1.5 max-w-2xl font-normal leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-2xl font-normal leading-relaxed">
             Manage registered community members, inspect full user details &amp; activity history, instantly award glowing Top Fan badges, and dispatch automated background Gmail alerts.
           </p>
         </div>
 
-        {/* Reload button */}
+        {/* Reload / Sync Database button with instant real-time re-fetch */}
         <button
           type="button"
-          onClick={loadUsers}
-          disabled={isLoading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900/90 hover:bg-slate-850 text-slate-200 border border-slate-700/80 shadow-md transition-all cursor-pointer self-start sm:self-auto hover:border-orange-500/50"
+          onClick={handleSyncDatabase}
+          disabled={isSyncing || isLoading}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all cursor-pointer self-start sm:self-auto hover:border-orange-500/50 active:scale-95 disabled:opacity-60"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-orange-400' : ''}`} />
-          <span>Sync Database</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isSyncing || isLoading ? 'animate-spin text-orange-400' : ''}`} />
+          <span>{isSyncing ? 'Syncing Firestore...' : 'Sync Database'}</span>
         </button>
       </div>
 
@@ -468,12 +493,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               return (
                 <div
                   key={u.id}
-                  className={`p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-colors ${
+                  className={`transition-colors ${
                     isSuspended ? 'bg-red-50/60' : 'hover:bg-slate-50/80'
                   }`}
                 >
-                  {/* Left: User Identity Info with Clickable Name */}
-                  <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {/* Left: User Identity Info with Clickable Name */}
+                    <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-900 font-bold text-sm flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs relative overflow-hidden">
                       <img
                         src={u.avatarUrl || (isThisAdmin ? TOPSON_PROFILE_IMAGE : `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80`)}
@@ -550,85 +576,156 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                     </div>
                   </div>
 
-                  {/* Right: Engagement Stats & Admin Action Buttons */}
-                  <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-200">
-                    {/* Visits Badge */}
-                    <span
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
-                        isLoyal
-                          ? 'bg-orange-50 text-orange-700 border border-orange-200'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}
-                      title={`${visits} site visits recorded`}
-                    >
-                      <span>{isLoyal ? '🔥' : '👁️'}</span>
-                      <span>
-                        {visits} {visits === 1 ? 'visit' : 'visits'}
+                    {/* Right: Engagement Stats, Quick Actions & Accordion Toggle */}
+                    <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2 sm:gap-2.5 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-200">
+                      {/* Visits Badge */}
+                      <span
+                        className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
+                          isLoyal
+                            ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}
+                        title={`${visits} site visits recorded`}
+                      >
+                        <span>{isLoyal ? '🔥' : '👁️'}</span>
+                        <span>
+                          {visits} {visits === 1 ? 'visit' : 'visits'}
+                        </span>
                       </span>
-                    </span>
 
-                    {/* Admin Actions (Disabled for admin self-account) */}
-                    {!isThisAdmin ? (
-                      <div className="flex items-center gap-2">
-                        {/* 3. ASSIGN TOP FAN STAR BUTTON & AUTOMATED GMAIL DISPATCH */}
-                        {!isTopFan ? (
+                      {/* Admin Actions (Disabled for admin self-account) */}
+                      {!isThisAdmin ? (
+                        <div className="flex items-center gap-1.5">
+                          {/* 3. ASSIGN TOP FAN STAR BUTTON & AUTOMATED GMAIL DISPATCH */}
+                          {!isTopFan ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAwardFanBadge(u.id, u.username)}
+                              className="h-8 px-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer active:scale-95"
+                              title="Award official Top Fan star and dispatch branded notification email"
+                            >
+                              <Award className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Award Star</span>
+                            </button>
+                          ) : (
+                            <span className="h-8 px-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-300 text-xs font-bold flex items-center gap-1 shadow-2xs">
+                              <TopFanBadge size="xs" />
+                              <span className="hidden sm:inline">Star Active</span>
+                            </span>
+                          )}
+
+                          {/* 2. TOGGLE ACCOUNT STATUS (Active / Suspended) */}
                           <button
                             type="button"
-                            onClick={() => handleAwardFanBadge(u.id, u.username)}
-                            className="h-8 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-                            title="Award official Top Fan star and dispatch branded notification email"
+                            onClick={() => handleToggleAccountStatus(u.id, u.username)}
+                            className={`h-8 px-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
+                              isSuspended
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                            }`}
+                            title={isSuspended ? 'Reactivate user account' : 'Suspend user account and send email alert'}
                           >
-                            <Award className="w-3.5 h-3.5" />
-                            <span>Award Star</span>
+                            {isSuspended ? (
+                              <>
+                                <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="hidden sm:inline">Activate</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserX className="w-3.5 h-3.5 text-slate-500" />
+                                <span className="hidden sm:inline">Suspend</span>
+                              </>
+                            )}
                           </button>
+
+                          {/* 2. DELETE USER BUTTON */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u.id, u.username)}
+                            className="h-8 px-2 rounded-xl text-red-600 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 hover:border-red-600 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                            title="Permanently purge user account and credentials"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic font-medium px-1">
+                          Host
+                        </span>
+                      )}
+
+                      {/* ACCORDION TOGGLE BUTTON */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)}
+                        className={`h-8 px-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                          expandedUserId === u.id
+                            ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                        }`}
+                        title={expandedUserId === u.id ? 'Collapse details' : 'Expand full user card'}
+                      >
+                        <span className="text-[11px] hidden sm:inline">Details</span>
+                        {expandedUserId === u.id ? (
+                          <ChevronUp className="w-3.5 h-3.5" />
                         ) : (
-                          <span className="h-8 px-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-                            <TopFanBadge size="xs" />
-                            <span>Star Active</span>
-                          </span>
+                          <ChevronDown className="w-3.5 h-3.5" />
                         )}
-
-                        {/* 2. TOGGLE ACCOUNT STATUS (Active / Suspended) + BACKGROUND EMAIL */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleAccountStatus(u.id, u.username)}
-                          className={`h-8 px-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                            isSuspended
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                              : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-                          }`}
-                          title={isSuspended ? 'Reactivate user account' : 'Suspend user account and send email alert'}
-                        >
-                          {isSuspended ? (
-                            <>
-                              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Activate</span>
-                            </>
-                          ) : (
-                            <>
-                              <UserX className="w-3.5 h-3.5 text-slate-500" />
-                              <span>Suspend</span>
-                            </>
-                          )}
-                        </button>
-
-                        {/* 2. DELETE USER BUTTON + BACKGROUND EMAIL */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteUser(u.id, u.username)}
-                          className="h-8 px-2.5 rounded-xl text-red-600 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 hover:border-red-600 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
-                          title="Permanently purge user account and credentials"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400 italic font-medium px-2">
-                        Host Account
-                      </span>
-                    )}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* OPERATIONAL CARD DIRECTORY ACCORDION DRAWER */}
+                  {expandedUserId === u.id && (
+                    <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 space-y-3 shadow-inner">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                          <div className="p-2.5 rounded-xl bg-white border border-slate-200">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                              User ID
+                            </span>
+                            <code className="font-mono text-[11px] text-slate-700 select-all truncate block">
+                              {u.id}
+                            </code>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-white border border-slate-200">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                              Authentication Provider
+                            </span>
+                            <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                              {u.email && u.email.endsWith('@gmail.com') ? 'Google / Gmail' : 'Email & Password'}
+                            </span>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-white border border-slate-200">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                              Joined Date &amp; History
+                            </span>
+                            <span className="font-semibold text-slate-700">
+                              {u.joinedDate || 'Recently joined'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200">
+                          <div className="text-[11px] text-slate-500">
+                            Status: <strong className={isSuspended ? 'text-red-600' : 'text-emerald-600'}>{isSuspended ? 'Suspended' : 'Active Account'}</strong> &bull; Total visits: <strong>{visits}</strong>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedUserForDetails(u)}
+                            className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>Inspect Full Analytics &amp; History Modal</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

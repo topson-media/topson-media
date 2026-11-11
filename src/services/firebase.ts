@@ -103,95 +103,168 @@ export function getYouTubeThumbnail(urlOrId?: string): string | null {
   return null;
 }
 
+export function formatUploadedTimeAgo(timestampMs: number): string {
+  if (!timestampMs) return 'Recently';
+  const now = Date.now();
+  const diffSec = Math.max(0, Math.floor((now - timestampMs) / 1000));
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return `${diffMonths}mo ago`;
+  return `${Math.floor(diffMonths / 12)}y ago`;
+}
+
+export function mapFirestoreVideoDoc(docId: string, data: any): VideoItem {
+  const rawUrl = data.video_url || data.videoUrl || '';
+  const detectedYtId = data.youtube_id || data.youtubeId || extractYouTubeId(rawUrl);
+  const resolvedThumbnail =
+    data.thumbnail ||
+    (detectedYtId ? getYouTubeThumbnail(detectedYtId) : '') ||
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
+
+  let createdTime = Date.now();
+  if (data.created_at) {
+    if (typeof data.created_at.toMillis === 'function') {
+      createdTime = data.created_at.toMillis();
+    } else if (typeof data.created_at.toDate === 'function') {
+      createdTime = data.created_at.toDate().getTime();
+    } else if (typeof data.created_at === 'number') {
+      createdTime = data.created_at;
+    }
+  } else if (data.createdAt) {
+    if (typeof data.createdAt.toMillis === 'function') {
+      createdTime = data.createdAt.toMillis();
+    } else if (typeof data.createdAt.toDate === 'function') {
+      createdTime = data.createdAt.toDate().getTime();
+    } else if (typeof data.createdAt === 'number') {
+      createdTime = data.createdAt;
+    }
+  } else if (typeof data.uploadTimestamp === 'number') {
+    createdTime = data.uploadTimestamp;
+  }
+
+  const rawCat = data.category || 'phone';
+  const categoryLabel =
+    rawCat === 'phone' ? 'Phone Mastery' :
+    rawCat === 'pc' ? 'PC Performance' :
+    rawCat === 'digital' ? 'Digital Skills' :
+    rawCat;
+
+  const viewsCountVal =
+    typeof data.viewsCount === 'number'
+      ? data.viewsCount
+      : (typeof data.views === 'number' ? data.views : 0);
+
+  const displayViews =
+    data.views && typeof data.views === 'string'
+      ? data.views
+      : (viewsCountVal > 0 ? `${viewsCountVal} views` : '0 views');
+
+  return {
+    id: docId,
+    title: data.title || (detectedYtId ? `YouTube Tutorial (${detectedYtId})` : 'Untitled Tutorial'),
+    category: categoryLabel,
+    duration: data.duration || '10:00',
+    views: displayViews,
+    viewsCount: viewsCountVal,
+    viewedBy: Array.isArray(data.viewedBy) ? data.viewedBy : [],
+    date: data.date || formatUploadedTimeAgo(createdTime),
+    thumbnail: resolvedThumbnail,
+    youtubeId: detectedYtId || undefined,
+    videoUrl: rawUrl || (detectedYtId ? `https://www.youtube.com/watch?v=${detectedYtId}` : ''),
+    sourceType: data.sourceType || 'link',
+    description: data.description || `Tutorial on ${data.title || ''}`,
+    tags: Array.isArray(data.tags) ? data.tags : [categoryLabel],
+    likes: typeof data.likes === 'number' ? data.likes : (typeof data.likesCount === 'number' ? data.likesCount : 0),
+    likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
+    comments: Array.isArray(data.comments) ? data.comments : [],
+    createdAt: createdTime,
+    uploadTimestamp: createdTime,
+  };
+}
+
 export function subscribeToVideos(callback: (videos: VideoItem[]) => void): () => void {
   try {
-    const q = query(collection(db, 'videos'), limit(150));
-    return onSnapshot(
-      q,
+    let videosDocs: VideoItem[] = [];
+    let tutorialsDocs: VideoItem[] = [];
+
+    const broadcast = () => {
+      const map = new Map<string, VideoItem>();
+      const canonicalSeen = new Set<string>();
+
+      // Prioritize video_tutorials (the primary streaming video collection) then videos
+      [...tutorialsDocs, ...videosDocs].forEach((vid) => {
+        const canonicalKey = vid.youtubeId
+          ? `yt:${vid.youtubeId.toLowerCase()}`
+          : vid.videoUrl
+          ? `url:${vid.videoUrl.toLowerCase().trim()}`
+          : `id:${vid.id}`;
+
+        if (!map.has(vid.id) && !canonicalSeen.has(canonicalKey)) {
+          map.set(vid.id, vid);
+          if (canonicalKey.startsWith('yt:') || canonicalKey.startsWith('url:')) {
+            canonicalSeen.add(canonicalKey);
+          }
+        }
+      });
+
+      const merged = Array.from(map.values());
+      // Sort descending by creation timestamp
+      merged.sort((a, b) => {
+        const aTime = typeof a.createdAt === 'number' ? a.createdAt : 0;
+        const bTime = typeof b.createdAt === 'number' ? b.createdAt : 0;
+        return bTime - aTime;
+      });
+
+      callback(merged);
+      try {
+        localStorage.setItem('topson_videos_cache', JSON.stringify(merged));
+      } catch {}
+    };
+
+    // 1. Subscribe to 'video_tutorials' collection (main tutorial video section)
+    const qTutorials = query(collection(db, 'video_tutorials'), limit(200));
+    const unsubTutorials = onSnapshot(
+      qTutorials,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const vids: VideoItem[] = snapshot.docs.map((docSnap) => {
-            const data = docSnap.data();
-            const rawUrl = data.videoUrl || data.video_url || '';
-            const detectedYtId = data.youtubeId || data.youtube_id || extractYouTubeId(rawUrl);
-            const resolvedThumbnail =
-              data.thumbnail ||
-              (detectedYtId ? getYouTubeThumbnail(detectedYtId) : '') ||
-              'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
-
-            const createdTime =
-              data.createdAt?.toMillis?.() ||
-              data.created_at?.toMillis?.() ||
-              (typeof data.createdAt === 'number' ? data.createdAt : 0) ||
-              (typeof data.created_at === 'number' ? data.created_at : 0) ||
-              data.uploadTimestamp ||
-              0;
-
-            return {
-              id: docSnap.id,
-              title: data.title || (detectedYtId ? `YouTube Tutorial (${detectedYtId})` : 'Untitled Tutorial'),
-              category: data.category || 'Phone Mastery',
-              duration: data.duration || '10:00',
-              views: data.views || '0 views',
-              viewsCount: typeof data.viewsCount === 'number' ? data.viewsCount : 0,
-              viewedBy: data.viewedBy || [],
-              date: data.date || 'Recent',
-              thumbnail: resolvedThumbnail,
-              youtubeId: detectedYtId || undefined,
-              videoUrl: rawUrl || (detectedYtId ? `https://www.youtube.com/watch?v=${detectedYtId}` : ''),
-              sourceType: data.sourceType || 'link',
-              description: data.description || '',
-              tags: Array.isArray(data.tags) ? data.tags : [],
-              likes: data.likes || data.likesCount || 0,
-              likedBy: data.likedBy || [],
-              comments: data.comments || [],
-              createdAt: createdTime,
-              created_at: createdTime,
-            };
-          });
-
-          // Sort descending by creation timestamp
-          vids.sort((a, b) => {
-            const aTime = typeof a.createdAt === 'number' ? a.createdAt : 0;
-            const bTime = typeof b.createdAt === 'number' ? b.createdAt : 0;
-            return bTime - aTime;
-          });
-
-          callback(vids);
-          try {
-            localStorage.setItem('topson_videos_cache', JSON.stringify(vids));
-          } catch {
-            // ignore
-          }
-        } else {
-          try {
-            const cached = localStorage.getItem('topson_videos_cache');
-            if (cached) {
-              callback(JSON.parse(cached));
-              return;
-            }
-          } catch {
-            // ignore
-          }
-          callback([]);
-        }
+        tutorialsDocs = snapshot.docs.map((d) => mapFirestoreVideoDoc(d.id, d.data()));
+        broadcast();
       },
-      (error) => {
-        console.warn('Firestore videos subscription fallback to cache:', error);
-        try {
-          const cached = localStorage.getItem('topson_videos_cache');
-          if (cached) {
-            callback(JSON.parse(cached));
-            return;
-          }
-        } catch {
-          // ignore
-        }
-        callback([]);
+      (err) => {
+        console.warn('subscribeToVideos video_tutorials listener warning:', err);
       }
     );
+
+    // 2. Subscribe to 'videos' collection
+    const qVideos = query(collection(db, 'videos'), limit(200));
+    const unsubVideos = onSnapshot(
+      qVideos,
+      (snapshot) => {
+        videosDocs = snapshot.docs.map((d) => mapFirestoreVideoDoc(d.id, d.data()));
+        broadcast();
+      },
+      (err) => {
+        console.warn('subscribeToVideos videos listener warning:', err);
+      }
+    );
+
+    return () => {
+      unsubTutorials();
+      unsubVideos();
+    };
   } catch (err) {
     console.warn('subscribeToVideos error:', err);
+    try {
+      const cached = localStorage.getItem('topson_videos_cache');
+      if (cached) {
+        callback(JSON.parse(cached));
+      }
+    } catch {}
     return () => {};
   }
 }
@@ -200,13 +273,14 @@ export async function addVideoToDb(video: VideoItem): Promise<string> {
   try {
     const payload = {
       ...video,
+      video_url: video.videoUrl || '',
       createdAt: serverTimestamp(),
       created_at: serverTimestamp(),
       uploadTimestamp: Date.now(),
     };
-    const docRef = await addDoc(collection(db, 'videos'), payload);
+    const docRef = await addDoc(collection(db, 'video_tutorials'), payload);
     try {
-      await addDoc(collection(db, 'video_tutorials'), payload);
+      await setDoc(doc(db, 'videos', docRef.id), payload);
     } catch (_) {}
     return docRef.id;
   } catch (err) {
@@ -226,8 +300,14 @@ export async function addVideoToDb(video: VideoItem): Promise<string> {
 
 export async function updateVideoInDb(video: VideoItem): Promise<void> {
   try {
-    const docRef = doc(db, 'videos', video.id);
-    await updateDoc(docRef, { ...video });
+    const payload = {
+      ...video,
+      video_url: video.videoUrl || '',
+    };
+    await Promise.all([
+      updateDoc(doc(db, 'videos', video.id), payload).catch(() => {}),
+      updateDoc(doc(db, 'video_tutorials', video.id), payload).catch(() => {}),
+    ]);
   } catch (err) {
     console.warn('updateVideoInDb fallback:', err);
     try {
@@ -245,7 +325,10 @@ export async function updateVideoInDb(video: VideoItem): Promise<void> {
 
 export async function deleteVideoFromDb(videoId: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, 'videos', videoId));
+    await Promise.all([
+      deleteDoc(doc(db, 'videos', videoId)).catch(() => {}),
+      deleteDoc(doc(db, 'video_tutorials', videoId)).catch(() => {}),
+    ]);
   } catch (err) {
     console.warn('deleteVideoFromDb fallback:', err);
     try {
@@ -1515,8 +1598,71 @@ export function subscribeToAdminActivities(callback: (activities: AdminActivity[
 }
 
 // ============================================================================
-// MONETIZATION & CONTEXTUAL ADVERTISING SYSTEM
+// MONETIZATION & CONTEXTUAL ADVERTISING SYSTEM (5-MINUTE ROTATION MATRIX)
 // ============================================================================
+
+export const DEFAULT_MONETIZATION_CAMPAIGNS: MonetizationCampaign[] = [
+  {
+    id: 'campaign-protonvpn',
+    title: 'Try ProtonVPN – 60% Off for Topson Viewers',
+    description: 'Encrypt your mobile data, unblock geo-restricted tech tools, and enjoy high browsing speeds.',
+    redirectUrl: 'https://protonvpn.com',
+    imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=400&q=80',
+    isActive: true,
+  },
+  {
+    id: 'campaign-techmastery',
+    title: 'Topson Masterclass: Android & PC Repair Toolkit',
+    description: 'Get step-by-step diagnostic tools, FRP unlocks, and recovery guides direct from Topson Media.',
+    redirectUrl: 'https://youtube.com/@topsonmedia',
+    imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=400&q=80',
+    isActive: true,
+  },
+  {
+    id: 'campaign-nordsec',
+    title: 'Cyber Security Essentials 2025 – Stay Safe Online',
+    description: 'Protect your passwords and personal files against phishing and mobile spyware.',
+    redirectUrl: 'https://nordvpn.com',
+    imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=400&q=80',
+    isActive: true,
+  },
+];
+
+export function subscribeToMonetizationCampaigns(callback: (campaigns: MonetizationCampaign[]) => void): () => void {
+  try {
+    const campaignsCol = collection(db, 'sponsorship_campaigns');
+    return onSnapshot(
+      campaignsCol,
+      (snap) => {
+        if (!snap.empty) {
+          const list: MonetizationCampaign[] = snap.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              title: data.title || '',
+              description: data.description || '',
+              redirectUrl: data.redirectUrl || '',
+              imageUrl: data.imageUrl || '',
+              isActive: data.isActive !== false,
+              updatedAt: data.updatedAt,
+            };
+          });
+          callback(list);
+        } else {
+          callback(DEFAULT_MONETIZATION_CAMPAIGNS);
+        }
+      },
+      (err) => {
+        console.warn('subscribeToMonetizationCampaigns snapshot fallback:', err);
+        callback(DEFAULT_MONETIZATION_CAMPAIGNS);
+      }
+    );
+  } catch (err) {
+    console.warn('subscribeToMonetizationCampaigns error:', err);
+    callback(DEFAULT_MONETIZATION_CAMPAIGNS);
+    return () => {};
+  }
+}
 
 export function subscribeToMonetizationCampaign(callback: (campaign: MonetizationCampaign | null) => void): () => void {
   try {
@@ -1536,37 +1682,67 @@ export function subscribeToMonetizationCampaign(callback: (campaign: Monetizatio
             updatedAt: data.updatedAt,
           });
         } else {
-          callback(null);
+          callback(DEFAULT_MONETIZATION_CAMPAIGNS[0]);
         }
       },
       (err) => {
         console.warn('subscribeToMonetizationCampaign error:', err);
-        callback(null);
+        callback(DEFAULT_MONETIZATION_CAMPAIGNS[0]);
       }
     );
   } catch (err) {
     console.warn('subscribeToMonetizationCampaign error:', err);
+    callback(DEFAULT_MONETIZATION_CAMPAIGNS[0]);
     return () => {};
   }
 }
 
-export async function saveMonetizationCampaign(campaign: MonetizationCampaign): Promise<void> {
+export async function saveMonetizationCampaign(campaign: MonetizationCampaign): Promise<string> {
   try {
-    const campaignRef = doc(db, 'monetization', 'active_campaign');
+    const campaignId = campaign.id || `campaign-${Date.now()}`;
+    const docRef = doc(db, 'sponsorship_campaigns', campaignId);
     await setDoc(
-      campaignRef,
+      docRef,
       {
+        id: campaignId,
         title: campaign.title.trim(),
-        description: campaign.description.trim(),
+        description: (campaign.description || '').trim(),
         redirectUrl: campaign.redirectUrl.trim(),
         imageUrl: (campaign.imageUrl || '').trim(),
-        isActive: campaign.isActive,
+        isActive: campaign.isActive !== false,
         updatedAt: serverTimestamp(),
       },
       { merge: true }
     );
+
+    // Also mirror to legacy active_campaign document for single-slot consumers
+    const activeRef = doc(db, 'monetization', 'active_campaign');
+    await setDoc(
+      activeRef,
+      {
+        title: campaign.title.trim(),
+        description: (campaign.description || '').trim(),
+        redirectUrl: campaign.redirectUrl.trim(),
+        imageUrl: (campaign.imageUrl || '').trim(),
+        isActive: campaign.isActive !== false,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return campaignId;
   } catch (err) {
     console.error('saveMonetizationCampaign error:', err);
+    throw err;
+  }
+}
+
+export async function deleteMonetizationCampaign(campaignId: string): Promise<void> {
+  try {
+    const docRef = doc(db, 'sponsorship_campaigns', campaignId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('deleteMonetizationCampaign error:', err);
     throw err;
   }
 }

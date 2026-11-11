@@ -72,7 +72,9 @@ import {
   awardFanBadgeInDb,
   subscribeToAdminActivities,
   subscribeToMonetizationCampaign,
+  subscribeToMonetizationCampaigns,
   saveMonetizationCampaign,
+  deleteMonetizationCampaign,
   db
 } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -146,7 +148,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return () => unsub();
   }, []);
 
-  // Monetization & Sponsorships State
+  // Monetization & Sponsorships State (5-Minute Slideshow Matrix)
   const [adCampaign, setAdCampaign] = useState<MonetizationCampaign>({
     title: '',
     description: '',
@@ -154,13 +156,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     imageUrl: '',
     isActive: true,
   });
+  const [campaignsList, setCampaignsList] = useState<MonetizationCampaign[]>([]);
   const [isSavingAd, setIsSavingAd] = useState(false);
   const [adSaveSuccess, setAdSaveSuccess] = useState(false);
 
   useEffect(() => {
-    const unsub = subscribeToMonetizationCampaign((camp) => {
-      if (camp) {
-        setAdCampaign(camp);
+    const unsub = subscribeToMonetizationCampaigns((camps) => {
+      setCampaignsList(camps);
+      if (camps.length > 0 && !adCampaign.title) {
+        setAdCampaign(camps[0]);
       }
     });
     return () => unsub();
@@ -177,6 +181,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       console.error('Failed to save monetization campaign:', err);
     } finally {
       setIsSavingAd(false);
+    }
+  };
+
+  const handleDeleteCampaign = async (campaignId?: string) => {
+    if (!campaignId) return;
+    if (window.confirm('Delete this sponsorship campaign from the 5-minute rotation matrix?')) {
+      try {
+        await deleteMonetizationCampaign(campaignId);
+        setCampaignsList((prev) => prev.filter((c) => c.id !== campaignId));
+        if (adCampaign.id === campaignId) {
+          setAdCampaign({
+            title: '',
+            description: '',
+            redirectUrl: '',
+            imageUrl: '',
+            isActive: true,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to delete campaign:', err);
+      }
     }
   };
 
@@ -1721,8 +1746,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-                  {videos.map((v) => {
+                {videos.length === 0 ? (
+                  <div className="py-16 text-center text-slate-500 space-y-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 border border-orange-200 flex items-center justify-center mx-auto shadow-xs">
+                      <Film className="w-6 h-6 text-orange-500" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900">No video tutorials published yet</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      All video tutorials shown in the main website video section are synced here automatically in real time.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('upload')}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-all shadow-sm cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>Publish First Tutorial</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                    {videos.map((v) => {
                     const isYouTube = !!v.youtubeId || (v.videoUrl && v.videoUrl.includes('youtube'));
                     return (
                       <div
@@ -1834,6 +1878,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     );
                   })}
                 </div>
+                )}
               </div>
             )}
 
@@ -2641,6 +2686,107 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                {/* 5-MINUTE SLIDESHOW MATRIX: MULTI-CAMPAIGN ROTATION DIRECTORY */}
+                <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold text-slate-900">
+                          5-Minute Timed Slideshow Matrix
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                          {campaignsList.filter((c) => c.isActive !== false).length} Active Loops
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Active campaigns rotate sequentially on the website every 5 minutes (300,000 ms). Only ONE ad renders at any moment.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdCampaign({
+                          id: `campaign-${Date.now()}`,
+                          title: '',
+                          description: '',
+                          redirectUrl: '',
+                          imageUrl: '',
+                          isActive: true,
+                        });
+                      }}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+                    >
+                      <span>+ Create New Ad</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                    {campaignsList.map((camp, idx) => {
+                      const isCurrentEditing = adCampaign.id === camp.id;
+                      return (
+                        <div
+                          key={camp.id || idx}
+                          className={`p-4 rounded-2xl border transition-all ${
+                            isCurrentEditing
+                              ? 'border-orange-500 bg-orange-50/40 ring-2 ring-orange-500/20 shadow-sm'
+                              : 'border-slate-200 bg-slate-50/60 hover:bg-white hover:border-slate-300 shadow-2xs'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                camp.isActive !== false
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : 'bg-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {camp.isActive !== false ? 'Live Loop' : 'Paused'}
+                            </span>
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setAdCampaign(camp)}
+                                className="px-2 py-1 rounded-lg text-[11px] font-bold text-orange-600 hover:bg-orange-100 transition-colors cursor-pointer"
+                                title="Edit this campaign in form"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCampaign(camp.id)}
+                                className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                title="Delete campaign from rotation matrix"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <h5 className="font-bold text-xs text-slate-900 truncate">
+                            {camp.title || 'Untitled Campaign'}
+                          </h5>
+                          {camp.description && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">
+                              {camp.description}
+                            </p>
+                          )}
+
+                          <div className="mt-3 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[10.5px]">
+                            <span className="text-slate-400 truncate max-w-[150px]">
+                              {camp.redirectUrl}
+                            </span>
+                            <span className="text-[10px] text-orange-600 font-bold">
+                              5m Loop
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

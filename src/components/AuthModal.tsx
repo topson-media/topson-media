@@ -710,35 +710,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md lg:max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto bg-slate-950 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(249,115,22,0.35)] border border-orange-500/40 relative my-auto animate-in zoom-in-95 duration-200 grid grid-cols-1 lg:grid-cols-12 custom-scrollbar"
+        className="w-full max-w-md lg:max-w-4xl max-h-[96vh] md:max-h-[92vh] overflow-hidden bg-slate-950 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(249,115,22,0.35)] border border-orange-500/40 relative my-auto animate-in zoom-in-95 duration-200 grid grid-cols-1 lg:grid-cols-12"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ========================================================================= */}
         {/* LEFT SIDE: DYNAMIC VISUAL AREA WITH FLOATING PROFILE & AMBIENT NEON GLOW  */}
         {/* HIDDEN ON MOBILE & TABLET (up to lg breakpoint), VISIBLE ON LG+ SCREENS  */}
         {/* ========================================================================= */}
-        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-b from-slate-950 via-slate-900 to-black p-6 lg:p-8 flex-col items-center justify-between relative overflow-hidden text-center border-b lg:border-b-0 lg:border-r border-slate-800/80">
+        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-b from-slate-950 via-slate-900 to-black p-5 lg:p-6 flex-col items-center justify-between relative overflow-hidden text-center border-b lg:border-b-0 lg:border-r border-slate-800/80">
           {/* Ambient High-End Neon-Orange Radial Glow & Cyber Grid */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(249,115,22,0.4)_0%,rgba(0,0,0,0)_75%)] pointer-events-none animate-pulse" />
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#f9731612_1px,transparent_1px),linear-gradient(to_bottom,#f9731612_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
 
           {/* Top subtle branding badge */}
           <div className="relative z-10 w-full flex items-center justify-between text-left">
-            <span className="text-[11px] font-black uppercase tracking-widest text-orange-400 bg-orange-500/10 border border-orange-500/30 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(249,115,22,0.3)]">
+            <span className="text-[10px] font-black uppercase tracking-widest text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(249,115,22,0.3)]">
               Official Hub
             </span>
-            <span className="text-[11px] font-bold text-slate-400">
+            <span className="text-[10px] font-bold text-slate-400">
               TM 2025
             </span>
           </div>
 
           {/* Floating Profile Picture: Smooth infinite gliding animation with neon radial ring */}
-          <div className="relative z-10 my-auto py-4 flex flex-col items-center">
+          <div className="relative z-10 my-auto py-2 flex flex-col items-center">
             {/* Ambient Radial Backlight Glow */}
             <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 opacity-50 blur-2xl animate-pulse pointer-events-none" />
 
             {/* Floating Image with Smooth CSS Translation Loop */}
-            <div className="relative w-32 h-32 lg:w-40 lg:h-40 rounded-full p-1.5 bg-gradient-to-tr from-orange-500 via-amber-400 to-orange-600 shadow-[0_0_40px_rgba(249,115,22,0.7)] animate-bounce [animation-duration:3.6s] ease-in-out">
+            <div className="relative w-28 h-28 lg:w-36 lg:h-36 rounded-full p-1.5 bg-gradient-to-tr from-orange-500 via-amber-400 to-orange-600 shadow-[0_0_40px_rgba(249,115,22,0.7)] animate-bounce [animation-duration:3.6s] ease-in-out">
               <div className="w-full h-full rounded-full overflow-hidden bg-slate-950 p-1 border-2 border-white/30">
                 <img
                   src={TOPSON_PROFILE_IMAGE}
@@ -752,30 +752,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </div>
 
-            {/* Text description under floating image */}
-            <h3 className="text-xl font-black text-white tracking-tight mt-4">
-              topson media
-            </h3>
-            <p className="text-xs text-slate-300 font-medium max-w-[240px] mt-1.5 leading-relaxed">
-              Empowering you with Phone & PC tutorials, daily tech hacks, and 24/7 direct support.
-            </p>
-
-            {/* Feature Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
-              <span className="px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] font-bold shadow-[0_0_10px_rgba(249,115,22,0.25)]">
-                YouTube Partner
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700 text-[10px] font-bold">
-                Live Support
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700 text-[10px] font-bold">
-                100% Free
-              </span>
-            </div>
+            {/* Replaced Text Area: Single clean, high-contrast headline "learn&gain skills" */}
+            <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight mt-4 uppercase">
+              learn&amp;gain skills
+            </h2>
           </div>
 
           {/* Bottom quote / footer in left side */}
-          <div className="relative z-10 text-[10.5px] text-slate-400 font-medium">
+          <div className="relative z-10 text-[10px] text-slate-400 font-medium">
             &ldquo;Making tech feel easy for curious minds everywhere&rdquo;
           </div>
         </div>
@@ -783,30 +767,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* ========================================================================= */}
         {/* RIGHT SIDE: ZERO-SCROLL TIGHTENED CREDENTIALS SECTION & GOOGLE BUTTON     */}
         {/* ========================================================================= */}
-        <div className="col-span-12 lg:col-span-7 bg-white text-neutral-900 p-3 sm:p-4 md:p-5 flex flex-col justify-between relative overflow-y-auto max-h-[95vh] md:max-h-[90vh] custom-scrollbar">
+        <div className="col-span-12 lg:col-span-7 bg-white text-neutral-900 p-3 sm:p-4 md:p-4.5 flex flex-col justify-between relative overflow-y-auto max-h-[96vh] md:max-h-[92vh] custom-scrollbar">
           <div className="w-full max-w-md lg:max-w-lg mx-auto flex flex-col justify-between h-full">
             {/* Top Form Header with Close Button */}
-            <div className="pb-3 border-b border-slate-100 relative text-center">
+            <div className="pb-2 border-b border-slate-100 relative text-center">
               <button
                 type="button"
                 onClick={onClose}
-                className="absolute top-0 right-0 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 z-10"
+                className="absolute top-0 right-0 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 z-10"
                 aria-label="Close authentication modal"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
 
               {/* Official Circular Topson Media Profile Photo Centered Above Heading */}
               <img
                 src={TOPSON_PROFILE_IMAGE}
                 alt="topson media"
-                className="w-14 h-14 rounded-full border border-slate-200 object-cover shadow-sm mb-4 mx-auto"
+                className="w-11 h-11 sm:w-12 sm:h-12 rounded-full border border-slate-200 object-cover shadow-sm mb-1.5 mx-auto"
                 onError={(e) => {
                   e.currentTarget.src = '/welcome.png';
                 }}
               />
 
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-tight">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-tight">
                 {isResetMode
                   ? language === 'kn'
                     ? 'Guhindura Ijambobanga'
@@ -816,10 +800,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     ? 'Join Topson Media'
                     : 'Join Topson Media'
                   : language === 'kn'
-                  ? 'Injira muli Topson Media'
-                  : 'Sign In to Topson Media'}
+                    ? 'Injira muli Topson Media'
+                    : 'Sign In to Topson Media'}
               </h2>
-              <p className="text-[11px] sm:text-xs text-slate-500 font-normal mt-1 max-w-xs mx-auto">
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-normal mt-0.5 max-w-xs mx-auto">
                 {isResetMode
                   ? language === 'kn'
                     ? 'Twandikire email tukoherereze link yo guhindura ijambobanga'
@@ -829,8 +813,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     ? 'Kora konti yawe ngo ubone tutorials na live chat yihuse'
                     : 'Create your account to access tutorials and instant live chat'
                   : language === 'kn'
-                  ? 'Injira muri konti yawe ya Topson Media'
-                  : 'Welcome back! Please enter your details'}
+                    ? 'Injira muri konti yawe ya Topson Media'
+                    : 'Welcome back! Please enter your details'}
               </p>
             </div>
 
@@ -1081,14 +1065,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   disabled={isGoogleSubmitting || isSubmitting}
                   onClick={handleGoogleSignIn}
-                  className="w-full h-10 px-3 rounded-xl bg-white hover:bg-slate-50 active:scale-[0.99] border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xs font-semibold text-xs sm:text-sm text-slate-800 disabled:opacity-50"
+                  className="w-full h-9 px-3 rounded-xl bg-white hover:bg-slate-50 active:scale-[0.99] border border-slate-200 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs font-semibold text-xs sm:text-sm text-slate-800 disabled:opacity-50"
                 >
                   {isGoogleSubmitting ? (
                     <span className="w-4 h-4 border-2 border-neutral-300 border-t-orange-500 rounded-full animate-spin" />
                   ) : (
                     <>
                       {/* Official Google Vector Logo */}
-                      <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                         <path
                           fill="#4285F4"
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -1114,7 +1098,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </>
                   )}
                 </button>
-                <p className="text-[9.5px] sm:text-[10px] text-neutral-400 text-center mt-1 font-medium">
+                <p className="text-[9px] sm:text-[9.5px] text-neutral-400 text-center mt-0.5 font-medium">
                   {language === 'kn'
                     ? '⚡ Banza winjire nta gusaba kwemeza email'
                     : '⚡ Instant access · No manual verification email needed'}
@@ -1122,9 +1106,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {/* Sharp Divider */}
-              <div className="flex items-center my-1.5 sm:my-2">
+              <div className="flex items-center my-1 sm:my-1.5">
                 <div className="flex-1 border-t border-neutral-200" />
-                <span className="px-2.5 text-[9.5px] sm:text-[10px] uppercase tracking-wider text-neutral-400 font-bold">
+                <span className="px-2 text-[9px] uppercase tracking-wider text-neutral-400 font-bold">
                   {language === 'kn' ? 'CYANGWA' : 'OR'}
                 </span>
                 <div className="flex-1 border-t border-neutral-200" />
@@ -1133,20 +1117,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* --------------------------------------------------------------- */}
               {/* PATHWAY B: TRADITIONAL EMAIL / PASSWORD INPUTS                  */}
               {/* --------------------------------------------------------------- */}
-              <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-2.5" noValidate>
+              <form onSubmit={handleSubmit} className="space-y-1.5 sm:space-y-2" noValidate>
                 {/* Profile Image Picker (Asked when creating account) */}
                 {isSignUp && (
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-1.5">
+                  <div className="p-1.5 sm:p-2 rounded-xl bg-neutral-50 border border-neutral-200 space-y-1">
                     <div className="flex items-center justify-between">
-                      <label className="block text-[10.5px] sm:text-xs font-bold text-neutral-800">
-                        {language === 'kn' ? 'Ifoto ya Profile' : 'Profile Image'} <span className="text-orange-600 font-semibold text-[9.5px]">({language === 'kn' ? 'Hitamo' : 'Choose'})</span>
+                      <label className="block text-[10px] sm:text-[10.5px] font-bold text-neutral-800">
+                        {language === 'kn' ? 'Ifoto ya Profile' : 'Profile Image'} <span className="text-orange-600 font-semibold text-[9px]">({language === 'kn' ? 'Hitamo' : 'Choose'})</span>
                       </label>
-                      <span className="text-[9.5px] text-neutral-400 font-medium">PNG, JPG, WebP</span>
+                      <span className="text-[9px] text-neutral-400 font-medium">PNG, JPG, WebP</span>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2">
                       {/* Active Avatar Circular Preview */}
-                      <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-orange-500 shadow-xs shrink-0 bg-white">
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-orange-500 shadow-xs shrink-0 bg-white">
                         <img
                           src={avatarUrl || DEFAULT_MEMBER_AVATAR}
                           alt="Profile Preview"
@@ -1169,25 +1153,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         <button
                           type="button"
                           onClick={() => avatarInputRef.current?.click()}
-                          className="w-full h-7 py-0.5 px-2.5 rounded-lg border border-dashed border-neutral-300 hover:border-orange-500 bg-white text-[10px] sm:text-[11px] font-bold text-neutral-700 hover:text-orange-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          className="w-full h-6 py-0 px-2 rounded-lg border border-dashed border-neutral-300 hover:border-orange-500 bg-white text-[10px] font-bold text-neutral-700 hover:text-orange-600 transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
                         >
-                          <Camera className="w-3 h-3 text-orange-500 shrink-0" />
+                          <Camera className="w-2.5 h-2.5 text-orange-500 shrink-0" />
                           <span className="truncate">
-                            {avatarFileName ? avatarFileName : (language === 'kn' ? 'Shyiraho Ifoto (Upload)' : 'Upload from Device')}
+                            {avatarFileName ? avatarFileName : (language === 'kn' ? 'Upload' : 'Upload from Device')}
                           </span>
                         </button>
 
-                        {/* Quick Avatar Presets (Member-only avatars, very compact) */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto">
-                          <span className="text-[9.5px] text-neutral-400 font-semibold shrink-0">
-                            {language === 'kn' ? 'Cyangwa:' : 'Presets:'}
+                        {/* Quick Avatar Presets */}
+                        <div className="flex items-center gap-1 overflow-x-auto">
+                          <span className="text-[9px] text-neutral-400 font-semibold shrink-0">
+                            {language === 'kn' ? 'Presets:' : 'Presets:'}
                           </span>
                           {[
                             { name: 'Tech Explorer', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80' },
                             { name: 'Creator', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
                             { name: 'Tech Pro', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
                             { name: 'Developer', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
-                            { name: 'Innovator', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80' },
                           ].map((preset, idx) => (
                             <button
                               key={idx}
@@ -1196,7 +1179,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                                 setAvatarUrl(preset.url);
                                 setAvatarFileName('');
                               }}
-                              className={`w-5 h-5 rounded-full overflow-hidden border transition-transform cursor-pointer shrink-0 ${
+                              className={`w-4.5 h-4.5 rounded-full overflow-hidden border transition-transform cursor-pointer shrink-0 ${
                                 avatarUrl === preset.url
                                   ? 'border-orange-500 ring-2 ring-orange-500/40 scale-110'
                                   : 'border-neutral-200 hover:border-neutral-400 opacity-80 hover:opacity-100'
@@ -1215,7 +1198,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {/* Username Input (Only on Sign-Up) */}
                 {isSignUp && (
                   <div>
-                    <label className="block text-[10.5px] sm:text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-[10px] sm:text-[10.5px] font-semibold text-slate-700 mb-0.5">
                       {language === 'kn' ? 'Amazina yawe' : 'Your Username'}
                     </label>
                     <div className="relative">
@@ -1228,7 +1211,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="e.g. Eric Mugisha"
-                        className="w-full h-10 pl-8 pr-3 text-xs sm:text-sm rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-2xs"
+                        className="w-full h-8.5 pl-8 pr-3 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-2xs"
                       />
                     </div>
                   </div>
@@ -1236,7 +1219,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 {/* Email Field */}
                 <div>
-                  <label className="block text-[10.5px] sm:text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-[10px] sm:text-[10.5px] font-semibold text-slate-700 mb-0.5">
                     {isSignUp
                       ? language === 'kn'
                         ? 'Aderesi ya Email'
@@ -1262,14 +1245,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       placeholder={
                         isSignUp ? 'you@gmail.com' : 'you@gmail.com or username'
                       }
-                      className="w-full h-10 pl-8 pr-3 text-xs sm:text-sm rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-2xs"
+                      className="w-full h-8.5 pl-8 pr-3 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-2xs"
                     />
                   </div>
                 </div>
 
                 {/* Password Field */}
                 <div>
-                  <label className="block text-[10.5px] sm:text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-[10px] sm:text-[10.5px] font-semibold text-slate-700 mb-0.5">
                     {language === 'kn' ? 'Ijambobanga (Password)' : 'Password'}
                   </label>
                   <div className="relative">
@@ -1282,7 +1265,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-10 pl-8 pr-9 text-xs sm:text-sm rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-2xs"
+                      className="w-full h-8.5 pl-8 pr-8 text-xs rounded-xl bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-2xs"
                     />
                     <button
                       type="button"
@@ -1300,9 +1283,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                   {/* 4. RESET PASSWORD UNDER PASSWORD FIELD */}
                   {!isSignUp && (
-                    <div className="flex items-center justify-between pt-1 px-0.5">
-                      <span className="text-[9.5px] text-neutral-400">
-                        {language === 'kn' ? 'Wibagiwe ijambobanga?' : 'Trouble logging in?'}
+                    <div className="flex items-center justify-between pt-0.5 px-0.5">
+                      <span className="text-[9px] text-neutral-400">
+                        {language === 'kn' ? 'Wibagiwe?' : 'Trouble logging in?'}
                       </span>
                       <button
                         type="button"
@@ -1314,17 +1297,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             setEmail(identifier.trim());
                           }
                         }}
-                        className="text-[10.5px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer transition-colors"
+                        className="text-[10px] font-bold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer transition-colors"
                       >
                         {language === 'kn'
-                          ? 'Hindura ijambobanga (Reset)'
+                          ? 'Hindura ijambobanga'
                           : 'Forgot / Reset password?'}
                       </button>
                     </div>
                   )}
 
                   {isSignUp && (
-                    <p className="text-[9.5px] text-neutral-400 mt-0.5 font-medium">
+                    <p className="text-[9px] text-neutral-400 mt-0.5 font-medium">
                       {language === 'kn'
                         ? 'Byibuze inyuguti 6 · Link yo kwemeza izoherezwa kuri iyi email'
                         : 'At least 6 characters · Verification link sent to this email'}
@@ -1337,7 +1320,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting || isGoogleSubmitting}
-                    className="w-full h-10 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border border-slate-800"
+                    className="w-full h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border border-slate-800"
                   >
                     {isSubmitting ? (
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1345,7 +1328,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <span>
                         {isSignUp
                           ? language === 'kn'
-                            ? 'Fungura Konti (Kora Sign Up)'
+                            ? 'Fungura Konti (Sign Up)'
                             : 'Create Account'
                           : language === 'kn'
                           ? 'Injira (Sign In)'

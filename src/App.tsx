@@ -50,6 +50,7 @@ import {
   recordUserVisitInDb,
   subscribeToUserSuspension,
   subscribeToMonetizationCampaign,
+  subscribeToMonetizationCampaigns,
   auth,
 } from './services/firebase';
 import { signOut } from 'firebase/auth';
@@ -108,8 +109,9 @@ export default function App() {
   // Interactive Community Feedbacks (Loaded dynamically via Firestore real-time listener)
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
 
-  // Active Monetization Campaign (Ad Slots A & B)
-  const [monetizationCampaign, setMonetizationCampaign] = useState<MonetizationCampaign | null>(null);
+  // Active Monetization Campaigns (5-Minute Rotating Slideshow Matrix)
+  const [monetizationCampaigns, setMonetizationCampaigns] = useState<MonetizationCampaign[]>([]);
+  const [activeCampaignIndex, setActiveCampaignIndex] = useState<number>(0);
 
   // Inbound Email Messages to topsonkenedy@gmail.com
   const [emailMessages, setEmailMessages] = useState<EmailMessage[]>(() => {
@@ -211,8 +213,8 @@ export default function App() {
       }
     });
 
-    const unsubMonetization = subscribeToMonetizationCampaign((camp) => {
-      setMonetizationCampaign(camp);
+    const unsubMonetization = subscribeToMonetizationCampaigns((camps) => {
+      setMonetizationCampaigns(camps);
     });
 
     return () => {
@@ -223,6 +225,24 @@ export default function App() {
       unsubMonetization();
     };
   }, [currentUser?.id, currentUser?.role]);
+
+  // INTERVAL-BASED AD ROTATION DISPLAY (5-Minute Slideshow Matrix - 300,000 ms)
+  useEffect(() => {
+    const activeList = monetizationCampaigns.filter((c) => c.isActive !== false && c.title);
+    if (activeList.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setActiveCampaignIndex((prev) => (prev + 1) % activeList.length);
+    }, 300000); // 5 minutes exactly
+
+    return () => clearInterval(interval);
+  }, [monetizationCampaigns]);
+
+  // Compute active rotating campaign to ensure only ONE promotional campaign banner renders at any moment
+  const activeCampaignsList = monetizationCampaigns.filter((c) => c.isActive !== false && c.title);
+  const currentRotatingCampaign = activeCampaignsList.length > 0
+    ? activeCampaignsList[activeCampaignIndex % activeCampaignsList.length]
+    : null;
 
   // Ensure dark class is never present
   useEffect(() => {
@@ -916,7 +936,7 @@ export default function App() {
                 {/* Welcome Section content tightly wrapped so About Me is immediately visible on screen */}
                 <div className="flex-1 flex flex-col justify-center items-center w-full">
                   <Hero
-                    campaign={monetizationCampaign}
+                    campaign={currentRotatingCampaign}
                     onWatchTutorials={() => handleNavClick('tutorials')}
                     onLiveChat={() => handleNavClick('chat')}
                     onExploreScroll={() => {
@@ -937,7 +957,7 @@ export default function App() {
               <VideoGallery
                 videos={videoList}
                 searchQuery={searchQuery}
-                campaign={monetizationCampaign}
+                campaign={currentRotatingCampaign}
                 currentUser={currentUser}
                 onOpenAdminAuth={() => handleOpenAuth('admin')}
                 onUploadVideo={handleUploadVideo}

@@ -282,8 +282,9 @@ export const Hero: React.FC<HeroProps> = ({
             {/* SPONSORED BANNER: Placed cleanly ABOVE the welcome image container so it NEVER covers or touches the circular image */}
             {campaign && campaign.isActive && campaign.title && !isAdDismissed && (
               <aside
+                key={campaign.id || campaign.title}
                 aria-label="Sponsored advertisement"
-                className="w-full max-w-[280px] sm:max-w-[340px] mb-3 sm:mb-4 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-500 z-20"
+                className="w-full max-w-[280px] sm:max-w-[340px] mb-3 sm:mb-4 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-500 z-20 transition-all"
               >
                 <div className="relative bg-amber-400 border-2 border-orange-600 text-slate-950 rounded-xl p-2 sm:p-2.5 shadow-md shadow-orange-500/20 flex items-start justify-between gap-2 transition-transform hover:scale-[1.01]">
                   <a

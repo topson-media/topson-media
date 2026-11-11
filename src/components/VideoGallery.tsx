@@ -42,7 +42,7 @@ import {
 import { extractVideoDurationFromFile } from '../utils/videoDuration';
 import { formatUploadedTimeAgo, formatTimeAgo } from '../utils/timeAgo';
 import { useLanguage } from '../context/LanguageContext';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, DEFAULT_TUTORIALS, seedInitialTutorialsIfEmpty } from '../services/firebase';
 
 interface VideoGalleryProps {
@@ -212,8 +212,16 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
   // * Likes -> statistics.likeCount
   // * Comments -> statistics.commentCount
   // * Upload Time -> Parse snippet.publishedAt to calculate clean "X days ago" or "X months ago" string format
+  // Unified list of tutorials combining props and local listener
+  const allTutorialVideos = useMemo(() => {
+    const map = new Map<string, VideoItem>();
+    (videos || []).forEach((v) => map.set(v.id, v));
+    (tutorials || []).forEach((v) => map.set(v.id, v));
+    return Array.from(map.values());
+  }, [videos, tutorials]);
+
   useEffect(() => {
-    const listToScan = tutorials.length > 0 ? tutorials : videos;
+    const listToScan = allTutorialVideos.length > 0 ? allTutorialVideos : (tutorials.length > 0 ? tutorials : videos);
     const yIds: string[] = [];
 
     listToScan.forEach((vid) => {
@@ -373,7 +381,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
 
   const filteredVideos = useMemo(() => {
     // 100% clean data pulled dynamically from real Firebase Firestore database collections only
-    const effectiveList = tutorials.length > 0 ? tutorials : videos;
+    const effectiveList = allTutorialVideos.length > 0 ? allTutorialVideos : (tutorials.length > 0 ? tutorials : videos);
 
     const q = searchQuery.toLowerCase().trim();
     if (!q) return effectiveList;
@@ -385,7 +393,7 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
         video.tags.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [tutorials, videos, searchQuery]);
+  }, [allTutorialVideos, tutorials, videos, searchQuery]);
 
   // Display all uploaded tutorials streamed from Firestore
   const displayedVideos = useMemo(() => {
@@ -487,7 +495,27 @@ export const VideoGallery: React.FC<VideoGalleryProps> = ({
     }
 
     try {
-      addDoc(collection(db, 'video_tutorials'), tutorialPayload);
+      addDoc(collection(db, 'video_tutorials'), tutorialPayload).then((docRef) => {
+        setDoc(doc(db, 'videos', docRef.id), tutorialPayload).catch(() => {});
+        if (onUploadVideo) {
+          onUploadVideo({
+            id: docRef.id,
+            title: newTitle.trim(),
+            category: newCategory,
+            videoUrl: urlToSave,
+            thumbnail: finalThumbnail,
+            duration: newDuration.trim() || '10:00',
+            views: finalViews,
+            viewsCount: uploadType === 'device' ? 0 : 1500,
+            description: newDescription.trim() || 'Tech walkthrough on ' + newTitle.trim(),
+            tags: [newCategory],
+            date: 'Just now',
+            youtubeId: cleanYtId || undefined,
+          });
+        }
+      }).catch((err) => {
+        console.warn('Failed to add doc in VideoGallery:', err);
+      });
     } catch (err) {
       console.warn('Failed to add doc in VideoGallery:', err);
     }
